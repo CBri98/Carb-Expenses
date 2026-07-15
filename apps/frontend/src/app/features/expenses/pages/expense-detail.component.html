@@ -1,0 +1,31 @@
+<section>
+  <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item">Spese</li><li class="breadcrumb-item active">Dettaglio</li></ol></nav>
+  <app-page-header title="Dettaglio spesa" subtitle="Dati completi e operazioni disponibili.">
+    <button class="btn btn-outline-secondary" type="button" (click)="back()"><i class="bi bi-arrow-left me-2"></i>Torna alla lista</button>
+  </app-page-header>
+  @if (error()) { <div class="alert alert-danger" role="alert">{{ error() }}</div> }
+  @if (loading()) { <app-loading-skeleton /> }
+  @else if (expense(); as item) {
+    <article class="card border-0 shadow-sm"><div class="card-body p-4 p-lg-5">
+      <div class="d-flex flex-wrap justify-content-between gap-3 mb-4"><div><p class="text-body-secondary mb-1">{{ item.expenseDate | italianExpenseDate }}{{ item.expenseTime ? ' · ' + item.expenseTime : '' }}</p><h1 class="h3 mb-2">{{ item.description }}</h1><app-expense-status-badge [status]="item.status" /></div><strong class="expense-total">{{ item.amount | euroAmount }}</strong></div>
+      <div class="row g-4 detail-grid">
+        <div class="col-12 col-md-6"><span>Categoria</span><app-category-badge [name]="item.category.name" [color]="item.category.color" [icon]="item.category.icon" /></div>
+        <div class="col-12 col-md-6"><span>Metodo di pagamento</span><app-payment-method-badge [method]="item.paymentMethod" /></div>
+        <div class="col-12 col-md-6"><span>Esercente o beneficiario</span><strong>{{ item.merchant || 'Non indicato' }}</strong></div>
+        <div class="col-12 col-md-6"><span>Etichette</span><div class="d-flex flex-wrap gap-1">@for (label of item.labels; track label.id) { <app-label-badge [name]="label.name" [color]="label.color" [icon]="label.icon" /> } @empty { <strong>Nessuna</strong> }</div></div>
+        <div class="col-12"><span>Note</span><p class="mb-0 notes">{{ item.notes || 'Nessuna nota.' }}</p></div>
+        <div class="col-12 col-md-6"><span>Creata il</span><strong>{{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</strong></div>
+        <div class="col-12 col-md-6"><span>Ultima modifica</span><strong>{{ item.updatedAt | date:'dd/MM/yyyy HH:mm' }}</strong></div>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-5 pt-4 border-top">
+        <button class="btn btn-primary" type="button" [disabled]="busy()" (click)="edit()"><i class="bi bi-pencil me-2"></i>Modifica</button>
+        <button class="btn btn-outline-secondary" type="button" [disabled]="busy()" (click)="duplicate()"><i class="bi bi-copy me-2"></i>Duplica</button>
+        @if (item.status !== 'COMPLETED') { <button class="btn btn-outline-success" type="button" [disabled]="busy()" (click)="setStatus('COMPLETED')">Segna completata</button> }
+        @if (item.status !== 'PLANNED') { <button class="btn btn-outline-warning" type="button" [disabled]="busy()" (click)="setStatus('PLANNED')">Segna pianificata</button> }
+        @if (item.status !== 'CANCELLED') { <button class="btn btn-outline-secondary" type="button" [disabled]="busy()" (click)="setStatus('CANCELLED')">Annulla spesa</button> }
+        <button class="btn btn-outline-danger ms-lg-auto" type="button" [disabled]="busy()" (click)="deleteOpen.set(true)"><i class="bi bi-trash me-2"></i>Elimina</button>
+      </div>
+    </div></article>
+  }
+</section>
+<app-confirm-dialog [open]="deleteOpen()" title="Elimina spesa" [message]="'La spesa “' + (expense()?.description ?? '') + '” verrà eliminata.'" confirmLabel="Elimina" [busy]="busy()" (confirmed)="remove()" (cancelled)="deleteOpen.set(false)" />

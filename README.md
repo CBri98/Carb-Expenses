@@ -1,59 +1,117 @@
 # Carbexpenses
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.6.
+Gestionale per la registrazione, pianificazione e analisi delle spese personali.
 
-## Development server
+Sono complete le Fasi 1–4: setup Docker, autenticazione, categorie ed etichette e gestione completa delle spese. Dashboard, report, grafici, calendario, notifiche e ricorrenze appartengono alle fasi successive e non sono ancora implementati.
 
-To start a local development server, run:
+## Requisiti
 
-```bash
-ng serve
-```
+- Node.js 22.12 o successivo
+- npm 10 o successivo
+- Docker con plugin Docker Compose
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Avvio completo con Docker
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Creare la configurazione locale:
 
 ```bash
-ng generate component component-name
+cp .env.example .env
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Sostituire le password di esempio, quindi avviare lo stack:
 
 ```bash
-ng generate --help
+docker compose up --build
 ```
 
-## Building
+Il backend attende MariaDB, applica le migrazioni Prisma, esegue il seed idempotente e avvia NestJS. I servizi sono disponibili su:
 
-To build the project run:
+- frontend: <http://localhost:4200>
+- backend health: <http://localhost:3000/api/v1/health>
+- Swagger: <http://localhost:3000/api/docs>
+- MariaDB: `localhost:3306`
+
+In `development` il seed crea l’utente configurato da `DEMO_USER_EMAIL` e `DEMO_USER_PASSWORD`, quattro etichette e venti spese dimostrative distribuite su più mesi. In produzione non crea dati demo.
+
+## Funzionalità disponibili
+
+L’autenticazione include registrazione, login, logout, ripristino sessione e refresh token ruotati e revocabili. Le password e i token persistiti sono protetti con Argon2id; il refresh token viaggia in cookie `HttpOnly`.
+
+Le sezioni protette principali sono:
+
+- <http://localhost:4200/expenses>
+- <http://localhost:4200/settings/categories>
+- <http://localhost:4200/settings/labels>
+
+La pagina Spese offre ricerca, filtri combinabili, ordinamento e paginazione server-side, visualizzazione desktop/mobile, dettaglio, creazione, modifica, duplicazione, cambio stato, soft delete con conferma ed export CSV. Il pulsante globale “Nuova spesa” apre lo stesso form condiviso in modalità rapida.
+
+Gli importi sono trasmessi come stringhe decimali e persistiti in `DECIMAL(12,2)`. Le date di spesa sono stringhe locali `YYYY-MM-DD` e colonne SQL `DATE`; i timestamp tecnici restano UTC.
+
+## API
+
+Il prefisso REST è `/api/v1`. Gli endpoint delle spese, tutti protetti da JWT, sono:
+
+```text
+GET    /expenses
+POST   /expenses
+GET    /expenses/export
+GET    /expenses/:id
+PATCH  /expenses/:id
+DELETE /expenses/:id
+POST   /expenses/:id/duplicate
+PATCH  /expenses/:id/status
+```
+
+`GET /expenses` ed export supportano ricerca, intervallo date oppure mese/anno, categoria, etichette con semantica ANY, stato, metodo di pagamento, importo minimo/massimo e ordinamento. La lista accetta inoltre `page` e `pageSize` fino a 100.
+
+L’export utilizza UTF-8 con BOM, separatore `;`, intestazioni italiane e un massimo di 10.000 righe.
+
+## Sviluppo locale
+
+Installare le dipendenze e avviare MariaDB:
 
 ```bash
-ng build
+npm install
+docker compose up -d mariadb
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Per eseguire Prisma o il backend fuori da Docker, impostare temporaneamente `DATABASE_URL` con host `localhost`. Per la modalità completa Docker il Compose costruisce autonomamente l’URL con host `mariadb`.
 
 ```bash
-ng test
+npm run prisma:generate
+npm run db:migrate
+npm run db:seed
+npm run start:backend
+npm run start:frontend
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+## Verifiche
 
 ```bash
-ng e2e
+npm run lint
+npm run typecheck:backend
+npm run typecheck:frontend
+npm run test:backend
+npm run test:frontend
+npm run build:backend
+npm run build:frontend
+npm run --workspace @carbexpenses/backend prisma:validate
+docker compose config
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Per arrestare i container mantenendo i dati usare `docker compose down`. L’opzione `--volumes` elimina anche il database persistente e va usata consapevolmente.
 
-## Additional Resources
+## Struttura
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+```text
+carbexpenses/
+├── apps/
+│   ├── frontend/   # Angular standalone, strict, SCSS, Bootstrap
+│   └── backend/    # NestJS strict, Prisma, Swagger e healthcheck
+├── docs/
+├── docker-compose.yml
+├── .env.example
+└── package.json
+```
+
+La roadmap è descritta in [docs/technical-roadmap.md](docs/technical-roadmap.md).

@@ -1,0 +1,26 @@
+.form-section {
+  padding: 1rem;
+  background: var(--form-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.form-section + .form-section {
+  margin-top: 1rem;
+}
+
+.form-section__title {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  margin: 0 0 0.9rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.form-section__title i {
+  color: var(--primary-strong);
+}
+
+fieldset[disabled] { opacity: .72; }

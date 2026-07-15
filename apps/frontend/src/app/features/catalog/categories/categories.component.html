@@ -1,0 +1,327 @@
+<section aria-labelledby="categories-title">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-3">
+      <li class="breadcrumb-item">Impostazioni</li>
+      <li class="breadcrumb-item active" aria-current="page">Categorie</li>
+    </ol>
+  </nav>
+  <app-page-header
+    title="Categorie"
+    subtitle="Organizza le spese con categorie predefinite e personali."
+  >
+    <button class="btn btn-primary" type="button" (click)="openCreate()">
+      <i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Nuova categoria
+    </button>
+  </app-page-header>
+
+  @if (notice(); as currentNotice) {
+    <div
+      class="alert notice"
+      [class.alert-success]="currentNotice.type === 'success'"
+      [class.alert-danger]="currentNotice.type === 'danger'"
+      role="status"
+    >
+      <div class="d-flex justify-content-between gap-3">
+        <span>{{ currentNotice.text }}</span
+        ><button
+          class="btn-close"
+          type="button"
+          aria-label="Chiudi messaggio"
+          (click)="notice.set(null)"
+        ></button>
+      </div>
+    </div>
+  }
+
+  <article class="card catalog-card">
+    <form class="catalog-toolbar" [formGroup]="filters" aria-label="Filtri categorie">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-lg-5">
+          <label class="form-label" for="category-search">Cerca</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span
+            ><input
+              id="category-search"
+              class="form-control"
+              type="search"
+              formControlName="search"
+              placeholder="Nome o descrizione"
+            />
+          </div>
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label" for="category-type">Tipo</label>
+          <ng-select labelForId="category-type" [items]="typeOptions" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" ariaLabel="Filtra per tipo di categoria" formControlName="type">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label" for="category-active">Stato</label>
+          <ng-select labelForId="category-active" [items]="activeOptions" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" ariaLabel="Filtra per stato categoria" formControlName="active">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
+        </div>
+        <div class="col-12 col-lg-3">
+          <button class="btn btn-outline-secondary w-100" type="button" (click)="resetFilters()">
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Reimposta filtri
+          </button>
+        </div>
+      </div>
+    </form>
+
+    @if (loading()) {
+      <app-loading-skeleton />
+    } @else if (categories().length === 0) {
+      <app-empty-state
+        title="Nessuna categoria trovata"
+        message="Modifica i filtri oppure crea una categoria personale."
+        ><button class="btn btn-primary" type="button" (click)="openCreate()">
+          Nuova categoria
+        </button></app-empty-state
+      >
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-hover catalog-table mb-0">
+          <thead>
+            <tr>
+              <th>Ordine</th>
+              <th>Icona</th>
+              <th>Nome</th>
+              <th>Tipo</th>
+              <th>Colore</th>
+              <th>Stato</th>
+              <th class="text-end">Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (category of categories(); track category.id; let index = $index) {
+              <tr>
+                <td data-label="Ordine">
+                  <div class="btn-group btn-group-sm" role="group" aria-label="Riordina categoria">
+                    <button
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      [disabled]="!canReorder() || index === 0"
+                      [attr.aria-label]="'Sposta su ' + category.name"
+                      (click)="move(index, -1)"
+                    >
+                      <i class="bi bi-chevron-up"></i></button
+                    ><button
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      [disabled]="!canReorder() || index === categories().length - 1"
+                      [attr.aria-label]="'Sposta giù ' + category.name"
+                      (click)="move(index, 1)"
+                    >
+                      <i class="bi bi-chevron-down"></i>
+                    </button>
+                  </div>
+                </td>
+                <td data-label="Icona">
+                  <span class="icon-preview"
+                    ><i class="bi" [class]="category.icon" aria-hidden="true"></i
+                  ></span>
+                </td>
+                <td data-label="Nome">
+                  <app-category-badge
+                    [name]="category.name"
+                    [color]="category.color"
+                    [icon]="category.icon"
+                  />
+                  @if (category.description) {
+                    <div class="small text-body-secondary mt-1">{{ category.description }}</div>
+                  }
+                </td>
+                <td data-label="Tipo">
+                  <span
+                    class="badge"
+                    [class.text-bg-primary]="category.isDefault"
+                    [class.text-bg-light]="category.isCustom"
+                    >{{ category.isDefault ? 'Predefinita' : 'Personalizzata' }}</span
+                  >
+                </td>
+                <td data-label="Colore">
+                  <span class="color-value"
+                    ><span class="color-dot" [style.background-color]="category.color"></span
+                    >{{ category.color }}</span
+                  >
+                </td>
+                <td data-label="Stato"><app-status-badge [active]="category.isActive" /></td>
+                <td data-label="Azioni">
+                  <div class="action-group">
+                    <button
+                      class="btn btn-sm btn-outline-secondary"
+                      type="button"
+                      [attr.aria-label]="
+                        (category.isActive ? 'Disattiva ' : 'Attiva ') + category.name
+                      "
+                      (click)="toggleStatus(category)"
+                    >
+                      <i
+                        class="bi"
+                        [class.bi-pause-circle]="category.isActive"
+                        [class.bi-play-circle]="!category.isActive"
+                      ></i></button
+                    ><button
+                      class="btn btn-sm btn-outline-primary"
+                      type="button"
+                      [disabled]="category.isDefault"
+                      [attr.aria-label]="'Modifica ' + category.name"
+                      (click)="openEdit(category)"
+                    >
+                      <i class="bi bi-pencil"></i></button
+                    ><button
+                      class="btn btn-sm btn-outline-danger"
+                      type="button"
+                      [disabled]="category.isDefault"
+                      [attr.aria-label]="'Elimina ' + category.name"
+                      (click)="deleteTarget.set(category)"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </article>
+</section>
+
+@if (formOpen()) {
+  <div
+    class="modal d-block"
+    tabindex="-1"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="category-form-title"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg">
+        <form [formGroup]="form" (ngSubmit)="save()">
+          <div class="modal-header">
+            <h2 class="modal-title fs-5" id="category-form-title">
+              {{ editing() ? 'Modifica categoria' : 'Nuova categoria' }}
+            </h2>
+            <button
+              class="btn-close"
+              type="button"
+              aria-label="Chiudi"
+              (click)="closeForm()"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="category-name">Nome</label
+                ><input
+                  id="category-name"
+                  class="form-control"
+                  formControlName="name"
+                  maxlength="100"
+                  autocomplete="off"
+                />
+                @if (form.controls.name.touched && form.controls.name.invalid) {
+                  <div class="invalid-feedback d-block">
+                    Inserisci un nome di massimo 100 caratteri.
+                  </div>
+                }
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="category-description"
+                  >Descrizione <span class="text-body-secondary">(opzionale)</span></label
+                ><textarea
+                  id="category-description"
+                  class="form-control"
+                  rows="2"
+                  maxlength="255"
+                  formControlName="description"
+                ></textarea>
+              </div>
+              <div class="col-12 col-md-8">
+                <app-color-picker
+                  [value]="form.controls.color.value"
+                  colorId="category-color"
+                  textId="category-color-text"
+                  (valueChange)="updateColor($event)"
+                />
+                @if (form.controls.color.touched && form.controls.color.invalid) {
+                  <div class="invalid-feedback d-block">Usa il formato #RRGGBB.</div>
+                }
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="category-order">Ordine</label
+                ><input
+                  id="category-order"
+                  class="form-control"
+                  type="number"
+                  min="0"
+                  formControlName="sortOrder"
+                />
+              </div>
+              <div class="col-12">
+                <app-icon-picker
+                  [value]="form.controls.icon.value"
+                  inputId="category-icon-search"
+                  (valueChange)="updateIcon($event)"
+                />
+                @if (form.controls.icon.touched && form.controls.icon.invalid) {
+                  <div class="invalid-feedback d-block">Seleziona un'icona valida.</div>
+                }
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input
+                    id="category-enabled"
+                    class="form-check-input"
+                    type="checkbox"
+                    formControlName="isActive"
+                  /><label class="form-check-label" for="category-enabled">Categoria attiva</label>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="preview-panel">
+                  <span class="small text-body-secondary d-block mb-2">Anteprima</span
+                  ><app-category-badge
+                    [name]="form.controls.name.value || 'Nome categoria'"
+                    [color]="form.controls.color.value"
+                    [icon]="form.controls.icon.value"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline-secondary" type="button" (click)="closeForm()">
+              Annulla</button
+            ><button class="btn btn-primary" type="submit" [disabled]="saving()">
+              @if (saving()) {
+                <span class="spinner-border spinner-border-sm me-2"></span>
+              }
+              Salva
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop show"></div>
+}
+
+<app-confirm-dialog
+  [open]="deleteTarget() !== null"
+  title="Elimina categoria"
+  [message]="
+    'La categoria “' +
+    (deleteTarget()?.name ?? '') +
+    '” verrà eliminata. Questa operazione è consentita solo se non è in uso.'
+  "
+  confirmLabel="Elimina"
+  [busy]="saving()"
+  (confirmed)="confirmDelete()"
+  (cancelled)="deleteTarget.set(null)"
+/>

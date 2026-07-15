@@ -1,0 +1,88 @@
+<div class="auth-form">
+  <header class="mb-4">
+    <p class="auth-form__eyebrow">Bentornato</p>
+    <h2 class="h2 mb-2">Accedi al tuo account</h2>
+    <p class="text-body-secondary mb-0">Inserisci le credenziali per continuare.</p>
+  </header>
+
+  @if (sessionExpired) {
+    <div class="alert alert-warning d-flex gap-2" role="status">
+      <i class="bi bi-clock-history" aria-hidden="true"></i>
+      <span>La sessione è scaduta. Effettua nuovamente l’accesso.</span>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger d-flex gap-2" role="alert">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="mb-3">
+      <label class="form-label" for="login-email">Email</label>
+      <input
+        id="login-email"
+        class="form-control form-control-lg"
+        type="email"
+        formControlName="email"
+        autocomplete="email"
+        [class.is-invalid]="isInvalid('email')"
+        aria-describedby="login-email-error"
+      />
+      @if (isInvalid('email')) {
+        <div id="login-email-error" class="invalid-feedback">
+          Inserisci un indirizzo email valido.
+        </div>
+      }
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label" for="login-password">Password</label>
+      <div class="input-group has-validation">
+        <input
+          id="login-password"
+          class="form-control form-control-lg"
+          [type]="passwordVisible() ? 'text' : 'password'"
+          formControlName="password"
+          autocomplete="current-password"
+          [class.is-invalid]="isInvalid('password')"
+          aria-describedby="login-password-error"
+        />
+        <button
+          class="btn btn-outline-secondary"
+          type="button"
+          (click)="togglePassword()"
+          [attr.aria-label]="passwordVisible() ? 'Nascondi password' : 'Mostra password'"
+        >
+          <i
+            class="bi"
+            [class.bi-eye]="!passwordVisible()"
+            [class.bi-eye-slash]="passwordVisible()"
+            aria-hidden="true"
+          ></i>
+        </button>
+        @if (isInvalid('password')) {
+          <div id="login-password-error" class="invalid-feedback">
+            La password deve contenere almeno 8 caratteri.
+          </div>
+        }
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-lg w-100" type="submit" [disabled]="submitting()">
+      @if (submitting()) {
+        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+        Accesso in corso…
+      } @else {
+        Accedi
+      }
+    </button>
+  </form>
+
+  <p class="text-center text-body-secondary mt-4 mb-0">
+    Non hai ancora un account?
+    <a routerLink="/auth/register">Registrati</a>
+  </p>
+</div>

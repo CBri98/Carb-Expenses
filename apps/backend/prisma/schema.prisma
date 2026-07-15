@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum ExpenseStatus {
+  COMPLETED
+  PLANNED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  DEBIT_CARD
+  CREDIT_CARD
+  BANK_TRANSFER
+  DIRECT_DEBIT
+  DIGITAL_WALLET
+  CHECK
+  OTHER
+}
+
+model User {
+  id                  String                   @id @default(uuid()) @db.VarChar(36)
+  email               String                   @unique @db.VarChar(191)
+  passwordHash        String                   @map("password_hash") @db.VarChar(255)
+  firstName           String                   @map("first_name") @db.VarChar(80)
+  lastName            String?                  @map("last_name") @db.VarChar(80)
+  currency            String                   @default("EUR") @db.VarChar(3)
+  timezone            String                   @default("Europe/Rome") @db.VarChar(64)
+  createdAt           DateTime                 @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt           DateTime                 @updatedAt @map("updated_at") @db.DateTime(3)
+  categories          Category[]
+  categoryPreferences UserCategoryPreference[]
+  labels              Label[]
+  expenses            Expense[]
+  refreshTokens       RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @db.VarChar(36)
+  userId    String    @map("user_id") @db.VarChar(36)
+  tokenHash String    @map("token_hash") @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at") @db.DateTime(3)
+  revokedAt DateTime? @map("revoked_at") @db.DateTime(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt], map: "refresh_tokens_user_revoked_idx")
+  @@index([expiresAt], map: "refresh_tokens_expires_at_idx")
+  @@map("refresh_tokens")
+}
+
+model Category {
+  id          String                   @id @default(uuid()) @db.VarChar(36)
+  userId      String?                  @map("user_id") @db.VarChar(36)
+  name        String                   @db.VarChar(100)
+  slug        String                   @db.VarChar(120)
+  description String?                  @db.VarChar(255)
+  icon        String                   @db.VarChar(100)
+  color       String                   @db.VarChar(7)
+  sortOrder   Int                      @default(0) @map("sort_order")
+  isDefault   Boolean                  @default(false) @map("is_default")
+  isActive    Boolean                  @default(true) @map("is_active")
+  createdAt   DateTime                 @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime                 @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt   DateTime?                @map("deleted_at") @db.DateTime(3)
+  user        User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  labels      Label[]
+  preferences UserCategoryPreference[]
+  expenses    Expense[]
+
+  @@unique([userId, slug], map: "categories_user_slug_key")
+  @@index([userId], map: "categories_user_id_idx")
+  @@index([isDefault], map: "categories_is_default_idx")
+  @@index([isActive, sortOrder], map: "categories_active_sort_idx")
+  @@map("categories")
+}
+
+model UserCategoryPreference {
+  userId     String   @map("user_id") @db.VarChar(36)
+  categoryId String   @map("category_id") @db.VarChar(36)
+  isActive   Boolean  @default(true) @map("is_active")
+  sortOrder  Int      @default(0) @map("sort_order")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([userId, categoryId])
+  @@index([categoryId], map: "user_category_preferences_category_id_idx")
+  @@map("user_category_preferences")
+}
+
+model Label {
+  id           String         @id @default(uuid()) @db.VarChar(36)
+  userId       String         @map("user_id") @db.VarChar(36)
+  categoryId   String?        @map("category_id") @db.VarChar(36)
+  name         String         @db.VarChar(100)
+  slug         String         @db.VarChar(120)
+  description  String?        @db.VarChar(255)
+  color        String         @db.VarChar(7)
+  icon         String?        @db.VarChar(100)
+  sortOrder    Int            @default(0) @map("sort_order")
+  isActive     Boolean        @default(true) @map("is_active")
+  createdAt    DateTime       @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt    DateTime?      @map("deleted_at") @db.DateTime(3)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  expenseLinks ExpenseLabel[]
+
+  @@unique([userId, slug], map: "labels_user_slug_key")
+  @@index([userId, deletedAt], map: "labels_user_deleted_idx")
+  @@index([categoryId], map: "labels_category_id_idx")
+  @@index([isActive], map: "labels_is_active_idx")
+  @@map("labels")
+}
+
+model Expense {
+  id            String         @id @default(uuid()) @db.VarChar(36)
+  userId        String         @map("user_id") @db.VarChar(36)
+  categoryId    String         @map("category_id") @db.VarChar(36)
+  description   String         @db.VarChar(150)
+  amount        Decimal        @db.Decimal(12, 2)
+  expenseDate   DateTime       @map("expense_date") @db.Date
+  expenseTime   DateTime?      @map("expense_time") @db.Time(0)
+  merchant      String?        @db.VarChar(150)
+  paymentMethod PaymentMethod  @default(OTHER) @map("payment_method")
+  notes         String?        @db.Text
+  status        ExpenseStatus  @default(COMPLETED)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt     DateTime?      @map("deleted_at") @db.DateTime(3)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  labels        ExpenseLabel[]
+
+  @@index([userId, expenseDate], map: "expenses_user_date_idx")
+  @@index([userId, status], map: "expenses_user_status_idx")
+  @@index([userId, categoryId], map: "expenses_user_category_idx")
+  @@index([userId, paymentMethod], map: "expenses_user_payment_idx")
+  @@index([deletedAt], map: "expenses_deleted_at_idx")
+  @@map("expenses")
+}
+
+model ExpenseLabel {
+  expenseId String  @map("expense_id") @db.VarChar(36)
+  labelId   String  @map("label_id") @db.VarChar(36)
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  label     Label   @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([expenseId, labelId])
+  @@index([labelId], map: "expense_labels_label_id_idx")
+  @@map("expense_labels")
+}

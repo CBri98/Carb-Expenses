@@ -1,0 +1,95 @@
+<div class="auth-form">
+  <header class="mb-4">
+    <p class="auth-form__eyebrow">Nuovo account</p>
+    <h2 class="h2 mb-2">Crea il tuo profilo</h2>
+    <p class="text-body-secondary mb-0">Inizia a organizzare le tue spese personali.</p>
+  </header>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger d-flex gap-2" role="alert">
+      <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="row g-3 mb-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="register-first-name">Nome</label>
+        <input id="register-first-name" class="form-control" type="text"
+          formControlName="firstName" autocomplete="given-name"
+          [class.is-invalid]="isInvalid('firstName')" />
+        @if (isInvalid('firstName')) {
+          <div class="invalid-feedback">Il nome è obbligatorio (massimo 80 caratteri).</div>
+        }
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="register-last-name">
+          Cognome <span class="text-body-secondary fw-normal">(facoltativo)</span>
+        </label>
+        <input id="register-last-name" class="form-control" type="text"
+          formControlName="lastName" autocomplete="family-name"
+          [class.is-invalid]="isInvalid('lastName')" />
+        @if (isInvalid('lastName')) {
+          <div class="invalid-feedback">Massimo 80 caratteri.</div>
+        }
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="register-email">Email</label>
+      <input id="register-email" class="form-control" type="email"
+        formControlName="email" autocomplete="email"
+        [class.is-invalid]="isInvalid('email')" />
+      @if (isInvalid('email')) {
+        <div class="invalid-feedback">Inserisci un indirizzo email valido.</div>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="register-password">Password</label>
+      <div class="input-group has-validation">
+        <input id="register-password" class="form-control"
+          [type]="passwordVisible() ? 'text' : 'password'"
+          formControlName="password" autocomplete="new-password"
+          [class.is-invalid]="isInvalid('password')"
+          aria-describedby="register-password-help" />
+        <button class="btn btn-outline-secondary" type="button" (click)="togglePassword()"
+          [attr.aria-label]="passwordVisible() ? 'Nascondi password' : 'Mostra password'">
+          <i class="bi" [class.bi-eye]="!passwordVisible()"
+            [class.bi-eye-slash]="passwordVisible()" aria-hidden="true"></i>
+        </button>
+        @if (isInvalid('password')) {
+          <div class="invalid-feedback">Usa almeno 8 caratteri, una lettera e un numero.</div>
+        }
+      </div>
+      <div id="register-password-help" class="form-text">
+        Da 8 a 128 caratteri, con almeno una lettera e un numero.
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label" for="register-password-confirmation">Conferma password</label>
+      <input id="register-password-confirmation" class="form-control"
+        [type]="passwordVisible() ? 'text' : 'password'"
+        formControlName="passwordConfirmation" autocomplete="new-password"
+        [class.is-invalid]="isInvalid('passwordConfirmation') || passwordsMismatch()" />
+      @if (isInvalid('passwordConfirmation') || passwordsMismatch()) {
+        <div class="invalid-feedback">Le password devono coincidere.</div>
+      }
+    </div>
+
+    <button class="btn btn-primary btn-lg w-100" type="submit" [disabled]="submitting()">
+      @if (submitting()) {
+        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+        Creazione account…
+      } @else {
+        Crea account
+      }
+    </button>
+  </form>
+
+  <p class="text-center text-body-secondary mt-4 mb-0">
+    Hai già un account? <a routerLink="/auth/login">Accedi</a>
+  </p>
+</div>

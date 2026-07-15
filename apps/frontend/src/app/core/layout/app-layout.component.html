@@ -1,0 +1,120 @@
+<div class="app-shell" [class.sidebar-collapsed]="collapsed()">
+  <aside class="sidebar" [class.mobile-open]="mobileOpen()" aria-label="Navigazione principale">
+    <div class="sidebar__header">
+      <a class="sidebar__brand" routerLink="/dashboard" (click)="closeMobile()">
+        <i class="bi bi-wallet2" aria-hidden="true"></i>
+        <span>Carbexpenses</span>
+      </a>
+      <button
+        class="sidebar__close d-md-none"
+        type="button"
+        aria-label="Chiudi menu"
+        (click)="closeMobile()"
+      >
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <nav class="sidebar__nav">
+      <p class="sidebar__section">Panoramica</p>
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        (click)="closeMobile()"
+      >
+        <i class="bi bi-grid-1x2" aria-hidden="true"></i><span>Dashboard</span>
+      </a>
+
+      <p class="sidebar__section">Gestione</p>
+      <a routerLink="/expenses" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="closeMobile()">
+        <i class="bi bi-receipt" aria-hidden="true"></i><span>Spese</span>
+      </a>
+      <a
+        routerLink="/settings/categories"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        (click)="closeMobile()"
+      >
+        <i class="bi bi-folder2-open" aria-hidden="true"></i><span>Categorie</span>
+      </a>
+      <a
+        routerLink="/settings/labels"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        (click)="closeMobile()"
+      >
+        <i class="bi bi-tags" aria-hidden="true"></i><span>Etichette</span>
+      </a>
+
+      <p class="sidebar__section">Analisi</p>
+      <span class="sidebar__disabled" aria-disabled="true"
+        ><i class="bi bi-calendar3"></i><span>Calendario</span></span
+      >
+      <span class="sidebar__disabled" aria-disabled="true"
+        ><i class="bi bi-bar-chart"></i><span>Confronto mensile</span></span
+      >
+      <span class="sidebar__disabled" aria-disabled="true"
+        ><i class="bi bi-gear"></i><span>Impostazioni</span></span
+      >
+    </nav>
+
+    <button
+      class="sidebar__collapse d-none d-md-flex"
+      type="button"
+      [attr.aria-label]="collapsed() ? 'Espandi barra laterale' : 'Comprimi barra laterale'"
+      (click)="collapsed.set(!collapsed())"
+    >
+      <i
+        class="bi"
+        [class.bi-chevron-left]="!collapsed()"
+        [class.bi-chevron-right]="collapsed()"
+      ></i>
+      <span>Comprimi</span>
+    </button>
+  </aside>
+
+  @if (mobileOpen()) {
+    <button
+      class="sidebar-backdrop d-md-none"
+      type="button"
+      aria-label="Chiudi menu"
+      (click)="closeMobile()"
+    ></button>
+  }
+
+  <div class="workspace">
+    <header class="topbar">
+      <div class="d-flex align-items-center gap-3">
+        <button
+          class="btn btn-outline-secondary d-md-none"
+          type="button"
+          aria-label="Apri menu"
+          (click)="mobileOpen.set(true)"
+        >
+          <i class="bi bi-list" aria-hidden="true"></i>
+        </button>
+        <div>
+          <p class="topbar__context">Area personale</p>
+          <strong>{{ user()?.firstName }} {{ user()?.lastName }}</strong>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="button" (click)="quickExpenseOpen.set(true)">
+          <i class="bi bi-plus-lg me-sm-2" aria-hidden="true"></i><span class="d-none d-sm-inline">Nuova spesa</span>
+          <span class="visually-hidden d-sm-none">Nuova spesa</span>
+        </button>
+        <button class="btn btn-outline-secondary" type="button" (click)="logout()" [disabled]="loggingOut()">
+          @if (loggingOut()) { <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span> } @else { <i class="bi bi-box-arrow-right me-sm-2" aria-hidden="true"></i> }
+          <span class="d-none d-sm-inline">Esci</span>
+        </button>
+      </div>
+    </header>
+    <main class="main-content"><router-outlet /></main>
+  </div>
+</div>
+
+<app-quick-expense-modal [open]="quickExpenseOpen()" (closed)="quickExpenseOpen.set(false)" (created)="expenseCreated($event)" />
+@if (toast()) {
+  <div class="toast-container position-fixed bottom-0 end-0 p-3"><div class="toast show text-bg-success border-0" role="status"><div class="d-flex"><div class="toast-body"><i class="bi bi-check-circle me-2"></i>{{ toast() }}</div><button class="btn-close btn-close-white m-auto me-2" type="button" aria-label="Chiudi" (click)="toast.set(null)"></button></div></div></div>
+}

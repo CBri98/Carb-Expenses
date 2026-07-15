@@ -1,38 +1,39 @@
 {
   "name": "carbexpenses",
-  "version": "0.0.0",
-  "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test",
-    "serve:ssr:carbexpenses": "node dist/carbexpenses/server/server.mjs"
-  },
+  "version": "0.1.0",
   "private": true,
-  "packageManager": "npm@11.13.0",
-  "dependencies": {
-    "@angular/common": "^22.0.0",
-    "@angular/compiler": "^22.0.0",
-    "@angular/core": "^22.0.0",
-    "@angular/forms": "^22.0.0",
-    "@angular/platform-browser": "^22.0.0",
-    "@angular/platform-server": "^22.0.0",
-    "@angular/router": "^22.0.0",
-    "@angular/ssr": "^22.0.6",
-    "express": "^5.1.0",
-    "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+  "description": "Monorepo del gestionale per le spese personali",
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend"
+  ],
+  "scripts": {
+    "start:frontend": "npm run start --workspace @carbexpenses/frontend",
+    "start:backend": "npm run start:dev --workspace @carbexpenses/backend",
+    "build": "npm run build --workspaces --if-present",
+    "build:frontend": "npm run build --workspace @carbexpenses/frontend",
+    "build:backend": "npm run build --workspace @carbexpenses/backend",
+    "test": "npm run test --workspaces --if-present",
+    "test:frontend": "npm run test --workspace @carbexpenses/frontend",
+    "test:backend": "npm run test --workspace @carbexpenses/backend",
+    "lint": "eslint apps --max-warnings=0",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck:frontend": "npm run typecheck --workspace @carbexpenses/frontend",
+    "typecheck:backend": "npm run typecheck --workspace @carbexpenses/backend",
+    "prisma:generate": "npm run prisma:generate --workspace @carbexpenses/backend",
+    "db:migrate": "npm run db:migrate --workspace @carbexpenses/backend",
+    "db:seed": "npm run db:seed --workspace @carbexpenses/backend"
   },
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10.0.0"
+  },
+  "packageManager": "npm@11.13.0",
   "devDependencies": {
-    "@angular/build": "^22.0.6",
-    "@angular/cli": "^22.0.6",
-    "@angular/compiler-cli": "^22.0.0",
-    "@types/express": "^5.0.1",
-    "@types/node": "^20.17.19",
-    "jsdom": "^28.0.0",
-    "prettier": "^3.8.1",
-    "typescript": "~6.0.2",
-    "vitest": "^4.0.8"
+    "@eslint/js": "^9.39.0",
+    "angular-eslint": "^22.0.0",
+    "eslint": "^9.39.0",
+    "typescript": "6.0.2",
+    "typescript-eslint": "^8.46.0"
   }
 }

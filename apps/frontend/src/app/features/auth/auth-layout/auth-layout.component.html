@@ -1,0 +1,30 @@
+<main class="auth-page">
+  <section class="auth-brand d-none d-lg-flex" aria-labelledby="auth-brand-title">
+    <div class="auth-brand__content">
+      <span class="brand-mark" aria-hidden="true">
+        <i class="bi bi-wallet2"></i>
+      </span>
+      <p class="eyebrow">Carbexpenses</p>
+      <h1 id="auth-brand-title">Le tue spese, sotto controllo.</h1>
+      <p>
+        Uno spazio ordinato e sicuro per organizzare le finanze personali,
+        con valuta in euro e orario italiano.
+      </p>
+      <ul class="auth-benefits" aria-label="Vantaggi del servizio">
+        <li><i class="bi bi-shield-check" aria-hidden="true"></i> Sessioni protette</li>
+        <li><i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Dati pronti per le analisi</li>
+        <li><i class="bi bi-calendar3" aria-hidden="true"></i> Pianificazione centralizzata</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="auth-panel">
+    <div class="auth-panel__inner">
+      <a class="mobile-brand d-lg-none" href="/" aria-label="Carbexpenses">
+        <i class="bi bi-wallet2" aria-hidden="true"></i>
+        <span>Carbexpenses</span>
+      </a>
+      <router-outlet />
+    </div>
+  </section>
+</main>

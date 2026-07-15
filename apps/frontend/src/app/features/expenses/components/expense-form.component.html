@@ -1,0 +1,115 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  @if (catalogError()) {
+    <div class="alert alert-danger" role="alert">{{ catalogError() }}</div>
+  }
+
+  <fieldset [disabled]="submitting() || catalogLoading()">
+    <section class="form-section">
+      <h3 class="form-section__title"><i class="bi bi-receipt" aria-hidden="true"></i>Dati della spesa</h3>
+      <div class="row g-3">
+        <div class="col-12 col-md-7">
+          <label class="form-label" for="expense-description">Descrizione</label>
+          <input id="expense-description" class="form-control" formControlName="description" maxlength="150" autocomplete="off" aria-describedby="expense-description-error">
+          @if (form.controls.description.touched && form.controls.description.invalid) {
+            <div id="expense-description-error" class="invalid-feedback d-block">Inserisci una descrizione di massimo 150 caratteri.</div>
+          }
+        </div>
+        <div class="col-12 col-md-5">
+          <label class="form-label" for="expense-amount">Importo</label>
+          <div class="input-group"><input id="expense-amount" class="form-control" formControlName="amount" inputmode="decimal" placeholder="0,00" aria-describedby="expense-amount-error"><span class="input-group-text">€</span></div>
+          @if (form.controls.amount.touched && form.controls.amount.invalid) {
+            <div id="expense-amount-error" class="invalid-feedback d-block">Inserisci un importo positivo con massimo due decimali.</div>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <h3 class="form-section__title"><i class="bi bi-calendar-event" aria-hidden="true"></i>Data e stato</h3>
+      <div class="row g-3">
+        <div class="col-7 col-md-4">
+          <label class="form-label" for="expense-date">Data</label>
+          <input id="expense-date" class="form-control" type="date" formControlName="expenseDate" aria-describedby="expense-date-help expense-date-error">
+          @if (form.controls.expenseDate.touched && form.controls.expenseDate.invalid) {
+            <div id="expense-date-error" class="invalid-feedback d-block">Seleziona una data valida.</div>
+          }
+          @if (futureDate()) { <div id="expense-date-help" class="form-text text-primary"><i class="bi bi-info-circle me-1"></i>Data futura: viene proposto lo stato Pianificata.</div> }
+        </div>
+        <div class="col-5 col-md-3">
+          <label class="form-label" for="expense-time">Ora</label>
+          <input id="expense-time" class="form-control" type="time" formControlName="expenseTime">
+        </div>
+        <div class="col-12 col-md-5">
+          <label class="form-label" for="expense-status">Stato</label>
+          <ng-select labelForId="expense-status" [items]="statuses" bindLabel="label" bindValue="value" [clearable]="false" notFoundText="Nessuno stato trovato" ariaLabel="Stato della spesa" formControlName="status" (change)="statusChangedByUser()">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
+        </div>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <h3 class="form-section__title"><i class="bi bi-tags" aria-hidden="true"></i>Classificazione</h3>
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label" for="expense-category">Categoria</label>
+          <ng-select labelForId="expense-category" [items]="availableCategories()" bindLabel="name" bindValue="id" placeholder="Seleziona una categoria" notFoundText="Nessuna categoria trovata" ariaLabel="Categoria della spesa" formControlName="categoryId" aria-describedby="expense-category-error">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi select-option__category" [class]="item.icon" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}@if (!item.isActive) { <small>(disattivata)</small> }</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi select-option__category" [class]="item.icon" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+          </ng-select>
+          @if (form.controls.categoryId.touched && form.controls.categoryId.invalid) {
+            <div id="expense-category-error" class="invalid-feedback d-block">La categoria è obbligatoria.</div>
+          }
+        </div>
+
+        @if (!compact() || advancedOpen()) {
+          <div class="col-12">
+            <label class="form-label" for="expense-labels">Etichette <span class="text-body-secondary">(opzionali)</span></label>
+            <ng-select labelForId="expense-labels" [items]="availableLabels()" bindLabel="name" bindValue="id" [multiple]="true" [closeOnSelect]="false" placeholder="Seleziona una o più etichette" notFoundText="Nessuna etichetta trovata" ariaLabel="Etichette della spesa" formControlName="labelIds">
+              <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon || 'bi-tag'" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}@if (!item.isActive) { <small>(disattivata)</small> }</span></ng-template>
+              <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon || 'bi-tag'" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+            </ng-select>
+          </div>
+        }
+      </div>
+    </section>
+
+    @if (compact()) {
+      <button class="btn btn-link px-0 mt-2" type="button" (click)="advancedOpen.set(!advancedOpen())" [attr.aria-expanded]="advancedOpen()">
+        <i class="bi me-1" [class.bi-chevron-down]="!advancedOpen()" [class.bi-chevron-up]="advancedOpen()" aria-hidden="true"></i>{{ advancedOpen() ? 'Nascondi dettagli aggiuntivi' : 'Mostra dettagli aggiuntivi' }}
+      </button>
+    }
+
+    @if (!compact() || advancedOpen()) {
+      <section class="form-section">
+        <h3 class="form-section__title"><i class="bi bi-credit-card" aria-hidden="true"></i>Pagamento e dettagli</h3>
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="expense-payment">Metodo di pagamento</label>
+            <ng-select labelForId="expense-payment" [items]="paymentMethods" bindLabel="label" bindValue="value" [clearable]="false" notFoundText="Nessun metodo trovato" ariaLabel="Metodo di pagamento" formControlName="paymentMethod">
+              <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+              <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            </ng-select>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="expense-merchant">Esercente o beneficiario</label>
+            <input id="expense-merchant" class="form-control" formControlName="merchant" maxlength="150">
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="expense-notes">Note</label>
+            <textarea id="expense-notes" class="form-control" rows="3" maxlength="5000" formControlName="notes"></textarea>
+          </div>
+        </div>
+      </section>
+    }
+  </fieldset>
+
+  <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+    <button class="btn btn-outline-secondary" type="button" [disabled]="submitting()" (click)="cancelled.emit()">Annulla</button>
+    <button class="btn btn-primary" type="submit" [disabled]="submitting() || catalogLoading()">
+      @if (submitting()) { <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span> }
+      {{ submitLabel() }}
+    </button>
+  </div>
+</form>

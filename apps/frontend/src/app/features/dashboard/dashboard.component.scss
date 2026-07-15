@@ -1,0 +1,30 @@
+.section-eyebrow {
+  margin: 0;
+  color: var(--primary-strong);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.status-pill {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.55rem 0.85rem;
+  color: #315c47;
+  font-size: 0.84rem;
+  font-weight: 650;
+  background: var(--success-soft);
+  border: 1px solid #bcdac9;
+  border-radius: 999px;
+}
+.feature-icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  color: var(--primary-strong);
+  font-size: 1.3rem;
+  background: var(--primary-soft);
+  border-radius: 0.85rem;
+  place-items: center;
+}

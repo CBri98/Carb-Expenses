@@ -1,0 +1,9 @@
+th { color: var(--text-muted-strong); font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.sort-button { padding: 0; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; background: transparent; border: 0; }
+.actions { display: flex; gap: .3rem; justify-content: flex-end; }
+details { position: relative; }
+summary { list-style: none; }
+summary::-webkit-details-marker { display: none; }
+.action-panel { position: absolute; right: 0; z-index: 30; display: grid; min-width: 13rem; padding: .35rem; background: var(--surface); border: 1px solid var(--border-color); border-radius: .6rem; box-shadow: var(--shadow-md); }
+.action-panel button { display: flex; gap: .55rem; padding: .55rem .65rem; color: var(--text-primary); text-align: left; background: transparent; border: 0; border-radius: .35rem; }
+.action-panel button:hover { background: var(--surface-soft); }

@@ -1,0 +1,24 @@
+<section aria-labelledby="expenses-title">
+  <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item active" aria-current="page">Spese</li></ol></nav>
+  <app-page-header title="Spese" subtitle="Consulta, filtra e gestisci tutte le tue spese.">
+    <div class="d-flex flex-wrap gap-2">
+      <button class="btn btn-outline-secondary" type="button" [disabled]="exporting()" (click)="exportCsv()">@if (exporting()) { <span class="spinner-border spinner-border-sm me-2"></span> } @else { <i class="bi bi-download me-2"></i> }Esporta CSV</button>
+      <button class="btn btn-primary" type="button" (click)="newExpense()"><i class="bi bi-plus-lg me-2"></i>Nuova spesa</button>
+    </div>
+  </app-page-header>
+
+  @if (notice(); as currentNotice) { <div class="alert" [class.alert-success]="currentNotice.type === 'success'" [class.alert-danger]="currentNotice.type === 'danger'" role="status"><div class="d-flex justify-content-between gap-3"><span>{{ currentNotice.text }}</span><button class="btn-close" type="button" aria-label="Chiudi" (click)="notice.set(null)"></button></div></div> }
+
+  <app-expense-filters [query]="query()" [categories]="categories()" [labels]="labels()" (queryChange)="applyFilters($event)" />
+
+  <article class="card expense-list-card">
+    @if (loading()) { <app-loading-skeleton /> }
+    @else if (expenses().length === 0) { <app-empty-state title="Nessuna spesa trovata" message="Modifica i filtri oppure registra una nuova spesa."><button class="btn btn-primary" type="button" (click)="newExpense()">Nuova spesa</button></app-empty-state> }
+    @else {
+      <app-expense-table [expenses]="expenses()" [sortBy]="query().sortBy" [sortDirection]="query().sortDirection" (view)="viewExpense($event)" (edit)="editExpense($event)" (duplicate)="duplicateExpense($event)" (statusChange)="updateStatus($event)" (remove)="deleteTarget.set($event)" (sort)="sortBy($event)" />
+      <app-pagination [meta]="meta()" (pageChange)="goToPage($event)" />
+    }
+  </article>
+</section>
+
+<app-confirm-dialog [open]="deleteTarget() !== null" title="Elimina spesa" [message]="'La spesa “' + (deleteTarget()?.description ?? '') + '” verrà eliminata. I dati non saranno più visibili.'" confirmLabel="Elimina" [busy]="deleting()" (confirmed)="confirmDelete()" (cancelled)="deleteTarget.set(null)" />

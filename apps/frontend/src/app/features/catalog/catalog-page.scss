@@ -1,0 +1,112 @@
+:host {
+  display: block;
+}
+.catalog-card {
+  overflow: hidden;
+  border: 0;
+  box-shadow: var(--shadow-sm);
+}
+.catalog-toolbar {
+  padding: 1rem;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--border-color);
+}
+.catalog-table th {
+  color: var(--text-muted-strong);
+  font-size: 0.72rem;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.catalog-table td {
+  vertical-align: middle;
+}
+.color-value {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+}
+.color-dot {
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 1px solid rgb(15 23 42 / 15%);
+  border-radius: 50%;
+}
+.icon-preview {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  color: var(--text-primary);
+  background: var(--primary-soft);
+  border-radius: 0.6rem;
+  place-items: center;
+}
+.action-group {
+  display: flex;
+  gap: 0.3rem;
+  justify-content: flex-end;
+}
+.modal {
+  overflow-y: auto;
+}
+.modal-dialog {
+  max-width: 45rem;
+}
+.modal-backdrop {
+  z-index: 1049;
+}
+.modal {
+  z-index: 1050;
+}
+.preview-panel {
+  padding: 0.85rem;
+  background: var(--form-surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: 0.65rem;
+}
+.notice {
+  position: sticky;
+  top: 5rem;
+  z-index: 1010;
+}
+@media (max-width: 767.98px) {
+  .catalog-toolbar .btn {
+    width: 100%;
+  }
+  .catalog-table thead {
+    display: none;
+  }
+  .catalog-table,
+  .catalog-table tbody,
+  .catalog-table tr,
+  .catalog-table td {
+    display: block;
+    width: 100%;
+  }
+  .catalog-table tr {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .catalog-table td {
+    padding: 0.3rem 0;
+    border: 0;
+  }
+  .catalog-table td[data-label]::before {
+    margin-right: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    content: attr(data-label) ': ';
+    text-transform: uppercase;
+  }
+  .action-group {
+    justify-content: flex-start;
+    padding-top: 0.5rem;
+  }
+  .modal-dialog {
+    min-height: calc(100% - 1rem);
+    margin: 0.5rem;
+  }
+}

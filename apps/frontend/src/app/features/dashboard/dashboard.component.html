@@ -1,0 +1,45 @@
+<section aria-labelledby="dashboard-title">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb mb-3">
+      <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+    </ol>
+  </nav>
+  <div class="d-flex flex-wrap gap-3 align-items-start justify-content-between mb-4">
+    <div>
+      <p class="section-eyebrow">Panoramica</p>
+      <h1 id="dashboard-title" class="h2 mb-2">Ciao, {{ user()?.firstName }}.</h1>
+      <p class="text-body-secondary mb-0">
+        Gestisci categorie ed etichette per preparare la registrazione delle spese.
+      </p>
+    </div>
+    <span class="status-pill"
+      ><i class="bi bi-shield-check" aria-hidden="true"></i> Sessione protetta</span
+    >
+  </div>
+  <div class="row g-4">
+    <div class="col-12 col-lg-6">
+      <article class="card border-0 shadow-sm h-100">
+        <div class="card-body p-4">
+          <span class="feature-icon"><i class="bi bi-folder2-open" aria-hidden="true"></i></span>
+          <h2 class="h4 mt-4">Categorie</h2>
+          <p class="text-body-secondary">
+            Personalizza l'organizzazione delle spese e scegli quali categorie predefinite mostrare.
+          </p>
+          <a class="btn btn-primary" routerLink="/settings/categories">Gestisci categorie</a>
+        </div>
+      </article>
+    </div>
+    <div class="col-12 col-lg-6">
+      <article class="card border-0 shadow-sm h-100">
+        <div class="card-body p-4">
+          <span class="feature-icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
+          <h2 class="h4 mt-4">Etichette</h2>
+          <p class="text-body-secondary">
+            Crea etichette personali, con colore, icona e categoria di riferimento.
+          </p>
+          <a class="btn btn-outline-primary" routerLink="/settings/labels">Gestisci etichette</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
