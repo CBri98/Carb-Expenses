@@ -34,6 +34,8 @@ export class ExpenseFormComponent {
   private statusIsManual = false;
 
   readonly expense = input<ExpenseDetail | null>(null);
+  readonly initialDate = input<string | null>(null);
+  readonly initialTime = input<string | null>(null);
   readonly compact = input(false);
   readonly submitting = input(false);
   readonly submitLabel = input('Salva spesa');
@@ -102,7 +104,11 @@ export class ExpenseFormComponent {
     this.form.controls.expenseDate.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((value) => this.handleDate(value));
-    effect(() => this.applyExpense(this.expense()));
+    effect(() => {
+      this.initialDate();
+      this.initialTime();
+      this.applyExpense(this.expense());
+    });
   }
 
   submit(): void {
@@ -147,8 +153,8 @@ export class ExpenseFormComponent {
     this.form.reset({
       description: '',
       amount: '',
-      expenseDate: todayLocalDate(),
-      expenseTime: '',
+      expenseDate: this.initialDate() || todayLocalDate(),
+      expenseTime: this.initialTime() || '',
       categoryId: null,
       labelIds: [],
       paymentMethod: 'DEBIT_CARD',

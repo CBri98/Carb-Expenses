@@ -1,0 +1,262 @@
+<header class="report-header mb-4">
+  <div>
+    <p class="section-eyebrow">Analisi mensile</p>
+    <h1 class="h2 mb-1">Report mensile</h1>
+    <p class="text-body-secondary mb-0">
+      Analisi completa delle spese di {{ report()?.period?.label ?? '' }}
+    </p>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-end">
+    <button class="btn btn-outline-secondary" type="button" aria-label="Mese precedente" (click)="previousMonth()">
+      <i class="bi bi-chevron-left" aria-hidden="true"></i>
+    </button>
+    <app-month-selector
+      label="Periodo del report"
+      idPrefix="monthly"
+      [period]="selected()"
+      (periodChange)="changePeriod($event)"
+    />
+    <button class="btn btn-outline-secondary" type="button" aria-label="Mese successivo" (click)="nextMonth()">
+      <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </button>
+    <button class="btn btn-outline-primary" type="button" (click)="currentMonth()">Mese corrente</button>
+    <a class="btn btn-primary" routerLink="/reports/compare" [queryParams]="compareQuery()">
+      <i class="bi bi-bar-chart me-2" aria-hidden="true"></i>Confronta
+    </a>
+  </div>
+</header>
+
+@if (notice()) {
+  <div class="alert alert-info alert-dismissible" role="status">
+    {{ notice() }}
+    <button class="btn-close" type="button" aria-label="Chiudi" (click)="notice.set(null)"></button>
+  </div>
+}
+
+@if (loading()) {
+  <div aria-live="polite">
+    <div class="row g-3 mb-4">
+      @for (item of [1, 2, 3, 4, 5, 6]; track item) {
+        <div class="col-12 col-sm-6 col-xl-4"><app-loading-skeleton /></div>
+      }
+    </div>
+    <div class="row g-4">
+      <div class="col-12 col-xl-7"><div class="report-card"><app-loading-skeleton /></div></div>
+      <div class="col-12 col-xl-5"><div class="report-card"><app-loading-skeleton /></div></div>
+    </div>
+  </div>
+} @else if (error()) {
+  <div class="alert alert-danger" role="alert">
+    <h2 class="h5">Report non disponibile</h2>
+    <p>{{ error() }}</p>
+    <button class="btn btn-danger" type="button" (click)="retry()">Riprova</button>
+  </div>
+} @else if (report(); as reportData) {
+  @if (reportData.summary.completedCount === 0) {
+    <div class="alert alert-light border" role="status">
+      @if (reportData.summary.plannedCount > 0) {
+        Non risultano spese completate, ma sono presenti {{ reportData.summary.plannedCount }} spese pianificate.
+      } @else {
+        Non risultano spese per {{ reportData.period.label.toLocaleLowerCase('it-IT') }}.
+      }
+    </div>
+  }
+
+  <section aria-labelledby="monthly-summary-title" class="mb-4">
+    <h2 id="monthly-summary-title" class="visually-hidden">Metriche mensili</h2>
+    <div class="row g-3">
+      <div class="col-12 col-sm-6 col-xl-4">
+        <app-stat-card title="Totale speso" [value]="euro(reportData.summary.completedTotal)" icon="bi-wallet2"
+          [detail]="reportData.summary.completedCount + ' spese completate'" />
+      </div>
+      <div class="col-12 col-sm-6 col-xl-4">
+        <app-stat-card title="Totale pianificato" [value]="euro(reportData.summary.plannedTotal)" icon="bi-clock-history"
+          [detail]="reportData.summary.plannedCount + ' spese pianificate'" />
+      </div>
+      <div class="col-12 col-sm-6 col-xl-4">
+        <app-stat-card title="Media giornaliera" [value]="euro(reportData.summary.dailyAverage)" icon="bi-calendar-day"
+          detail="Calcolata sui giorni di competenza" />
+      </div>
+      <div class="col-12 col-sm-6 col-xl-4">
+        <app-stat-card title="Media per spesa" [value]="euro(reportData.summary.transactionAverage)" icon="bi-calculator" />
+      </div>
+      <div class="col-12 col-sm-6 col-xl-4">
+        <app-stat-card title="Categoria principale" [value]="reportData.topCategory?.name ?? 'Nessuna'"
+          icon="bi-pie-chart" [detail]="reportData.topCategory ? euro(reportData.topCategory.total) + ' · ' + reportData.topCategory.percentage + '%' : ''" />
+      </div>
+      <div class="col-12 col-sm-6 col-xl-4">
+        <app-stat-card title="Spesa più alta" [value]="reportData.highestExpense ? euro(reportData.highestExpense.amount) : '—'"
+          icon="bi-arrow-up-circle" [detail]="reportData.highestExpense?.description ?? 'Nessuna spesa completata'" />
+      </div>
+    </div>
+  </section>
+
+  <div class="row g-4 mb-4">
+    <section class="col-12 col-xl-7" aria-labelledby="daily-trend-title">
+      <div class="report-card h-100">
+        <div class="card-heading">
+          <div><h2 id="daily-trend-title" class="h5">Andamento giornaliero</h2><p>Spese completate e pianificate per giorno</p></div>
+        </div>
+        <app-dashboard-chart
+          type="line"
+          [labels]="dailyLabels()"
+          [values]="dailyCompleted()"
+          [counts]="dailyCompletedCounts()"
+          [secondaryValues]="dailyPlanned()"
+          [secondaryCounts]="dailyPlannedCounts()"
+          datasetLabel="Completate"
+          secondaryDatasetLabel="Pianificate"
+          secondaryColor="#d97706"
+          [attr.aria-describedby]="'daily-trend-summary'"
+          [ariaLabel]="'Andamento giornaliero di ' + reportData.period.label + ': serie completate e pianificate'"
+        />
+        <p id="daily-trend-summary" class="small text-body-secondary">
+          Il totale completato del mese è {{ reportData.summary.completedTotal | euroAmount }};
+          il totale pianificato è {{ reportData.summary.plannedTotal | euroAmount }}.
+        </p>
+        <details>
+          <summary>Tabella dei valori giornalieri</summary>
+          <div class="table-responsive mt-2">
+            <table class="table table-sm">
+              <thead><tr><th>Data</th><th class="text-end">Completate</th><th class="text-end">Pianificate</th></tr></thead>
+              <tbody>
+                @for (point of reportData.dailyTrend; track point.date) {
+                  <tr><td>{{ point.date | italianExpenseDate }}</td><td class="text-end">{{ point.completedTotal | euroAmount }} ({{ point.completedCount }})</td><td class="text-end">{{ point.plannedTotal | euroAmount }} ({{ point.plannedCount }})</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="col-12 col-xl-5" aria-labelledby="category-title">
+      <div class="report-card h-100">
+        <div class="card-heading"><div><h2 id="category-title" class="h5">Distribuzione per categoria</h2><p>Solo spese completate</p></div></div>
+        @if (reportData.categoryDistribution.length) {
+          <app-dashboard-chart
+            type="doughnut"
+            [labels]="categoryLabels()"
+            [values]="categoryValues()"
+            [counts]="categoryCounts()"
+            [colors]="categoryColors()"
+            datasetLabel="Totale"
+            [ariaLabel]="'Distribuzione per categoria di ' + reportData.period.label"
+          />
+          <ul class="category-list" aria-label="Riepilogo accessibile delle categorie">
+            @for (category of reportData.categoryDistribution; track category.categoryId) {
+              <li>
+                <span class="color-dot" [style.background-color]="category.color" aria-hidden="true"></span>
+                <span>{{ category.name }}</span>
+                <strong>{{ category.total | euroAmount }}</strong>
+                <span>{{ category.percentage }}%</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="text-body-secondary text-center py-5">Nessuna spesa completata da distribuire.</p>
+        }
+      </div>
+    </section>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <section class="col-12 col-xl-7" aria-labelledby="payment-title">
+      <div class="report-card h-100">
+        <div class="card-heading"><div><h2 id="payment-title" class="h5">Metodi di pagamento</h2><p>Importi, transazioni e incidenza</p></div></div>
+        <app-payment-method-breakdown [items]="reportData.paymentMethodBreakdown" />
+      </div>
+    </section>
+    <section class="col-12 col-xl-5" aria-labelledby="highlights-title">
+      <div class="report-card h-100">
+        <div class="card-heading"><div><h2 id="highlights-title" class="h5">Informazioni principali</h2><p>Massimi e confronto sintetico</p></div></div>
+        <dl class="report-details">
+          <div><dt>Giorno più costoso</dt><dd>@if (reportData.highestSpendingDay) { {{ reportData.highestSpendingDay.date | italianExpenseDate }} · {{ reportData.highestSpendingDay.total | euroAmount }} } @else { — }</dd></div>
+          <div><dt>Spesa più alta</dt><dd>@if (reportData.highestExpense) { {{ reportData.highestExpense.description }} · {{ reportData.highestExpense.amount | euroAmount }} } @else { — }</dd></div>
+          <div><dt>Spese annullate</dt><dd>{{ reportData.summary.cancelledCount }} (escluse dai totali)</dd></div>
+          <div><dt>Rispetto al mese precedente</dt><dd>{{ reportData.previousMonthComparison.absoluteChange | euroAmount }} · {{ percentage(reportData.previousMonthComparison.percentageChange) }} · {{ reportData.previousMonthComparison.direction }}</dd></div>
+        </dl>
+      </div>
+    </section>
+  </div>
+
+  <section class="report-card p-0 overflow-hidden" aria-labelledby="monthly-expenses-title">
+    <div class="p-3 p-lg-4 border-bottom">
+      <div class="card-heading">
+        <div><h2 id="monthly-expenses-title" class="h5">Spese del mese</h2><p>Periodo fisso: {{ reportData.period.label }} · paginazione server-side</p></div>
+        <a class="btn btn-sm btn-outline-primary" routerLink="/expenses">Vai alle spese</a>
+      </div>
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-lg-4">
+          <label class="form-label" for="monthly-search">Ricerca</label>
+          <input id="monthly-search" class="form-control" type="search" [value]="filters().search ?? ''" placeholder="Descrizione, esercente o note" (change)="updateFilter('search', $event)" />
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label" for="monthly-status">Stato</label>
+          <select id="monthly-status" class="form-select" [value]="filters().status ?? ''" (change)="updateFilter('status', $event)">
+            <option value="">Tutti</option>
+            @for (status of statuses; track status.value) { <option [value]="status.value">{{ status.label }}</option> }
+          </select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label" for="monthly-category">Categoria</label>
+          <select id="monthly-category" class="form-select" [value]="filters().categoryId ?? ''" (change)="updateFilter('categoryId', $event)">
+            <option value="">Tutte</option>
+            @for (category of categories(); track category.id) { <option [value]="category.id">{{ category.name }}</option> }
+          </select>
+        </div>
+        <div class="col-12 col-lg-2">
+          <label class="form-label" for="monthly-payment">Pagamento</label>
+          <select id="monthly-payment" class="form-select" [value]="filters().paymentMethod ?? ''" (change)="updateFilter('paymentMethod', $event)">
+            <option value="">Tutti</option>
+            @for (method of paymentMethods; track method.value) { <option [value]="method.value">{{ method.label }}</option> }
+          </select>
+        </div>
+        <div class="col-6 col-lg-1">
+          <label class="form-label" for="monthly-page-size">Righe</label>
+          <select id="monthly-page-size" class="form-select" [value]="filters().pageSize" (change)="updateFilter('pageSize', $event)">
+            <option value="10">10</option><option value="20">20</option><option value="50">50</option>
+          </select>
+        </div>
+        <div class="col-6 col-lg-1"><button class="btn btn-outline-secondary w-100" type="button" (click)="resetFilters()">Azzera</button></div>
+        <div class="col-12">
+          <label class="form-label" for="monthly-labels">Etichette</label>
+          <select id="monthly-labels" class="form-select" multiple size="3" (change)="updateLabels($event)">
+            @for (label of labels(); track label.id) { <option [value]="label.id" [selected]="isLabelSelected(label.id)">{{ label.name }}</option> }
+          </select>
+          <small class="text-body-secondary">Selezione multipla con semantica “almeno una”.</small>
+        </div>
+      </div>
+    </div>
+
+    @if (expenses().length) {
+      <app-expense-table
+        [expenses]="expenses()"
+        [sortBy]="filters().sortBy"
+        [sortDirection]="filters().sortDirection"
+        (sort)="sortBy($event)"
+        (view)="view($event)"
+        (edit)="edit($event)"
+        (duplicate)="duplicate($event)"
+        (statusChange)="changeStatus($event)"
+        (remove)="deleteTarget.set($event)"
+      />
+      <app-pagination [meta]="meta()" (pageChange)="goToPage($event)" />
+    } @else {
+      <app-empty-state title="Nessuna spesa corrisponde ai filtri" message="Il periodo resta fisso: prova a modificare i filtri della lista.">
+        <a class="btn btn-primary" routerLink="/expenses/new">Aggiungi una spesa</a>
+      </app-empty-state>
+    }
+  </section>
+}
+
+<app-confirm-dialog
+  [open]="deleteTarget() !== null"
+  title="Elimina spesa"
+  [message]="'Eliminare “' + (deleteTarget()?.description ?? '') + '”? I dati finanziari saranno rimossi dalla consultazione.'"
+  confirmLabel="Elimina"
+  dialogId="monthly-delete"
+  [busy]="deleting()"
+  (confirmed)="confirmDelete()"
+  (cancelled)="deleteTarget.set(null)"
+/>

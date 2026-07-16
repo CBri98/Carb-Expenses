@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ExpenseStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { dateOnly, romeCalendarDate } from '../src/dashboard/dashboard.utils';
 import { ExpenseQueryDto } from '../src/expenses/dto/expense.dto';
 import { ExpensesService } from '../src/expenses/expenses.service';
 import type { ExpenseWithRelations } from '../src/expenses/expenses.types';
@@ -118,6 +119,19 @@ describe('ExpensesService', () => {
         },
       }),
     }));
+  });
+
+  it('esclude le date future quando la preferenza lo richiede', async () => {
+    prisma.expense.count.mockResolvedValue(0);
+    prisma.expense.findMany.mockResolvedValue([]);
+    await service.findAll('user-1', Object.assign(new ExpenseQueryDto(), {
+      includeFuture: false,
+    }));
+    const request = prisma.expense.findMany.mock.calls.at(-1)?.[0];
+    const current = romeCalendarDate();
+    expect(request?.where?.expenseDate).toEqual({
+      lte: dateOnly(current.year, current.month, current.day),
+    });
   });
 
   it('rifiuta filtri temporali o monetari ambigui', async () => {

@@ -1,8 +1,11 @@
 import { Component, input, output } from '@angular/core';
 
+import { EscapeCloseDirective } from '../directives/escape-close.directive';
+
 @Component({
   selector: 'app-confirm-dialog',
   standalone: true,
+  imports: [EscapeCloseDirective],
   template: `
     @if (open()) {
       <div
@@ -11,6 +14,8 @@ import { Component, input, output } from '@angular/core';
         role="dialog"
         aria-modal="true"
         [attr.aria-labelledby]="dialogId() + '-title'"
+        [appEscapeClose]="open() && !busy()"
+        (escapeClose)="cancelled.emit()"
       >
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content shadow-lg">

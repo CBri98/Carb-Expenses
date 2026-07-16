@@ -28,15 +28,20 @@ La realizzazione procede per incrementi avviabili. Ogni fase termina con build, 
 - pagina gestionale responsive, form condiviso, dettaglio e inserimento rapido globale;
 - test backend/frontend, lint, type checking, build e verifica Docker.
 
-## Fasi 5–6 — Dashboard e report
+## Fasi 5–6 — Dashboard e report (completate)
 
 - KPI e aggregazioni autorevoli sul backend;
 - grafici Chart.js, ultimi inserimenti e prossime spese;
 - consultazione mensile e confronto tra periodi.
 
-## Fasi 7–8 — Calendario, avvisi e ricorrenze
+## Fase 7 — Calendario (completata)
 
-- calendario delle spese future;
+- viste mensile, settimanale ed elenco sull’intervallo visibile;
+- filtri URL, creazione, dettaglio, modifica e cambio stato riutilizzando i flussi spesa;
+- gestione delle pianificate scadute e spostamento con rollback.
+
+## Fase 8 — Avvisi e ricorrenze
+
 - notifiche interne e scheduler;
 - generazione idempotente delle ricorrenze.
 

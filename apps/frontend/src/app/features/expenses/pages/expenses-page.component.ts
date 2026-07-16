@@ -1,4 +1,5 @@
-import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { Component, DestroyRef, PLATFORM_ID, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -27,16 +28,20 @@ interface Notice { type: 'success' | 'danger'; text: string; }
   styleUrl: './expenses-page.component.scss',
 })
 export class ExpensesPageComponent {
+  private static readonly SHOW_FUTURE_STORAGE_KEY = 'carbexpenses.expenses.showFuture.v1';
+
   private readonly expensesService = inject(ExpenseService);
   private readonly categoriesService = inject(CategoryService);
   private readonly labelsService = inject(LabelService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly platformId = inject(PLATFORM_ID);
   private observedVersion = 0;
 
   readonly categories = this.categoriesService.categories;
   readonly labels = this.labelsService.labels;
+  readonly showFuture = signal(this.readShowFuturePreference());
   readonly expenses = signal<ExpenseListItem[]>([]);
   readonly meta = signal<PaginationMeta>({ page: 1, pageSize: 20, totalItems: 0, totalPages: 0 });
   readonly query = signal<ExpenseQueryParams>({ page: 1, pageSize: 20, sortBy: 'expenseDate', sortDirection: 'desc' });
@@ -84,6 +89,22 @@ export class ExpensesPageComponent {
     void this.router.navigate(['/expenses/new'], { queryParams: queryParams(this.query()) });
   }
 
+  toggleFuture(event: Event): void {
+    const show = (event.target as HTMLInputElement).checked;
+    this.showFuture.set(show);
+    if (isPlatformBrowser(this.platformId)) {
+      try {
+        window.localStorage.setItem(
+          ExpensesPageComponent.SHOW_FUTURE_STORAGE_KEY,
+          String(show),
+        );
+      } catch {
+        // La preferenza in memoria resta attiva se lo storage non è disponibile.
+      }
+    }
+    this.load(this.query());
+  }
+
   viewExpense(expense: ExpenseListItem): void {
     void this.router.navigate(['/expenses', expense.id], { queryParams: queryParams(this.query()) });
   }
@@ -126,7 +147,7 @@ export class ExpensesPageComponent {
 
   exportCsv(): void {
     this.exporting.set(true);
-    this.expensesService.exportCsv(this.query()).pipe(
+    this.expensesService.exportCsv(this.effectiveQuery(this.query())).pipe(
       finalize(() => this.exporting.set(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
@@ -149,13 +170,30 @@ export class ExpensesPageComponent {
 
   private load(query: ExpenseQueryParams, showLoading = true): void {
     if (showLoading) this.loading.set(true);
-    this.expensesService.list(query).pipe(
+    this.expensesService.list(this.effectiveQuery(query)).pipe(
       finalize(() => this.loading.set(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
       next: (result) => { this.expenses.set(result.items); this.meta.set(result.meta); },
       error: (error: unknown) => this.failure(error),
     });
+  }
+
+  private effectiveQuery(query: ExpenseQueryParams): ExpenseQueryParams {
+    return this.showFuture() ? query : { ...query, includeFuture: false };
+  }
+
+  private readShowFuturePreference(): boolean {
+    if (!isPlatformBrowser(this.platformId)) return true;
+    try {
+      const stored = window.localStorage.getItem(
+        ExpensesPageComponent.SHOW_FUTURE_STORAGE_KEY,
+      );
+      if (stored === 'true' || stored === 'false') return stored === 'true';
+    } catch {
+      // Mantiene il valore predefinito quando lo storage non è disponibile.
+    }
+    return true;
   }
 
   private success(text: string): void {

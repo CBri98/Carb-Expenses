@@ -20,6 +20,7 @@ import {
 import { ColorPickerComponent } from '../../../shared/components/color-picker.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog.component';
 import { IconPickerComponent } from '../../../shared/components/icon-picker.component';
+import { EscapeCloseDirective } from '../../../shared/directives/escape-close.directive';
 import type {
   Category,
   CategoryQueryParams,
@@ -49,6 +50,7 @@ interface Notice {
     ColorPickerComponent,
     IconPickerComponent,
     ConfirmDialogComponent,
+    EscapeCloseDirective,
   ],
   templateUrl: './categories.component.html',
   styleUrl: '../catalog-page.scss',

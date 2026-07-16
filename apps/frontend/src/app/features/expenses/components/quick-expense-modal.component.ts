@@ -5,20 +5,29 @@ import { finalize } from 'rxjs';
 import { apiErrorMessage } from '../../../core/services/api-error';
 import { ExpenseService } from '../../../core/services/expense.service';
 import type { CreateExpenseRequest, ExpenseDetail } from '../../../shared/models/expense.models';
+import { EscapeCloseDirective } from '../../../shared/directives/escape-close.directive';
 import { ExpenseFormComponent } from './expense-form.component';
 
 @Component({
   selector: 'app-quick-expense-modal',
   standalone: true,
-  imports: [ExpenseFormComponent],
+  imports: [ExpenseFormComponent, EscapeCloseDirective],
   template: `
     @if (open()) {
-      <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="quick-expense-title">
+      <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="quick-expense-title" [appEscapeClose]="!saving()" (escapeClose)="closed.emit()">
         <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content shadow-lg">
           <div class="modal-header"><div><p class="text-primary text-uppercase small fw-bold mb-1">Inserimento rapido</p><h2 class="modal-title fs-5" id="quick-expense-title">Nuova spesa</h2></div><button class="btn-close" type="button" aria-label="Chiudi" [disabled]="saving()" (click)="closed.emit()"></button></div>
           <div class="modal-body">
             @if (error()) { <div class="alert alert-danger" role="alert">{{ error() }}</div> }
-            <app-expense-form [compact]="true" [submitting]="saving()" submitLabel="Registra spesa" (submitted)="save($event)" (cancelled)="closed.emit()" />
+            <app-expense-form
+              [compact]="true"
+              [initialDate]="initialDate()"
+              [initialTime]="initialTime()"
+              [submitting]="saving()"
+              submitLabel="Registra spesa"
+              (submitted)="save($event)"
+              (cancelled)="closed.emit()"
+            />
           </div>
         </div></div>
       </div><div class="modal-backdrop show"></div>
@@ -36,6 +45,8 @@ export class QuickExpenseModalComponent {
   private readonly form = viewChild(ExpenseFormComponent);
 
   readonly open = input(false);
+  readonly initialDate = input<string | null>(null);
+  readonly initialTime = input<string | null>(null);
   readonly closed = output<void>();
   readonly created = output<ExpenseDetail>();
   readonly saving = signal(false);

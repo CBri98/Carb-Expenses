@@ -2,7 +2,7 @@
 
 Gestionale per la registrazione, pianificazione e analisi delle spese personali.
 
-Sono complete le Fasi 1–4: setup Docker, autenticazione, categorie ed etichette e gestione completa delle spese. Dashboard, report, grafici, calendario, notifiche e ricorrenze appartengono alle fasi successive e non sono ancora implementati.
+Sono complete le Fasi 1–7: setup Docker, autenticazione, categorie ed etichette, gestione spese, dashboard, report mensili e calendario gestionale. Notifiche e ricorrenze appartengono alle fasi successive e non sono ancora implementate.
 
 ## Requisiti
 
@@ -31,7 +31,7 @@ Il backend attende MariaDB, applica le migrazioni Prisma, esegue il seed idempot
 - Swagger: <http://localhost:3000/api/docs>
 - MariaDB: `localhost:3306`
 
-In `development` il seed crea l’utente configurato da `DEMO_USER_EMAIL` e `DEMO_USER_PASSWORD`, quattro etichette e venti spese dimostrative distribuite su più mesi. In produzione non crea dati demo.
+In `development` il seed crea l’utente configurato da `DEMO_USER_EMAIL` e `DEMO_USER_PASSWORD`, quattro etichette e venticinque spese dimostrative distribuite su più mesi. In produzione non crea dati demo.
 
 ## Funzionalità disponibili
 
@@ -40,6 +40,9 @@ L’autenticazione include registrazione, login, logout, ripristino sessione e r
 Le sezioni protette principali sono:
 
 - <http://localhost:4200/expenses>
+- <http://localhost:4200/calendar>
+- <http://localhost:4200/reports/monthly>
+- <http://localhost:4200/reports/compare>
 - <http://localhost:4200/settings/categories>
 - <http://localhost:4200/settings/labels>
 
@@ -115,3 +118,63 @@ carbexpenses/
 ```
 
 La roadmap è descritta in [docs/technical-roadmap.md](docs/technical-roadmap.md).
+
+
+## Fase 5 — Dashboard
+
+La dashboard autenticata usa aggregazioni backend e mantiene il periodo selezionato nei query parameter `month` e `year`. Include KPI mensili, confronto con il mese precedente, andamento giornaliero, distribuzione per categoria, storico 6/12 mesi, ultimi inserimenti e prossime spese pianificate.
+
+Endpoint disponibili sotto `/api/v1/dashboard`:
+
+- `GET /summary?month=7&year=2026`
+- `GET /daily-trend?month=7&year=2026`
+- `GET /category-distribution?month=7&year=2026`
+- `GET /monthly-trend?month=7&year=2026&months=6`
+- `GET /recent-expenses?limit=5`
+- `GET /upcoming-expenses?limit=5`
+
+Le metriche effettive includono esclusivamente spese `COMPLETED`; le spese future includono esclusivamente `PLANNED` non eliminate con data da oggi in avanti. Gli importi API sono stringhe decimali e tutte le aggregazioni finanziarie sono calcolate con Prisma `Decimal`.
+
+Il seed development crea dati dashboard idempotenti su sei mesi, spese future, una spesa annullata e una categoria personalizzata. Per rigenerarlo:
+
+```bash
+npm run db:migrate
+npm run db:seed
+```
+
+
+## Fase 6 — Report mensili
+
+Sono disponibili due sezioni autenticate e lazy-loaded:
+
+- <http://localhost:4200/reports/monthly> per il report completo di un singolo mese;
+- <http://localhost:4200/reports/compare> per il confronto tra esattamente due mesi.
+
+Il report mensile include totali e conteggi separati per stato, medie, giorno e spesa massimi, distribuzione per categoria, andamento giornaliero completo, breakdown dei metodi di pagamento e lista spese filtrabile con paginazione server-side. Il confronto include differenze assolute e percentuali, otto metriche, unione delle categorie, andamento per giorno di calendario e metodi di pagamento.
+
+Endpoint disponibili sotto `/api/v1/reports`:
+
+- `GET /monthly?month=7&year=2026`
+- `GET /monthly/expenses?month=7&year=2026&page=1&pageSize=20`
+- `GET /month-comparison?monthA=6&yearA=2026&monthB=7&yearB=2026`
+- `GET /category-comparison?monthA=6&yearA=2026&monthB=7&yearB=2026`
+- `GET /daily-comparison?monthA=6&yearA=2026&monthB=7&yearB=2026&mode=CALENDAR_DAY`
+
+Solo le spese `COMPLETED` alimentano spesa effettiva, medie, categorie e metodi; le `PLANNED` restano separate e le `CANCELLED` sono soltanto conteggiate. Tutti gli importi API sono stringhe decimali; le percentuali non confrontabili sono `null`. I giorni inesistenti nei mesi più corti sono `null`, non zero.
+
+
+## Fase 7 — Calendario
+
+La sezione autenticata <http://localhost:4200/calendar> offre viste mensile, settimanale ed elenco. Vista, data e filtri sono sincronizzati nei query parameter; ogni cambio periodo carica esclusivamente l’intervallo visibile.
+
+L’implementazione usa una griglia Angular nativa, responsive e accessibile, senza aggiungere una libreria calendario. Le spese restano l’unica fonte dati: non esiste un modello calendario persistente. Dal calendario si può creare una spesa con data e ora precompilate, aprire dettaglio e modifica, cambiare rapidamente stato e gestire le pianificate scadute.
+
+Le sole spese `PLANNED` possono essere trascinate su desktop. Il comando “Cambia data” garantisce la stessa operazione da tastiera e touch; entrambi usano `ExpenseService.update`, applicano l’aggiornamento ottimistico e ripristinano la data originale in caso di errore.
+
+Endpoint dedicato di sola lettura:
+
+```text
+GET /api/v1/calendar/expenses?start=2026-06-29&end=2026-08-03&status=PLANNED,COMPLETED
+```
+
+`start` è inclusiva, `end` esclusiva e l’intervallo massimo è 366 giorni. Sono disponibili filtri per stato, categoria, etichette con semantica ANY, metodo di pagamento e ricerca su descrizione/esercente. Ownership e soft delete sono sempre applicati dal backend.

@@ -2,12 +2,12 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CategoryService } from '../../../core/services/category.service';
 import { ExpenseService } from '../../../core/services/expense.service';
 import { LabelService } from '../../../core/services/label.service';
-import type { ExpenseListItem } from '../../../shared/models/expense.models';
+import type { ExpenseListItem, ExpenseQueryParams } from '../../../shared/models/expense.models';
 import { ExpensesPageComponent } from './expenses-page.component';
 
 const item: ExpenseListItem = {
@@ -18,6 +18,9 @@ const item: ExpenseListItem = {
 };
 
 describe('ExpensesPageComponent', () => {
+  beforeEach(() => window.localStorage.clear());
+  afterEach(() => window.localStorage.clear());
+
   it('carica query URL e renderizza la lista paginata', async () => {
     const setup = await createFixture({ page: '2', search: 'pane' });
     setup.fixture.detectChanges();
@@ -45,6 +48,27 @@ describe('ExpensesPageComponent', () => {
     expect(setup.expenses.duplicate).toHaveBeenCalledWith(item.id);
     expect(setup.expenses.setStatus).toHaveBeenCalledWith(item.id, 'PLANNED');
   });
+
+  it('ripristina e salva la preferenza per nascondere le spese future', async () => {
+    window.localStorage.setItem('carbexpenses.expenses.showFuture.v1', 'false');
+    const setup = await createFixture({});
+    setup.fixture.detectChanges();
+
+    expect(setup.fixture.componentInstance.showFuture()).toBe(false);
+    expect(setup.expenses.list).toHaveBeenCalledWith(expect.objectContaining({ includeFuture: false }));
+    const toggle = (setup.fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLInputElement>('#show-future-expenses');
+    expect(toggle?.checked).toBe(false);
+
+    if (!toggle) throw new Error('Toggle spese future non trovato');
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    setup.fixture.detectChanges();
+
+    expect(window.localStorage.getItem('carbexpenses.expenses.showFuture.v1')).toBe('true');
+    const lastQuery = setup.expenses.list.mock.calls.at(-1)?.[0];
+    expect(lastQuery).not.toHaveProperty('includeFuture');
+  });
 });
 
 async function createFixture(params: Record<string, string>) {
@@ -54,7 +78,10 @@ async function createFixture(params: Record<string, string>) {
   const version = signal(0);
   const expenses = {
     changeVersion: version.asReadonly(),
-    list: vi.fn(() => of({ items: [item], meta: { page: 2, pageSize: 20, totalItems: 43, totalPages: 3 } })),
+    list: vi.fn((query: ExpenseQueryParams) => {
+      void query;
+      return of({ items: [item], meta: { page: 2, pageSize: 20, totalItems: 43, totalPages: 3 } });
+    }),
     duplicate: vi.fn(() => of(item)), setStatus: vi.fn(() => of(item)),
     remove: vi.fn(() => of(undefined)), exportCsv: vi.fn(),
   };

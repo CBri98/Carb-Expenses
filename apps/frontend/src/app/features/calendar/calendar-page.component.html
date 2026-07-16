@@ -1,0 +1,188 @@
+<section class="calendar-page">
+  <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li><li class="breadcrumb-item active" aria-current="page">Calendario</li></ol></nav>
+  <app-page-header eyebrow="Pianificazione" title="Calendario spese" subtitle="Consulta, crea e gestisci le spese nel periodo visibile.">
+    <button class="btn btn-primary" type="button" (click)="openCreate()"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Nuova spesa</button>
+  </app-page-header>
+
+  @if (notice()) {
+    <div class="alert alert-success alert-dismissible d-flex align-items-center" role="status">
+      <i class="bi bi-check-circle me-2" aria-hidden="true"></i><span>{{ notice() }}</span>
+      <button class="btn-close ms-auto" type="button" aria-label="Chiudi messaggio" (click)="notice.set(null)"></button>
+    </div>
+  }
+  @if (catalogError()) {
+    <div class="alert alert-warning" role="alert"><i class="bi bi-exclamation-circle me-2" aria-hidden="true"></i>{{ catalogError() }}</div>
+  }
+  @if (error()) {
+    <div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" role="alert">
+      <i class="bi bi-exclamation-triangle" aria-hidden="true"></i><span class="flex-grow-1">{{ error() }}</span>
+      <button class="btn btn-sm btn-outline-danger" type="button" (click)="retry()">Riprova</button>
+      <button class="btn-close" type="button" aria-label="Chiudi errore" (click)="error.set(null)"></button>
+    </div>
+  }
+
+  <article class="card border-0 shadow-sm calendar-toolbar"><div class="card-body"><div class="calendar-toolbar__row">
+    <div class="btn-group" role="group" aria-label="Navigazione temporale">
+      <button class="btn btn-outline-secondary" type="button" aria-label="Periodo precedente" (click)="previous()"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+      <button class="btn btn-outline-secondary" type="button" (click)="current()">Oggi</button>
+      <button class="btn btn-outline-secondary" type="button" aria-label="Periodo successivo" (click)="next()"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+    </div>
+    <h2 class="calendar-toolbar__heading" aria-live="polite">{{ heading() }}</h2>
+    <div class="btn-group calendar-view-switcher" role="group" aria-label="Vista calendario">
+      @for (view of views; track view.value) {
+        <button class="btn" type="button" [class.btn-primary]="state().view === view.value" [class.btn-outline-secondary]="state().view !== view.value" [attr.aria-pressed]="state().view === view.value" (click)="changeView(view.value)">
+          <i class="bi me-sm-1" [class]="view.icon" aria-hidden="true"></i><span class="d-none d-sm-inline">{{ view.label }}</span><span class="visually-hidden d-sm-none">{{ view.label }}</span>
+        </button>
+      }
+    </div>
+  </div></div></article>
+
+  <details class="card border-0 shadow-sm calendar-filters" [open]="filterOpen()" (toggle)="filterOpen.set($any($event.target).open)">
+    <summary class="card-header">
+      <span><i class="bi bi-funnel me-2" aria-hidden="true"></i>Filtri @if (activeFilterCount()) { <span class="badge rounded-pill text-bg-primary ms-1">{{ activeFilterCount() }}</span> }</span>
+      <span class="calendar-filters__hint">Sincronizzati nell’URL</span>
+    </summary>
+    <div class="card-body"><div class="row g-3 align-items-end">
+      <div class="col-12 col-xl-4">
+        <form (submit)="$event.preventDefault(); applySearch()">
+          <label class="form-label" for="calendar-search">Descrizione o esercente</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+            <input id="calendar-search" class="form-control" type="search" maxlength="150" placeholder="Cerca nel periodo…" [ngModel]="searchDraft()" (ngModelChange)="searchDraft.set($event)" name="calendarSearch">
+            <button class="btn btn-outline-primary" type="submit">Applica</button>
+          </div>
+        </form>
+      </div>
+      <div class="col-12 col-md-6 col-xl-4">
+        <label class="form-label" for="calendar-status">Stati</label>
+        <ng-select labelForId="calendar-status" [items]="statuses" bindLabel="label" bindValue="value" [multiple]="true" [closeOnSelect]="false" [clearable]="false" notFoundText="Nessuno stato trovato" ariaLabel="Filtra per stati" [ngModel]="state().filters.status" (ngModelChange)="updateStatuses($event)">
+          <ng-template ng-option-tmp let-item="item"><span><i class="bi me-2" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+        </ng-select>
+      </div>
+      <div class="col-12 col-md-6 col-xl-4">
+        <label class="form-label" for="calendar-category">Categoria</label>
+        <ng-select labelForId="calendar-category" [items]="categories()" bindLabel="name" bindValue="id" placeholder="Tutte le categorie" notFoundText="Nessuna categoria trovata" ariaLabel="Filtra per categoria" [ngModel]="state().filters.categoryId || null" (ngModelChange)="updateCategory($event)">
+          <ng-template ng-option-tmp let-item="item"><span><i class="bi me-2" [class]="item.icon" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+        </ng-select>
+      </div>
+      <div class="col-12 col-md-6 col-xl-4">
+        <label class="form-label" for="calendar-labels">Etichette <span class="text-body-secondary">(almeno una)</span></label>
+        <ng-select labelForId="calendar-labels" [items]="labels()" bindLabel="name" bindValue="id" [multiple]="true" [closeOnSelect]="false" placeholder="Tutte le etichette" notFoundText="Nessuna etichetta trovata" ariaLabel="Filtra per etichette" [ngModel]="state().filters.labelIds" (ngModelChange)="updateLabels($event)">
+          <ng-template ng-option-tmp let-item="item"><span><i class="bi bi-tag me-2" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+        </ng-select>
+      </div>
+      <div class="col-12 col-md-6 col-xl-4">
+        <label class="form-label" for="calendar-payment">Metodo di pagamento</label>
+        <ng-select labelForId="calendar-payment" [items]="paymentMethods" bindLabel="label" bindValue="value" placeholder="Tutti i metodi" notFoundText="Nessun metodo trovato" ariaLabel="Filtra per metodo di pagamento" [ngModel]="state().filters.paymentMethod || null" (ngModelChange)="updatePayment($event)">
+          <ng-template ng-option-tmp let-item="item"><span><i class="bi me-2" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+        </ng-select>
+      </div>
+      <div class="col-12 col-xl-4 d-flex justify-content-xl-end">
+        <button class="btn btn-outline-secondary" type="button" [disabled]="!activeFilterCount()" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Azzera filtri</button>
+      </div>
+    </div></div>
+  </details>
+
+  @if (overdueEvents().length) {
+    <details class="card border-0 overdue-panel" open>
+      <summary class="card-header">
+        <span><i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>Pianificate scadute nel periodo <span class="badge text-bg-danger ms-1">{{ overdueEvents().length }}</span></span>
+        <span class="overdue-panel__hint">Richiedono un’azione esplicita</span>
+      </summary>
+      <div class="card-body overdue-panel__list">
+        @for (event of overdueEvents(); track event.id) {
+          <div class="overdue-panel__item">
+            <div><strong>{{ event.title }}</strong><span>{{ dateLabel(event.expenseDate) }} · {{ event.category.name }}</span></div>
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-sm btn-success" type="button" [disabled]="isBusy(event.id)" (click)="changeStatus(event, 'COMPLETED')"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>Completa</button>
+              <button class="btn btn-sm btn-outline-danger" type="button" [disabled]="isBusy(event.id)" (click)="requestDateChange(event)"><i class="bi bi-calendar2-week me-1" aria-hidden="true"></i>Riprogramma</button>
+            </div>
+          </div>
+        }
+      </div>
+    </details>
+  }
+
+  <p class="visually-hidden" aria-live="polite">{{ events().length }} spese caricate per il periodo visibile.</p>
+  @if (loading()) {
+    <article class="card border-0 shadow-sm"><app-loading-skeleton /></article>
+  } @else {
+    @if (!events().length) {
+      <div class="calendar-empty-note" role="status"><i class="bi bi-calendar2-check" aria-hidden="true"></i>Nessuna spesa con i filtri correnti. Puoi comunque selezionare una data per crearne una.</div>
+    }
+    @if (state().view === 'month') {
+      <section class="calendar-month card border-0 shadow-sm" role="grid" aria-label="Calendario mensile">
+        <div class="calendar-month__weekdays" role="row">
+          @for (weekday of weekdays; track weekday) { <span role="columnheader">{{ weekday }}</span> }
+        </div>
+        <div class="calendar-month__grid">
+          @for (day of days(); track day.date) {
+            <article class="calendar-day" role="gridcell" [class.calendar-day--outside]="!day.inCurrentMonth" [class.calendar-day--today]="day.isToday" [attr.aria-label]="dateLabel(day.date)" (dragover)="allowDrop($event)" (drop)="dropOn(day.date, $event)" (dragend)="endDrag()">
+              <button class="calendar-day__date" type="button" [attr.aria-label]="'Crea una spesa il ' + dateLabel(day.date)" (click)="openCreate(day.date)">
+                <span [class.calendar-day__number--today]="day.isToday">{{ day.dayNumber }}</span><i class="bi bi-plus-circle" aria-hidden="true"></i>
+              </button>
+              <div class="calendar-day__events">
+                @for (event of eventsForDay(day.date).slice(0, 3); track event.id) {
+                  <app-calendar-expense-event [event]="event" [busy]="isBusy(event.id)" (opened)="viewExpense(event)" (edited)="editExpense(event)" (statusRequested)="changeStatus(event, $event)" (dateChangeRequested)="requestDateChange(event)" (dragStarted)="startDrag($event)" />
+                }
+              </div>
+              @if (moreEvents(day.date)) { <button class="calendar-day__more" type="button" (click)="openListFor(day.date)">Altre {{ moreEvents(day.date) }} spese · apri elenco</button> }
+            </article>
+          }
+        </div>
+      </section>
+    } @else if (state().view === 'week') {
+      <section class="calendar-week card border-0 shadow-sm" aria-label="Calendario settimanale">
+        @for (day of days(); track day.date) {
+          <article class="calendar-week__day" [class.calendar-week__day--today]="day.isToday" (dragover)="allowDrop($event)" (drop)="dropOn(day.date, $event)" (dragend)="endDrag()">
+            <header class="calendar-week__header">
+              <div><span>{{ dateLabel(day.date) }}</span>@if (day.isToday) { <span class="badge text-bg-primary ms-2">Oggi</span> }</div>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary" type="button" (click)="openCreate(day.date)"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Spesa</button>
+                <button class="btn btn-outline-primary" type="button" aria-label="Nuova spesa alle 09:00" title="Nuova alle 09:00" (click)="openCreate(day.date, '09:00')"><i class="bi bi-clock" aria-hidden="true"></i></button>
+              </div>
+            </header>
+            <div class="calendar-week__events">
+              @for (event of eventsForDay(day.date); track event.id) {
+                <app-calendar-expense-event [event]="event" [busy]="isBusy(event.id)" (opened)="viewExpense(event)" (edited)="editExpense(event)" (statusRequested)="changeStatus(event, $event)" (dateChangeRequested)="requestDateChange(event)" (dragStarted)="startDrag($event)" />
+              } @empty { <p class="calendar-week__empty">Nessuna spesa</p> }
+            </div>
+          </article>
+        }
+      </section>
+    } @else {
+      <section class="calendar-list" aria-label="Elenco delle spese del mese">
+        @for (day of listDays(); track day.date) {
+          <article class="calendar-list__day card border-0 shadow-sm">
+            <header class="calendar-list__header"><h3>{{ dateLabel(day.date) }}</h3><button class="btn btn-sm btn-outline-primary" type="button" (click)="openCreate(day.date)"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Spesa</button></header>
+            <div class="calendar-list__events">
+              @for (event of day.events; track event.id) {
+                <app-calendar-expense-event [event]="event" [busy]="isBusy(event.id)" (opened)="viewExpense(event)" (edited)="editExpense(event)" (statusRequested)="changeStatus(event, $event)" (dateChangeRequested)="requestDateChange(event)" (dragStarted)="startDrag($event)" (dragend)="endDrag()" />
+              }
+            </div>
+          </article>
+        } @empty {
+          <article class="card border-0 shadow-sm"><app-empty-state title="Nessuna spesa nel mese" message="Modifica i filtri oppure registra una spesa nella data desiderata."><button class="btn btn-primary" type="button" (click)="openCreate()"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Nuova spesa</button></app-empty-state></article>
+        }
+      </section>
+    }
+  }
+</section>
+
+<app-quick-expense-modal [open]="quickOpen()" [initialDate]="selectedDate()" [initialTime]="selectedTime()" (closed)="closeQuickCreate()" (created)="expenseCreated($event)" />
+
+@if (moveTarget()) {
+  <div class="modal d-block calendar-move-modal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="calendar-move-title" [appEscapeClose]="true" (escapeClose)="cancelDateChange()">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content shadow-lg">
+      <div class="modal-header"><div><p class="text-primary text-uppercase small fw-bold mb-1">Riprogrammazione</p><h2 class="modal-title fs-5" id="calendar-move-title">Cambia data</h2></div><button class="btn-close" type="button" aria-label="Chiudi" (click)="cancelDateChange()"></button></div>
+      <div class="modal-body">
+        <p>Sposta <strong>{{ moveTarget()?.title }}</strong> mantenendo invariati tutti gli altri dati.</p>
+        <label class="form-label" for="calendar-move-date">Nuova data</label>
+        <input id="calendar-move-date" class="form-control" type="date" required [ngModel]="moveDate()" (ngModelChange)="moveDate.set($event)">
+        <p class="form-text">Questa azione usa la normale modifica della spesa. Se la richiesta fallisce, la data originale viene ripristinata.</p>
+      </div>
+      <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" (click)="cancelDateChange()">Annulla</button><button class="btn btn-primary" type="button" [disabled]="!moveDate()" (click)="confirmDateChange()">Salva nuova data</button></div>
+    </div></div>
+  </div>
+  <button class="modal-backdrop show calendar-move-backdrop" type="button" aria-label="Chiudi finestra cambia data" (click)="cancelDateChange()"></button>
+}

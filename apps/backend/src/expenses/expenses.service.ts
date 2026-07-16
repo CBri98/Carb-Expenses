@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { ExpenseStatus, PaymentMethod, Prisma } from '@prisma/client';
 
 import type { ApiPayload } from '../common/interceptors/api-response.interceptor';
+import { dateOnly, romeCalendarDate } from '../dashboard/dashboard.utils';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateExpenseDto,
@@ -288,7 +289,14 @@ export class ExpensesService {
     this.validateFilters(query);
     const dateFilter: Prisma.DateTimeFilter = {};
     if (query.dateFrom) dateFilter.gte = parseExpenseDate(query.dateFrom, 'dateFrom');
-    if (query.dateTo) dateFilter.lte = parseExpenseDate(query.dateTo, 'dateTo');
+    const requestedEnd = query.dateTo ? parseExpenseDate(query.dateTo, 'dateTo') : undefined;
+    if (query.includeFuture === false) {
+      const current = romeCalendarDate();
+      const today = dateOnly(current.year, current.month, current.day);
+      dateFilter.lte = requestedEnd && requestedEnd < today ? requestedEnd : today;
+    } else if (requestedEnd) {
+      dateFilter.lte = requestedEnd;
+    }
     if (query.month && query.year) {
       dateFilter.gte = new Date(Date.UTC(query.year, query.month - 1, 1));
       dateFilter.lt = new Date(Date.UTC(query.year, query.month, 1));

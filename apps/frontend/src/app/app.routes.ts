@@ -53,6 +53,14 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'calendar',
+        title: 'Calendario | Carbexpenses',
+        loadComponent: () =>
+          import('./features/calendar/calendar-page.component').then(
+            (module) => module.CalendarPageComponent,
+          ),
+      },
+      {
         path: 'expenses/new',
         title: 'Nuova spesa | Carbexpenses',
         loadComponent: () =>
@@ -74,6 +82,22 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/expenses/pages/expense-detail.component').then(
             (module) => module.ExpenseDetailComponent,
+          ),
+      },
+      {
+        path: 'reports/monthly',
+        title: 'Report mensile | Carbexpenses',
+        loadComponent: () =>
+          import('./features/reports/monthly-report-page.component').then(
+            (module) => module.MonthlyReportPageComponent,
+          ),
+      },
+      {
+        path: 'reports/compare',
+        title: 'Confronto mensile | Carbexpenses',
+        loadComponent: () =>
+          import('./features/reports/month-comparison-page.component').then(
+            (module) => module.MonthComparisonPageComponent,
           ),
       },
       {

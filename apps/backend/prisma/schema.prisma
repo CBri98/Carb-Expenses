@@ -144,6 +144,8 @@ model Expense {
   @@index([userId, status], map: "expenses_user_status_idx")
   @@index([userId, categoryId], map: "expenses_user_category_idx")
   @@index([userId, paymentMethod], map: "expenses_user_payment_idx")
+  @@index([userId, status, expenseDate, deletedAt], map: "expenses_dashboard_period_idx")
+  @@index([userId, createdAt, deletedAt], map: "expenses_dashboard_recent_idx")
   @@index([deletedAt], map: "expenses_deleted_at_idx")
   @@map("expenses")
 }

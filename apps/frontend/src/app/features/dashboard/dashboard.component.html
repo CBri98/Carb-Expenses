@@ -1,45 +1,107 @@
 <section aria-labelledby="dashboard-title">
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb mb-3">
-      <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
-    </ol>
-  </nav>
-  <div class="d-flex flex-wrap gap-3 align-items-start justify-content-between mb-4">
+  <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item active" aria-current="page">Dashboard</li></ol></nav>
+
+  <header class="dashboard-header mb-4">
     <div>
       <p class="section-eyebrow">Panoramica</p>
-      <h1 id="dashboard-title" class="h2 mb-2">Ciao, {{ user()?.firstName }}.</h1>
-      <p class="text-body-secondary mb-0">
-        Gestisci categorie ed etichette per preparare la registrazione delle spese.
-      </p>
+      <h1 id="dashboard-title" class="h2 mb-2">Dashboard</h1>
+      <p class="text-body-secondary mb-0">Panoramica delle tue spese di {{ periodLabel().toLowerCase() }}</p>
     </div>
-    <span class="status-pill"
-      ><i class="bi bi-shield-check" aria-hidden="true"></i> Sessione protetta</span
-    >
-  </div>
-  <div class="row g-4">
-    <div class="col-12 col-lg-6">
-      <article class="card border-0 shadow-sm h-100">
-        <div class="card-body p-4">
-          <span class="feature-icon"><i class="bi bi-folder2-open" aria-hidden="true"></i></span>
-          <h2 class="h4 mt-4">Categorie</h2>
-          <p class="text-body-secondary">
-            Personalizza l'organizzazione delle spese e scegli quali categorie predefinite mostrare.
-          </p>
-          <a class="btn btn-primary" routerLink="/settings/categories">Gestisci categorie</a>
+    <div class="period-controls" aria-label="Selezione periodo dashboard">
+      <button class="btn btn-outline-secondary" type="button" (click)="previousMonth()" aria-label="Mese precedente"><i class="bi bi-chevron-left"></i></button>
+      <label><span class="visually-hidden">Mese</span><select class="form-select" [value]="selected().month" (change)="selectMonth($event)">
+        @for (month of months; track $index) { <option [value]="$index + 1" [selected]="selected().month === $index + 1">{{ month }}</option> }
+      </select></label>
+      <label><span class="visually-hidden">Anno</span><select class="form-select" [value]="selected().year" (change)="selectYear($event)">
+        @for (year of years; track year) { <option [value]="year" [selected]="selected().year === year">{{ year }}</option> }
+      </select></label>
+      <button class="btn btn-outline-primary text-nowrap" type="button" (click)="currentMonth()">Mese corrente</button>
+      <button class="btn btn-outline-secondary" type="button" (click)="nextMonth()" aria-label="Mese successivo"><i class="bi bi-chevron-right"></i></button>
+    </div>
+  </header>
+
+  @if (error()) {
+    <div class="alert alert-danger d-flex flex-wrap align-items-center justify-content-between gap-3" role="alert">
+      <span><i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>{{ error() }}</span>
+      <button class="btn btn-sm btn-danger" type="button" (click)="retry()">Riprova</button>
+    </div>
+  }
+
+  @if (!data() && loading()) {
+    <div class="row g-3 mb-4" aria-label="Caricamento indicatori">
+      @for (_ of skeletonCards; track $index) { <div class="col-12 col-sm-6 col-xl-4"><div class="skeleton skeleton-card"></div></div> }
+    </div>
+    <div class="row g-4"><div class="col-12 col-xl-7"><div class="skeleton skeleton-chart"></div></div><div class="col-12 col-xl-5"><div class="skeleton skeleton-chart"></div></div></div>
+  } @else if (data(); as dashboard) {
+    @if (loading()) { <div class="refresh-indicator" role="status"><span class="spinner-border spinner-border-sm me-2"></span>Aggiornamento dati…</div> }
+
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Totale speso" [value]="euro(dashboard.summary.totalSpent)" icon="bi-wallet2" [detail]="dashboard.summary.expenseCount + ' spese completate'" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Variazione mensile" [value]="euro(dashboard.summary.absoluteChange)" icon="bi-arrow-left-right" [detail]="variationText()" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Media giornaliera" [value]="euro(dashboard.summary.dailyAverage)" icon="bi-calendar-day" [detail]="dashboard.summary.period.isCurrentMonth ? 'Sui giorni trascorsi' : 'Sui giorni del mese'" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Categoria principale" [value]="dashboard.summary.topCategory?.name ?? 'Nessun dato'" icon="bi-pie-chart" [detail]="dashboard.summary.topCategory ? euro(dashboard.summary.topCategory.total) + ' · ' + dashboard.summary.topCategory.percentage + '%' : ''" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Spese future" [value]="euro(dashboard.summary.plannedTotal)" icon="bi-clock-history" detail="Pianificate da oggi in avanti" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Prossima spesa" [value]="dashboard.summary.nextPlannedExpense?.description ?? 'Nessuna'" icon="bi-calendar2-event" [detail]="dashboard.summary.nextPlannedExpense ? euro(dashboard.summary.nextPlannedExpense.amount) + ' · ' + dashboard.summary.nextPlannedExpense.expenseDate : 'Nessuna spesa pianificata'" /></div>
+    </div>
+
+    @if (dashboard.summary.expenseCount === 0) {
+      <div class="empty-period mb-4">
+        <i class="bi bi-receipt-cutoff" aria-hidden="true"></i>
+        <div><h2 class="h5">Non hai ancora registrato spese per {{ periodLabel().toLowerCase() }}.</h2><p class="text-body-secondary mb-3">Le spese pianificate e annullate non incidono sui totali del periodo.</p>
+          <a class="btn btn-primary me-2" routerLink="/expenses/new">Aggiungi una spesa</a><a class="btn btn-outline-secondary" routerLink="/expenses">Vai alle spese</a>
         </div>
-      </article>
+      </div>
+    }
+
+    <div class="row g-4 mb-4">
+      <div class="col-12 col-xl-7">
+        <article class="dashboard-card h-100" aria-labelledby="daily-title">
+          <div class="card-heading"><div><h2 id="daily-title" class="h5">Andamento giornaliero</h2><p>Spese completate giorno per giorno nel periodo.</p></div></div>
+          @if (dashboard.summary.expenseCount > 0) {
+            <app-dashboard-chart type="line" [labels]="dailyLabels()" [values]="dailyValues()" [counts]="dailyCounts()" datasetLabel="Totale giornaliero" [ariaLabel]="'Andamento giornaliero delle spese di ' + periodLabel()" />
+            <details><summary>Riepilogo testuale</summary><ul class="accessible-list">@for (point of dashboard.dailyTrend; track point.date) { @if (+point.total > 0) { <li>Giorno {{ point.day }}: {{ point.total | euroAmount }}, {{ point.expenseCount }} spese</li> } }</ul></details>
+          } @else { <div class="chart-empty">Nessun dato da rappresentare per questo mese.</div> }
+        </article>
+      </div>
+      <div class="col-12 col-xl-5">
+        <article class="dashboard-card h-100" aria-labelledby="category-title">
+          <div class="card-heading"><div><h2 id="category-title" class="h5">Spese per categoria</h2><p>Distribuzione delle sole spese completate.</p></div></div>
+          @if (dashboard.categoryDistribution.length > 0) {
+            <app-dashboard-chart type="doughnut" [labels]="categoryLabels()" [values]="categoryValues()" [counts]="categoryCounts()" [colors]="categoryColors()" datasetLabel="Categorie" [ariaLabel]="'Distribuzione delle spese per categoria di ' + periodLabel()" />
+            <ul class="category-summary">@for (item of dashboard.categoryDistribution; track item.categoryId) { <li><span class="color-dot" [style.background]="item.color"></span><span>{{ item.name }}</span><strong>{{ item.total | euroAmount }}</strong><span>{{ item.percentage }}%</span></li> }</ul>
+          } @else { <div class="chart-empty">Nessuna categoria con spese completate.</div> }
+        </article>
+      </div>
     </div>
-    <div class="col-12 col-lg-6">
-      <article class="card border-0 shadow-sm h-100">
-        <div class="card-body p-4">
-          <span class="feature-icon"><i class="bi bi-tags" aria-hidden="true"></i></span>
-          <h2 class="h4 mt-4">Etichette</h2>
-          <p class="text-body-secondary">
-            Crea etichette personali, con colore, icona e categoria di riferimento.
-          </p>
-          <a class="btn btn-outline-primary" routerLink="/settings/labels">Gestisci etichette</a>
+
+    <article class="dashboard-card mb-4" aria-labelledby="history-title">
+      <div class="card-heading flex-wrap gap-3">
+        <div><h2 id="history-title" class="h5">Andamento degli ultimi mesi</h2><p>Totali da gennaio a dicembre {{ trendYear() }}.</p></div>
+        <div class="history-year-controls" aria-label="Anno andamento mensile">
+          <button
+            class="btn btn-sm"
+            type="button"
+            [class.btn-primary]="trendYear() === currentYear"
+            [class.btn-outline-primary]="trendYear() !== currentYear"
+            (click)="selectCurrentTrendYear()"
+          >Anno corrente</button>
+          <label>
+            <span class="visually-hidden">Anno personalizzato andamento mensile</span>
+            <select class="form-select form-select-sm" [value]="trendYear()" (change)="selectTrendYear($event)">
+              @for (year of years; track year) { <option [value]="year" [selected]="trendYear() === year">{{ year }}</option> }
+            </select>
+          </label>
         </div>
-      </article>
+      </div>
+      @if (hasHistory()) {
+        <app-dashboard-chart type="bar" [labels]="historyLabels()" [values]="historyValues()" [counts]="historyCounts()" datasetLabel="Totale mensile" ariaLabel="Andamento storico mensile delle spese" />
+        <details><summary>Tabella riepilogativa</summary><ul class="accessible-list">@for (point of dashboard.monthlyTrend; track point.year + '-' + point.month) { <li>{{ point.label }}: {{ point.total | euroAmount }}, {{ point.expenseCount }} spese</li> }</ul></details>
+      } @else { <div class="chart-empty">Non ci sono ancora dati storici disponibili.</div> }
+    </article>
+
+    <div class="row g-4">
+      <div class="col-12 col-xl-7"><article class="dashboard-card h-100"><div class="card-heading"><div><h2 class="h5">Ultimi inserimenti</h2><p>Ordinati per data di registrazione.</p></div><a routerLink="/expenses">Vedi tutte le spese</a></div><app-recent-expenses [expenses]="dashboard.recentExpenses" (duplicate)="duplicate($event)" /></article></div>
+      <div class="col-12 col-xl-5"><article class="dashboard-card h-100"><div class="card-heading"><div><h2 class="h5">Prossime spese</h2><p>Pianificate da oggi in avanti.</p></div></div><app-upcoming-expenses [expenses]="dashboard.upcomingExpenses" (complete)="complete($event)" /></article></div>
     </div>
-  </div>
+  }
 </section>

@@ -114,6 +114,7 @@ export interface ExpenseQueryParams {
   paymentMethod?: PaymentMethod;
   minAmount?: string;
   maxAmount?: string;
+  includeFuture?: boolean;
   sortBy?: 'expenseDate' | 'amount' | 'description' | 'createdAt' | 'updatedAt';
   sortDirection?: 'asc' | 'desc';
 }

@@ -48,12 +48,30 @@
       </a>
 
       <p class="sidebar__section">Analisi</p>
-      <span class="sidebar__disabled" aria-disabled="true"
-        ><i class="bi bi-calendar3"></i><span>Calendario</span></span
+      <a
+        routerLink="/calendar"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        (click)="closeMobile()"
       >
-      <span class="sidebar__disabled" aria-disabled="true"
-        ><i class="bi bi-bar-chart"></i><span>Confronto mensile</span></span
+        <i class="bi bi-calendar3" aria-hidden="true"></i><span>Calendario</span>
+      </a>
+      <a
+        routerLink="/reports/monthly"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        (click)="closeMobile()"
       >
+        <i class="bi bi-calendar-month" aria-hidden="true"></i><span>Report mensile</span>
+      </a>
+      <a
+        routerLink="/reports/compare"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        (click)="closeMobile()"
+      >
+        <i class="bi bi-bar-chart" aria-hidden="true"></i><span>Confronto mensile</span>
+      </a>
       <span class="sidebar__disabled" aria-disabled="true"
         ><i class="bi bi-gear"></i><span>Impostazioni</span></span
       >

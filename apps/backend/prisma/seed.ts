@@ -153,6 +153,11 @@ const demoExpenses = [
   ['18', 'Libri corso', '46.50', '2026-05-14', 'Istruzione', PaymentMethod.CREDIT_CARD, ExpenseStatus.COMPLETED, []],
   ['19', 'Regalo compleanno', '55.00', '2026-05-21', 'Regali', PaymentMethod.CASH, ExpenseStatus.COMPLETED, []],
   ['20', 'Veterinario', '92.00', '2026-05-27', 'Animali', PaymentMethod.DEBIT_CARD, ExpenseStatus.COMPLETED, ['spesa-straordinaria']],
+  ['21', 'Affitto aprile', '850.00', '2026-04-01', 'Affitto', PaymentMethod.BANK_TRANSFER, ExpenseStatus.COMPLETED, []],
+  ['22', 'Cinema', '24.00', '2026-04-18', 'Intrattenimento', PaymentMethod.DIGITAL_WALLET, ExpenseStatus.COMPLETED, []],
+  ['23', 'Affitto marzo', '850.00', '2026-03-01', 'Affitto', PaymentMethod.BANK_TRANSFER, ExpenseStatus.COMPLETED, []],
+  ['24', 'Bolletta gas', '112.40', '2026-02-12', 'Bollette', PaymentMethod.DIRECT_DEBIT, ExpenseStatus.COMPLETED, []],
+  ['25', 'Caffè del mattino', '2.20', '2026-07-10', 'Caffè e bar', PaymentMethod.CASH, ExpenseStatus.COMPLETED, []],
 ] as const;
 
 async function seedDemoExpenses(userId: string): Promise<void> {
@@ -160,6 +165,12 @@ async function seedDemoExpenses(userId: string): Promise<void> {
     where: { userId: null, isDefault: true, deletedAt: null },
   });
   const categoryByName = new Map(categories.map((category) => [category.name, category]));
+  const customCategory = await prisma.category.upsert({
+    where: { userId_slug: { userId, slug: 'caffe-e-bar' } },
+    create: { userId, name: 'Caffè e bar', slug: 'caffe-e-bar', icon: 'bi-cup-hot', color: '#92400E', sortOrder: 1 },
+    update: { name: 'Caffè e bar', icon: 'bi-cup-hot', color: '#92400E', isActive: true, deletedAt: null },
+  });
+  categoryByName.set(customCategory.name, customCategory);
   const labelsBySlug = new Map<string, string>();
 
   for (const item of demoLabels) {

@@ -5,6 +5,7 @@ import { Transform, Type, type TransformFnParams } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsIn,
   IsInt,
@@ -36,6 +37,12 @@ const commaSeparatedIds = ({ value }: TransformFnParams): unknown => {
   if (Array.isArray(value)) return value;
   if (typeof value !== 'string' || !value.trim()) return undefined;
   return value.split(',').map((item) => item.trim()).filter(Boolean);
+};
+
+const optionalBoolean = ({ value }: TransformFnParams): unknown => {
+  if (value === true || value === 'true') return true;
+  if (value === false || value === 'false') return false;
+  return value;
 };
 
 export class CreateExpenseDto {
@@ -194,6 +201,15 @@ export class ExpenseQueryDto {
   @IsOptional()
   @Matches(FILTER_MONEY)
   maxAmount?: string;
+
+  @ApiPropertyOptional({
+    default: true,
+    description: 'Se false, esclude le spese successive alla data corrente in Europe/Rome',
+  })
+  @Transform(optionalBoolean)
+  @IsOptional()
+  @IsBoolean()
+  includeFuture?: boolean;
 
   @ApiPropertyOptional({
     enum: ['expenseDate', 'amount', 'description', 'createdAt', 'updatedAt'],

@@ -38,6 +38,15 @@ describe('DTO spese', () => {
     expect(errors.some((error) => error.property === 'labelIds')).toBe(true);
   });
 
+  it('trasforma il filtro booleano delle spese future e rifiuta valori ambigui', async () => {
+    const dto = plainToInstance(ExpenseQueryDto, { includeFuture: 'false' });
+    await expect(validate(dto)).resolves.toHaveLength(0);
+    expect(dto.includeFuture).toBe(false);
+
+    const errors = await validate(plainToInstance(ExpenseQueryDto, { includeFuture: 'non-valido' }));
+    expect(errors.some((error) => error.property === 'includeFuture')).toBe(true);
+  });
+
   it('trasforma paginazione e filtro etichette dalla query', async () => {
     const dto = plainToInstance(ExpenseQueryDto, {
       page: '2', pageSize: '50', month: '7', year: '2026',

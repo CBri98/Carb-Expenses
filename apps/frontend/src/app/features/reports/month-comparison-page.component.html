@@ -1,0 +1,220 @@
+<header class="report-header mb-4">
+  <div>
+    <p class="section-eyebrow">Analisi comparativa</p>
+    <h1 class="h2 mb-1">Confronto tra mesi</h1>
+    <p class="text-body-secondary mb-0">Confronta due periodi, categorie e andamento giornaliero.</p>
+  </div>
+  <a class="btn btn-outline-primary" routerLink="/reports/monthly" [queryParams]="reportLink()">
+    <i class="bi bi-calendar-month me-2" aria-hidden="true"></i>Apri report mensile
+  </a>
+</header>
+
+<section class="report-card mb-4" aria-labelledby="comparison-periods-title">
+  <h2 id="comparison-periods-title" class="visually-hidden">Periodi da confrontare</h2>
+  <div class="comparison-selectors">
+    <app-month-selector label="Periodo A" idPrefix="period-a" [period]="periodA()" (periodChange)="changePeriodA($event)" />
+    <button class="btn btn-outline-secondary align-self-end" type="button" (click)="swapPeriods()">
+      <i class="bi bi-arrow-left-right me-2" aria-hidden="true"></i>Scambia periodi
+    </button>
+    <app-month-selector label="Periodo B" idPrefix="period-b" [period]="periodB()" (periodChange)="changePeriodB($event)" />
+  </div>
+  <div class="d-flex flex-wrap gap-2 mt-3">
+    <button class="btn btn-sm btn-outline-primary" type="button" (click)="currentVsPrevious()">Mese corrente vs precedente</button>
+    <button class="btn btn-sm btn-outline-secondary" type="button" (click)="lastTwoMonths()">Ultimi due mesi conclusi</button>
+  </div>
+</section>
+
+@if (loading()) {
+  <div aria-live="polite">
+    <div class="row g-3 mb-4">
+      @for (item of [1, 2, 3, 4, 5, 6, 7, 8]; track item) {
+        <div class="col-12 col-md-6 col-xl-3"><app-loading-skeleton /></div>
+      }
+    </div>
+    <div class="report-card"><app-loading-skeleton /></div>
+  </div>
+} @else if (error()) {
+  <div class="alert alert-danger" role="alert">
+    <h2 class="h5">Confronto non disponibile</h2>
+    <p>{{ error() }}</p>
+    <button class="btn btn-danger" type="button" (click)="retry()">Riprova</button>
+  </div>
+} @else if (comparison(); as comparisonData) {
+  @if (comparisonData.samePeriod) {
+    <div class="alert alert-info" role="status">
+      Stai confrontando lo stesso mese con sé stesso: tutte le variazioni saranno invariate.
+    </div>
+  }
+  @if (noData()) {
+    <div class="alert alert-light border" role="status">
+      Non ci sono dati da confrontare nei periodi selezionati.
+    </div>
+  }
+
+  <section aria-labelledby="comparison-metrics-title" class="mb-4">
+    <h2 id="comparison-metrics-title" class="visually-hidden">Metriche di confronto</h2>
+    <div class="row g-3">
+      @for (metricItem of comparisonData.metrics; track metricItem.metric) {
+        <div class="col-12 col-md-6 col-xl-3">
+          <article class="comparison-card h-100">
+            <p class="comparison-card__title">{{ metricLabels[metricItem.metric] }}</p>
+            <dl>
+              <div><dt>{{ comparisonData.periodA.shortLabel }}</dt><dd>{{ value(metricItem, metricItem.periodAValue) }}</dd></div>
+              <div><dt>{{ comparisonData.periodB.shortLabel }}</dt><dd>{{ value(metricItem, metricItem.periodBValue) }}</dd></div>
+            </dl>
+            <p class="comparison-card__change">
+              <span>{{ direction(metricItem.direction) }}</span>
+              <strong>{{ value(metricItem, metricItem.absoluteChange) }}</strong>
+              <span>({{ percentage(metricItem.percentageChange) }})</span>
+            </p>
+          </article>
+        </div>
+      }
+    </div>
+  </section>
+
+  <div class="row g-4 mb-4">
+    <section class="col-12 col-xl-5" aria-labelledby="total-comparison-title">
+      <div class="report-card h-100">
+        <div class="card-heading"><div><h2 id="total-comparison-title" class="h5">Confronto totali</h2><p>Completate e pianificate, senza doppi assi</p></div></div>
+        <app-dashboard-chart
+          type="bar"
+          [labels]="totalLabels"
+          [values]="totalAValues()"
+          [secondaryValues]="totalBValues()"
+          [datasetLabel]="comparisonData.periodA.shortLabel"
+          [secondaryDatasetLabel]="comparisonData.periodB.shortLabel"
+          secondaryColor="#d97706"
+          ariaLabel="Confronto dei totali completati e pianificati dei due mesi"
+        />
+        <table class="table table-sm mt-3">
+          <caption class="visually-hidden">Alternativa tabellare al confronto dei totali</caption>
+          <thead><tr><th>Stato</th><th class="text-end">{{ comparisonData.periodA.shortLabel }}</th><th class="text-end">{{ comparisonData.periodB.shortLabel }}</th></tr></thead>
+          <tbody><tr><th>Completate</th><td class="text-end">{{ totalAValues()[0] | euroAmount }}</td><td class="text-end">{{ totalBValues()[0] | euroAmount }}</td></tr><tr><th>Pianificate</th><td class="text-end">{{ totalAValues()[1] | euroAmount }}</td><td class="text-end">{{ totalBValues()[1] | euroAmount }}</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="col-12 col-xl-7" aria-labelledby="category-comparison-chart-title">
+      <div class="report-card h-100">
+        <div class="card-heading"><div><h2 id="category-comparison-chart-title" class="h5">Confronto per categoria</h2><p>L’unione completa delle categorie nei due periodi</p></div></div>
+        @if (comparisonData.categories.length) {
+          <app-dashboard-chart
+            type="bar"
+            [horizontal]="true"
+            [labels]="categoryLabels()"
+            [values]="categoryAValues()"
+            [counts]="categoryACounts()"
+            [secondaryValues]="categoryBValues()"
+            [secondaryCounts]="categoryBCounts()"
+            [datasetLabel]="comparisonData.periodA.shortLabel"
+            [secondaryDatasetLabel]="comparisonData.periodB.shortLabel"
+            secondaryColor="#d97706"
+            ariaLabel="Confronto degli importi per categoria tra i due mesi"
+          />
+        } @else {
+          <p class="text-body-secondary text-center py-5">Nessuna categoria da confrontare.</p>
+        }
+      </div>
+    </section>
+  </div>
+
+  <section class="report-card mb-4" aria-labelledby="daily-comparison-title">
+    <div class="card-heading"><div><h2 id="daily-comparison-title" class="h5">Confronto giornaliero</h2><p>Giorno di calendario; un giorno inesistente non viene trasformato in zero</p></div></div>
+    <app-dashboard-chart
+      type="line"
+      [labels]="dailyLabels()"
+      [values]="dailyAValues()"
+      [counts]="dailyACounts()"
+      [secondaryValues]="dailyBValues()"
+      [secondaryCounts]="dailyBCounts()"
+      [datasetLabel]="comparisonData.periodA.shortLabel"
+      [secondaryDatasetLabel]="comparisonData.periodB.shortLabel"
+      secondaryColor="#d97706"
+      ariaLabel="Confronto giornaliero delle spese completate; i giorni inesistenti sono valori nulli"
+    />
+    <details>
+      <summary>Tabella dei valori giornalieri</summary>
+      <div class="table-responsive mt-2">
+        <table class="table table-sm">
+          <thead><tr><th>Giorno</th><th class="text-end">{{ comparisonData.periodA.shortLabel }}</th><th class="text-end">{{ comparisonData.periodB.shortLabel }}</th></tr></thead>
+          <tbody>
+            @for (point of comparisonData.daily; track point.day) {
+              <tr>
+                <th>{{ point.day }}</th>
+                <td class="text-end">@if (point.periodATotal !== null) { {{ point.periodATotal | euroAmount }} } @else { <span aria-label="Giorno non presente">—</span> }</td>
+                <td class="text-end">@if (point.periodBTotal !== null) { {{ point.periodBTotal | euroAmount }} } @else { <span aria-label="Giorno non presente">—</span> }</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <section class="report-card mb-4 p-0 overflow-hidden" aria-labelledby="category-table-title">
+    <div class="p-3 p-lg-4 border-bottom">
+      <div class="card-heading"><div><h2 id="category-table-title" class="h5">Tabella comparativa categorie</h2><p>Variazioni espresse anche testualmente</p></div></div>
+      <div class="d-flex flex-wrap gap-3">
+        <div>
+          <label class="form-label" for="category-direction">Variazione</label>
+          <select id="category-direction" class="form-select" [value]="categoryDirection()" (change)="setDirection($event)">
+            <option value="ALL">Tutte</option><option value="INCREASE">Aumenti</option><option value="DECREASE">Diminuzioni</option><option value="UNCHANGED">Invariate</option><option value="NOT_COMPARABLE">Non confrontabili</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label" for="category-sort">Ordina per</label>
+          <select id="category-sort" class="form-select" [value]="categorySort()" (change)="setSort($event)">
+            <option value="CHANGE">Differenza assoluta</option><option value="PERIOD_A">Totale periodo A</option><option value="PERIOD_B">Totale periodo B</option><option value="NAME">Nome categoria</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead><tr><th>Categoria</th><th class="text-end">{{ comparisonData.periodA.shortLabel }}</th><th class="text-end">{{ comparisonData.periodB.shortLabel }}</th><th class="text-end">Differenza</th><th>Variazione</th></tr></thead>
+        <tbody>
+          @for (category of categoryRows(); track category.categoryId) {
+            <tr>
+              <th><span class="color-dot me-2" [style.background-color]="category.color" aria-hidden="true"></span>{{ category.name }}</th>
+              <td class="text-end">{{ category.periodATotal | euroAmount }}</td>
+              <td class="text-end">{{ category.periodBTotal | euroAmount }}</td>
+              <td class="text-end">{{ signedAmount(category.absoluteChange) }}</td>
+              <td>{{ direction(category.direction) }} · {{ percentage(category.percentageChange) }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5" class="text-center text-body-secondary py-4">Nessuna categoria corrisponde al filtro.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="row g-4 mb-4">
+    <section class="col-12 col-xl-6" aria-labelledby="payment-comparison-title">
+      <div class="report-card h-100">
+        <div class="card-heading"><div><h2 id="payment-comparison-title" class="h5">Metodi di pagamento</h2><p>Confronto sulle spese completate</p></div></div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Metodo</th><th class="text-end">{{ comparisonData.periodA.shortLabel }}</th><th class="text-end">{{ comparisonData.periodB.shortLabel }}</th><th>Variazione</th></tr></thead>
+            <tbody>
+              @for (payment of comparisonData.paymentMethods; track payment.paymentMethod) {
+                <tr><td><app-payment-method-badge [method]="payment.paymentMethod" /></td><td class="text-end">{{ payment.periodATotal | euroAmount }}</td><td class="text-end">{{ payment.periodBTotal | euroAmount }}</td><td>{{ direction(payment.direction) }} · {{ percentage(payment.percentageChange) }}</td></tr>
+              } @empty {
+                <tr><td colspan="4" class="text-center text-body-secondary py-4">Nessun metodo da confrontare.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    <section class="col-12 col-xl-6" aria-labelledby="narrative-title">
+      <div class="report-card h-100">
+        <div class="card-heading"><div><h2 id="narrative-title" class="h5">Riepilogo testuale</h2><p>Descrizione neutrale e deterministica</p></div></div>
+        <ul class="mb-0">
+          @for (sentence of narrative(); track sentence) { <li class="mb-2">{{ sentence }}</li> }
+        </ul>
+      </div>
+    </section>
+  </div>
+}

@@ -24,11 +24,12 @@ export class PageHeaderComponent {
   selector: 'app-category-badge',
   standalone: true,
   template: `<span
-    class="badge rounded-pill border"
+    class="category-badge badge rounded-pill border"
     [style.color]="color()"
     [style.border-color]="color()"
     ><i class="bi me-1" [class]="icon()" aria-hidden="true"></i>{{ name() }}</span
   >`,
+  styles: [`.category-badge { background: #fff !important; }`],
 })
 export class CategoryBadgeComponent {
   readonly name = input.required<string>();

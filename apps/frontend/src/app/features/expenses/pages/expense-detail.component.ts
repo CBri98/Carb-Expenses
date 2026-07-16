@@ -38,7 +38,11 @@ export class ExpenseDetailComponent {
   constructor() { this.load(); }
 
   back(): void {
-    void this.router.navigate(['/expenses'], { queryParams: this.route.snapshot.queryParams });
+    const queryParams = { ...this.route.snapshot.queryParams };
+    const returnTo = queryParams['returnTo'];
+    delete queryParams['returnTo'];
+    const target = returnTo === 'calendar' ? ['/calendar'] : ['/expenses'];
+    void this.router.navigate(target, { queryParams });
   }
 
   edit(): void {

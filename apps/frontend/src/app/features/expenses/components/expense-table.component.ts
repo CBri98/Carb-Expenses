@@ -8,6 +8,7 @@ import {
   PaymentMethodBadgeComponent,
 } from '../../../shared/components/expense-display.components';
 import type { ExpenseListItem, ExpenseQueryParams, ExpenseStatus } from '../../../shared/models/expense.models';
+import { ExpenseActionsMenuComponent } from './expense-actions-menu.component';
 import { ExpenseCardComponent } from './expense-card.component';
 
 export interface ExpenseStatusAction {
@@ -25,6 +26,7 @@ export interface ExpenseStatusAction {
     PaymentMethodBadgeComponent,
     EuroAmountPipe,
     ItalianExpenseDatePipe,
+    ExpenseActionsMenuComponent,
     ExpenseCardComponent,
   ],
   templateUrl: './expense-table.component.html',
@@ -40,6 +42,11 @@ export class ExpenseTableComponent {
   readonly statusChange = output<ExpenseStatusAction>();
   readonly remove = output<ExpenseListItem>();
   readonly sort = output<ExpenseQueryParams['sortBy']>();
+
+  activateRow(expense: ExpenseListItem, event?: Event): void {
+    event?.preventDefault();
+    this.view.emit(expense);
+  }
 
   changeStatus(expense: ExpenseListItem, status: ExpenseStatus): void {
     this.statusChange.emit({ expense, status });

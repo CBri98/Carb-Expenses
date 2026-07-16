@@ -8,7 +8,15 @@
     </tr></thead>
     <tbody>
       @for (expense of expenses(); track expense.id) {
-        <tr>
+        <tr
+          class="expense-row"
+          [class.expense-row--planned]="expense.status === 'PLANNED'"
+          tabindex="0"
+          [attr.aria-label]="'Apri dettaglio di ' + expense.description"
+          (click)="activateRow(expense)"
+          (keydown.enter)="activateRow(expense, $event)"
+          (keydown.space)="activateRow(expense, $event)"
+        >
           <td class="text-nowrap">{{ expense.expenseDate | italianExpenseDate }}@if (expense.expenseTime) { <div class="small text-body-secondary">{{ expense.expenseTime }}</div> }</td>
           <td><strong>{{ expense.description }}</strong>@if (expense.merchant) { <div class="small text-body-secondary">{{ expense.merchant }}</div> }</td>
           <td class="text-end fw-semibold text-nowrap"><span class="visually-hidden">Importo </span>{{ expense.amount | euroAmount }}</td>
@@ -16,13 +24,13 @@
           <td><div class="d-flex flex-wrap gap-1">@for (label of expense.labels; track label.id) { <app-label-badge [name]="label.name" [color]="label.color" [icon]="label.icon" /> } @empty { <span class="text-body-secondary">—</span> }</div></td>
           <td><app-payment-method-badge [method]="expense.paymentMethod" /></td>
           <td><app-expense-status-badge [status]="expense.status" /></td>
-          <td><div class="actions"><button class="btn btn-sm btn-outline-primary" type="button" [attr.aria-label]="'Visualizza ' + expense.description" (click)="view.emit(expense)"><i class="bi bi-eye"></i></button><button class="btn btn-sm btn-outline-secondary" type="button" [attr.aria-label]="'Modifica ' + expense.description" (click)="edit.emit(expense)"><i class="bi bi-pencil"></i></button><details><summary class="btn btn-sm btn-outline-secondary" [attr.aria-label]="'Altre azioni per ' + expense.description"><i class="bi bi-three-dots-vertical"></i></summary><div class="action-panel shadow">
-            <button type="button" (click)="duplicate.emit(expense)"><i class="bi bi-copy"></i>Duplica</button>
-            @if (expense.status !== 'COMPLETED') { <button type="button" (click)="changeStatus(expense, 'COMPLETED')"><i class="bi bi-check-circle"></i>Segna completata</button> }
-            @if (expense.status !== 'PLANNED') { <button type="button" (click)="changeStatus(expense, 'PLANNED')"><i class="bi bi-clock"></i>Segna pianificata</button> }
-            @if (expense.status !== 'CANCELLED') { <button type="button" (click)="changeStatus(expense, 'CANCELLED')"><i class="bi bi-x-circle"></i>Annulla</button> }
-            <button class="text-danger" type="button" (click)="remove.emit(expense)"><i class="bi bi-trash"></i>Elimina</button>
-          </div></details></div></td>
+          <td (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+            <div class="actions">
+              <button class="btn btn-sm btn-outline-primary" type="button" [attr.aria-label]="'Visualizza ' + expense.description" (click)="view.emit(expense)"><i class="bi bi-eye" aria-hidden="true"></i></button>
+              <button class="btn btn-sm btn-outline-secondary" type="button" [attr.aria-label]="'Modifica ' + expense.description" (click)="edit.emit(expense)"><i class="bi bi-pencil" aria-hidden="true"></i></button>
+              <app-expense-actions-menu [expense]="expense" (duplicate)="duplicate.emit(expense)" (statusChange)="changeStatus(expense, $event)" (remove)="remove.emit(expense)" />
+            </div>
+          </td>
         </tr>
       }
     </tbody>

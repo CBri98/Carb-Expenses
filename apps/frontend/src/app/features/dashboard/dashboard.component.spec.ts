@@ -1,0 +1,66 @@
+import { signal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { of } from 'rxjs';
+import { describe, expect, it, vi } from 'vitest';
+
+import { DashboardService } from '../../core/services/dashboard.service';
+import { ExpenseService } from '../../core/services/expense.service';
+import type { DashboardData } from '../../shared/models/dashboard.models';
+import { DashboardChartComponent } from './dashboard-chart.component';
+import { DashboardComponent } from './dashboard.component';
+
+const data: DashboardData = {
+  summary: {
+    period: { month: 7, year: 2026, label: 'Luglio 2026', isCurrentMonth: true },
+    totalSpent: '0.00',
+    previousPeriodTotal: '0.00',
+    absoluteChange: '0.00',
+    percentageChange: 0,
+    changeDirection: 'UNCHANGED',
+    expenseCount: 0,
+    dailyAverage: '0.00',
+    topCategory: null,
+    plannedTotal: '0.00',
+    nextPlannedExpense: null,
+  },
+  dailyTrend: [],
+  categoryDistribution: [],
+  monthlyTrend: [],
+  recentExpenses: [],
+  upcomingExpenses: [],
+};
+
+describe('DashboardComponent', () => {
+  it('inizializza l’anno corrente e ricarica lo storico per un anno personalizzato', async () => {
+    const load = vi.fn(() => of(data));
+    await TestBed.configureTestingModule({
+      imports: [DashboardComponent],
+      providers: [
+        provideRouter([]),
+        { provide: DashboardService, useValue: { load } },
+        { provide: ExpenseService, useValue: { changeVersion: signal(0).asReadonly(), duplicate: vi.fn(), setStatus: vi.fn() } },
+        { provide: ActivatedRoute, useValue: { queryParamMap: of(convertToParamMap({ month: '7', year: '2026' })) } },
+      ],
+    })
+      .overrideComponent(DashboardChartComponent, { set: { template: '' } })
+      .compileComponents();
+
+    const fixture = TestBed.createComponent(DashboardComponent);
+    fixture.detectChanges();
+    const selects = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLSelectElement>('select');
+    const currentYear = Number(new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Rome',
+      year: 'numeric',
+    }).format(new Date()));
+
+    expect(selects[1]?.value).toBe('2026');
+    expect(selects[2]?.value).toBe(String(currentYear));
+    expect(load).toHaveBeenCalledWith({ month: 7, year: 2026 }, currentYear);
+
+    selects[2].value = '2024';
+    selects[2].dispatchEvent(new Event('change', { bubbles: true }));
+    fixture.detectChanges();
+    expect(load).toHaveBeenLastCalledWith({ month: 7, year: 2026 }, 2024);
+  });
+});

@@ -70,6 +70,18 @@ describe('ExpenseFormComponent', () => {
     component.form.controls.expenseDate.setValue('2099-01-01');
     expect(component.form.controls.status.value).toBe('CANCELLED');
   });
+
+  it('precompila data e ora ricevute dal calendario e propone PLANNED per il futuro', async () => {
+    const fixture = await createFixture();
+    fixture.componentRef.setInput('initialDate', '2099-02-03');
+    fixture.componentRef.setInput('initialTime', '09:00');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.form.getRawValue()).toMatchObject({
+      expenseDate: '2099-02-03',
+      expenseTime: '09:00',
+      status: 'PLANNED',
+    });
+  });
 });
 
 async function createFixture() {

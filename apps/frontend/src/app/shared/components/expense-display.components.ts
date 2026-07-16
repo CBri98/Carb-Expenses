@@ -10,8 +10,8 @@ import {
 
 @Pipe({ name: 'euroAmount', standalone: true })
 export class EuroAmountPipe implements PipeTransform {
-  transform(value: string): string {
-    return formatEuroAmount(value);
+  transform(value: string | number): string {
+    return formatEuroAmount(String(value));
   }
 }
 
