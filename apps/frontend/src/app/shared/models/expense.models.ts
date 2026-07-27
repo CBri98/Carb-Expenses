@@ -14,10 +14,11 @@ export const EXPENSE_STATUSES: ReadonlyArray<{
   value: ExpenseStatus;
   label: string;
   icon: string;
+  color: string;
 }> = [
-  { value: 'COMPLETED', label: 'Completata', icon: 'bi-check-circle' },
-  { value: 'PLANNED', label: 'Pianificata', icon: 'bi-clock-history' },
-  { value: 'CANCELLED', label: 'Annullata', icon: 'bi-x-circle' },
+  { value: 'COMPLETED', label: 'Completata', icon: 'bi-check-circle', color: 'var(--success)' },
+  { value: 'PLANNED', label: 'Pianificata', icon: 'bi-clock-history', color: 'var(--warning)' },
+  { value: 'CANCELLED', label: 'Annullata', icon: 'bi-x-circle', color: 'var(--text-secondary)' },
 ];
 
 export const PAYMENT_METHODS: ReadonlyArray<{

@@ -12,7 +12,7 @@ import { Component, input, output } from '@angular/core';
         @if (detail()) { <p class="stat-card__detail">{{ detail() }}</p> }
         @if (secondaryDetail()) { <p class="stat-card__detail stat-card__detail--secondary">{{ secondaryDetail() }}</p> }
         @if (badgeLabel()) {
-          <span class="stat-card__badge" [style.--stat-card-badge-color]="badgeColor()">
+          <span class="stat-card__badge" [style.--stat-card-badge-color]="badgeColor()" [attr.title]="badgeLabel()">
             @if (badgeIcon()) { <i class="bi" [class]="badgeIcon()" aria-hidden="true"></i> }
             {{ badgeLabel() }}
           </span>
@@ -21,13 +21,14 @@ import { Component, input, output } from '@angular/core';
     </article>
   `,
   styles: [`
-    .stat-card { display:flex; gap:1rem; padding:1.15rem; background:var(--surface); border:1px solid var(--border-color); border-radius:.9rem; box-shadow:var(--shadow-sm); }
+    .stat-card { position:relative; display:flex; gap:1rem; padding:1.15rem; background:var(--surface); border:1px solid var(--border-color); border-radius:.9rem; box-shadow:var(--shadow-sm); }
+    .stat-card:has(.stat-card__badge) .stat-card__title { padding-right:min(45%,10.5rem); }
     .stat-card__icon { display:grid; flex:0 0 2.5rem; width:2.5rem; height:2.5rem; color:var(--primary-strong); background:var(--primary-soft); border-radius:.7rem; place-items:center; }
     .stat-card__title { margin:0 0 .2rem; color:var(--text-secondary); font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
     .stat-card__value { margin:0; overflow-wrap:anywhere; color:var(--bs-body-color); font-size:1.35rem; font-weight:760; line-height:1.25; }
     .stat-card__detail { margin:.3rem 0 0; color:var(--text-secondary); font-size:.82rem; }
     .stat-card__detail--secondary { margin-top:.08rem; }
-    .stat-card__badge { display:inline-flex; gap:.35rem; align-items:center; max-width:100%; margin-top:.5rem; padding:.2rem .5rem; overflow:hidden; color:var(--bs-body-color); font-size:.75rem; font-weight:650; text-overflow:ellipsis; white-space:nowrap; background:color-mix(in srgb, var(--stat-card-badge-color, var(--primary)) 14%, var(--surface)); border:1px solid color-mix(in srgb, var(--stat-card-badge-color, var(--primary)) 34%, var(--border-color)); border-radius:999px; }
+    .stat-card__badge { position:absolute; top:.75rem; right:.85rem; display:inline-flex; gap:.35rem; align-items:center; max-width:min(42%,9.5rem); padding:.2rem .5rem; overflow:hidden; color:var(--bs-body-color); font-size:.75rem; font-weight:650; text-overflow:ellipsis; white-space:nowrap; background:color-mix(in srgb, var(--stat-card-badge-color, var(--primary)) 14%, var(--surface)); border:1px solid color-mix(in srgb, var(--stat-card-badge-color, var(--primary)) 34%, var(--border-color)); border-radius:999px; }
     .stat-card__badge i { color:var(--stat-card-badge-color, var(--primary-strong)); }
     .min-w-0 { min-width:0; }
     .stat-card--interactive { cursor:pointer; transition:transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease; }

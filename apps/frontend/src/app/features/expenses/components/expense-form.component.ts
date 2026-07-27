@@ -20,6 +20,7 @@ import { EXPENSE_STATUSES, PAYMENT_METHODS } from '../../../shared/models/expens
 import type { ExpenseReminder, ReminderDraft } from '../../../shared/models/notification.models';
 import { isFutureLocalDate, normalizeAmount, todayLocalDate } from '../../../shared/utilities/expense-format';
 import { ExpenseReminderFormComponent } from './expense-reminder-form.component';
+import { MultiselectValueComponent } from '../../../shared/components/multiselect-value.component';
 
 @Component({
   selector: 'app-expense-form',
@@ -30,6 +31,7 @@ import { ExpenseReminderFormComponent } from './expense-reminder-form.component'
     NgOptionTemplateDirective,
     NgLabelTemplateDirective,
     ExpenseReminderFormComponent,
+    MultiselectValueComponent,
   ],
   templateUrl: './expense-form.component.html',
   styleUrl: './expense-form.component.scss',

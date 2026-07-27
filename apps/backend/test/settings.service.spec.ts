@@ -93,6 +93,7 @@ describe('SettingsService', () => {
     const before = users.get('user-a');
     const result = await service.reset('user-a');
     expect(result.appearance.themeMode).toBe(ThemeMode.SYSTEM);
+    expect(result.experience.dashboardTrendMonths).toBe(12);
     expect(users.get('user-a')).toEqual(before);
     expect(prisma.user.update).not.toHaveBeenCalled();
   });

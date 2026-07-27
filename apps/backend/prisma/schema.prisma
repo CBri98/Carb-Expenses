@@ -113,7 +113,7 @@ model UserPreference {
   defaultExpenseStatus      ExpenseStatus          @default(COMPLETED) @map("default_expense_status")
   defaultPaymentMethod      PaymentMethod?         @map("default_payment_method")
   defaultCalendarView       CalendarViewPreference @default(MONTH) @map("default_calendar_view")
-  dashboardTrendMonths      Int                    @default(6) @map("dashboard_trend_months")
+  dashboardTrendMonths      Int                    @default(12) @map("dashboard_trend_months")
   defaultReminderTime       DateTime               @default(dbgenerated("'09:00:00'")) @map("default_reminder_time") @db.Time(0)
   defaultReminderTypes      Json?                  @map("default_reminder_types")
   dueTodayEnabled           Boolean                @default(true) @map("due_today_enabled")

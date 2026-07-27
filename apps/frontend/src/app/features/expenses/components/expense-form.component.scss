@@ -1,9 +1,12 @@
 .form-section {
-  padding: 1rem;
-  background: var(--form-surface);
+  padding: 1.15rem;
+  background: var(--surface);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: .85rem;
+  box-shadow: var(--shadow-sm);
 }
+
+:host-context(.modal) .form-section { padding: 1rem; background: var(--form-surface); box-shadow: none; }
 
 .form-section + .form-section {
   margin-top: 1rem;

@@ -11,6 +11,7 @@ import { CategoryService } from '../../core/services/category.service';
 import { RecurrenceService } from '../../core/services/recurrence.service';
 import { SettingsStore } from '../../core/services/settings.store';
 import {
+  CounterCardComponent,
   EmptyStateComponent,
   LoadingSkeletonComponent,
   PageHeaderComponent,
@@ -41,6 +42,7 @@ import { RecurrenceActionsMenuComponent } from './recurrence-actions-menu.compon
     RouterLink,
     NgSelectComponent,
     PageHeaderComponent,
+    CounterCardComponent,
     EmptyStateComponent,
     LoadingSkeletonComponent,
     PaginationComponent,

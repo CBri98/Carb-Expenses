@@ -14,6 +14,7 @@ import { LabelService } from '../../core/services/label.service';
 import { SettingsStore } from '../../core/services/settings.store';
 import { EmptyStateComponent, LoadingSkeletonComponent, PageHeaderComponent } from '../../shared/components/catalog-display.components';
 import { FilterPanelComponent } from '../../shared/components/filter-panel.component';
+import { MultiselectValueComponent } from '../../shared/components/multiselect-value.component';
 import type { CalendarExpenseEvent, CalendarFilters, CalendarState, CalendarView } from '../../shared/models/calendar.models';
 import { EscapeCloseDirective } from '../../shared/directives/escape-close.directive';
 import { DEFAULT_CALENDAR_STATUSES } from '../../shared/models/calendar.models';
@@ -25,7 +26,7 @@ import { CalendarExpenseEventComponent } from './calendar-expense-event.componen
 @Component({
   selector: 'app-calendar-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, NgSelectComponent, NgOptionTemplateDirective, NgLabelTemplateDirective, FilterPanelComponent, PageHeaderComponent, EmptyStateComponent, LoadingSkeletonComponent, QuickExpenseModalComponent, CalendarExpenseEventComponent, EscapeCloseDirective],
+  imports: [FormsModule, RouterLink, NgSelectComponent, NgOptionTemplateDirective, NgLabelTemplateDirective, FilterPanelComponent, MultiselectValueComponent, PageHeaderComponent, EmptyStateComponent, LoadingSkeletonComponent, QuickExpenseModalComponent, CalendarExpenseEventComponent, EscapeCloseDirective],
   templateUrl: './calendar-page.component.html',
   styleUrl: './calendar-page.component.scss',
 })

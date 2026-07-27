@@ -109,7 +109,7 @@ export function defaultPreferenceData(): Omit<Prisma.UserPreferenceUncheckedCrea
     defaultExpenseStatus: ExpenseStatus.COMPLETED,
     defaultPaymentMethod: null,
     defaultCalendarView: CalendarViewPreference.MONTH,
-    dashboardTrendMonths: 6,
+    dashboardTrendMonths: 12,
     defaultReminderTime: timeValue(DEFAULT_REMINDER_TIME),
     defaultReminderTypes: [...DEFAULT_REMINDER_TYPES],
     dueTodayEnabled: true,

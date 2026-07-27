@@ -2,7 +2,7 @@
 
 Gestionale per la registrazione, pianificazione e analisi delle spese personali.
 
-Sono complete le Fasi 1–10 e la rifinitura 10.5: setup Docker, autenticazione, categorie ed etichette, gestione spese, dashboard, report mensili, calendario gestionale, promemoria, notifiche interne, spese ricorrenti, preferenze utente e consolidamento dell’interfaccia.
+Sono complete le Fasi 1–10 e le rifiniture 10.5–10.6: setup Docker, autenticazione, categorie ed etichette, gestione spese, dashboard, report mensili, calendario gestionale, promemoria, notifiche interne, spese ricorrenti, preferenze utente e consolidamento dell’interfaccia.
 
 ## Requisiti
 
@@ -239,6 +239,14 @@ La specifica è in [docs/PHASE_10_5_UI_REFINEMENT.md](docs/PHASE_10_5_UI_REFINEM
 
 La chiusura include l'audit correttivo dell'intera specifica: form Spesa, KPI e insight Dashboard, alternative accessibili dei grafici, report filtrabili, cataloghi con stato persistente e controlli Impostazioni uniformati.
 
+## Fase 10.6 — Correzioni visuali
+
+La seconda rifinitura corregge l'allineamento delle StatCard, rende leggibili i dati espansi della Dashboard, permette di mostrare e nascondere le categorie del doughnut dalla lista e imposta lo storico a 12 mesi per nuovi utenti e preferenze ripristinate. Le date tabellari usano il nome completo del mese.
+
+Il form Spesa su pagina usa sezioni-card separate, la ricerca Spese è racchiusa nella propria card e l'indicatore delle spese ricorrenti è testuale. Filtri, counter card e pulsanti sono uniformati in Ricorrenze, Categorie, Etichette e Notifiche. I valori multipli di `ng-select` mantengono colore, padding e rimozione individuale accessibile.
+
+La specifica è in [docs/PHASE_10_6_UI_CORRECTIONS.md](docs/PHASE_10_6_UI_CORRECTIONS.md); il resoconto finale è in [docs/PHASE_10_6_COMPLETION_2026-07-27.md](docs/PHASE_10_6_COMPLETION_2026-07-27.md).
+
 
 ## Fase 5 — Dashboard
 
@@ -249,7 +257,7 @@ Endpoint disponibili sotto `/api/v1/dashboard`:
 - `GET /summary?month=7&year=2026`
 - `GET /daily-trend?month=7&year=2026`
 - `GET /category-distribution?month=7&year=2026`
-- `GET /monthly-trend?month=7&year=2026&months=6`
+- `GET /monthly-trend?month=7&year=2026&months=12`
 - `GET /recent-expenses?limit=5`
 - `GET /upcoming-expenses?limit=5`
 

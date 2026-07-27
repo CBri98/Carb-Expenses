@@ -25,8 +25,8 @@ import { Component, input, output } from '@angular/core';
           @if (!expanded() && activeCount() > 0) {
             <button class="btn btn-sm btn-outline-secondary" type="button" (click)="resetRequested.emit()">
               <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>
-              <span class="d-none d-sm-inline">Azzera</span>
-              <span class="visually-hidden d-sm-none">Azzera filtri</span>
+              <span class="d-none d-sm-inline">Reimposta</span>
+              <span class="visually-hidden d-sm-none">Reimposta filtri</span>
             </button>
           }
           <button

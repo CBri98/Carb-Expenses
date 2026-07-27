@@ -1,6 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { By } from '@angular/platform-browser';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -58,12 +59,27 @@ describe('DashboardComponent', () => {
 
     expect(periodYear?.value).toBe('2026');
     expect(trendYear?.value).toBe(String(currentYear));
-    expect(load).toHaveBeenCalledWith({ month: 7, year: 2026 }, currentYear, 6);
+    expect(load).toHaveBeenCalledWith({ month: 7, year: 2026 }, currentYear, 12);
 
     if (!trendYear) throw new Error('Selettore anno andamento non trovato');
     trendYear.value = '2024';
     trendYear.dispatchEvent(new Event('change', { bubbles: true }));
     fixture.detectChanges();
-    expect(load).toHaveBeenLastCalledWith({ month: 7, year: 2026 }, 2024, 6);
+    expect(load).toHaveBeenLastCalledWith({ month: 7, year: 2026 }, 2024, 12);
+
+    fixture.componentInstance.data.set({
+      ...data,
+      categoryDistribution: [
+        { id: 'casa', categoryId: 'casa', name: 'Casa', icon: 'bi-house', color: '#2563eb', total: '100.00', percentage: 80, expenseCount: 2 },
+        { id: 'auto', categoryId: 'auto', name: 'Auto', icon: 'bi-car-front', color: '#dc2626', total: '25.00', percentage: 20, expenseCount: 1 },
+      ],
+    });
+    fixture.detectChanges();
+    expect(fixture.debugElement.query(By.directive(DashboardChartComponent)).componentInstance.showLegend).toBe(false);
+    fixture.componentInstance.toggleCategoryVisibility('casa');
+    expect(fixture.componentInstance.categoryLabels()).toEqual(['Auto']);
+    expect(fixture.componentInstance.isCategoryHidden('casa')).toBe(true);
+    fixture.componentInstance.showAllCategories();
+    expect(fixture.componentInstance.categoryLabels()).toEqual(['Casa', 'Auto']);
   });
 });

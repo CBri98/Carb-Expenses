@@ -20,11 +20,10 @@ import { ExpenseFormComponent } from '../components/expense-form.component';
       <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item">Spese</li><li class="breadcrumb-item active">{{ expenseId ? 'Modifica' : 'Nuova' }}</li></ol></nav>
       <app-page-header [title]="expenseId ? 'Modifica spesa' : 'Nuova spesa'" [subtitle]="expenseId ? 'Aggiorna i dati della spesa selezionata.' : 'Registra una nuova spesa nel gestionale.'" />
       @if (error()) { <div class="alert alert-danger" role="alert">{{ error() }}</div> }
-      <article class="card border-0 shadow-sm"><div class="card-body p-3 p-lg-4">
-        @if (loading()) { <app-loading-skeleton /> } @else {
-          <app-expense-form [expense]="expense()" [existingReminders]="reminders()" [submitting]="saving()" [submitLabel]="expenseId ? 'Salva modifiche' : 'Crea spesa'" (submitted)="save($event)" (cancelled)="cancel()" />
-        }
-      </div></article>
+      @if (loading()) { <article class="card"><div class="card-body"><app-loading-skeleton /></div></article> }
+      @else {
+        <app-expense-form [expense]="expense()" [existingReminders]="reminders()" [submitting]="saving()" [submitLabel]="expenseId ? 'Salva modifiche' : 'Crea spesa'" (submitted)="save($event)" (cancelled)="cancel()" />
+      }
     </section>
   `,
 })

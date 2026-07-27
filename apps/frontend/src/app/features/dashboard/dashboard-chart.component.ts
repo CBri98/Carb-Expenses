@@ -59,6 +59,7 @@ export class DashboardChartComponent implements AfterViewInit, OnChanges, OnDest
   @Input() secondaryDatasetLabel = '';
   @Input() secondaryColor = '';
   @Input() horizontal = false;
+  @Input() showLegend = true;
   @Input() ariaLabel = 'Grafico delle spese';
   @Output() readonly pointSelected = new EventEmitter<DashboardChartSelection>();
 
@@ -171,7 +172,7 @@ export class DashboardChartComponent implements AfterViewInit, OnChanges, OnDest
         },
         plugins: {
           legend: {
-            display: this.type === 'doughnut' || this.secondaryValues.length > 0,
+            display: this.showLegend && (this.type === 'doughnut' || this.secondaryValues.length > 0),
             position: 'bottom',
             labels: { color: textColor },
           },

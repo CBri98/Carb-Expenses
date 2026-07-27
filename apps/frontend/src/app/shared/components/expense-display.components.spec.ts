@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
-import { ExpenseStatusBadgeComponent, PaymentMethodBadgeComponent } from './expense-display.components';
+import { ExpenseStatusBadgeComponent, ItalianExpenseDatePipe, PaymentMethodBadgeComponent } from './expense-display.components';
 
 describe('badge spese', () => {
   it('mostra stato con testo e icona', async () => {
@@ -19,5 +19,9 @@ describe('badge spese', () => {
     fixture.componentRef.setInput('method', 'BANK_TRANSFER');
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Bonifico');
+  });
+
+  it('formatta le date tabellari con il nome completo del mese', () => {
+    expect(new ItalianExpenseDatePipe().transform('2026-07-14')).toBe('14 luglio 2026');
   });
 });

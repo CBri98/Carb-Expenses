@@ -40,11 +40,12 @@ import {
   todayLocalDate,
 } from '../../shared/utilities/expense-format';
 import { recurrenceFrequencyLabel } from '../../shared/utilities/recurrence-format';
+import { MultiselectValueComponent } from '../../shared/components/multiselect-value.component';
 
 @Component({
   selector: 'app-recurrence-form',
   standalone: true,
-  imports: [ReactiveFormsModule, NgSelectComponent],
+  imports: [ReactiveFormsModule, NgSelectComponent, MultiselectValueComponent],
   templateUrl: './recurrence-form.component.html',
   styleUrl: './recurrence-form.component.scss',
 })

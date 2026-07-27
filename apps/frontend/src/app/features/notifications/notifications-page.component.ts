@@ -8,6 +8,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { ToastService } from '../../core/services/toast.service';
 import { SettingsStore } from '../../core/services/settings.store';
 import {
+  CounterCardComponent,
   EmptyStateComponent,
   LoadingSkeletonComponent,
   PageHeaderComponent,
@@ -33,6 +34,7 @@ const EMPTY_META: PaginationMeta = { page: 1, pageSize: 20, totalItems: 0, total
     RouterLink,
     FormsModule,
     PageHeaderComponent,
+    CounterCardComponent,
     LoadingSkeletonComponent,
     EmptyStateComponent,
     PaginationComponent,
@@ -43,12 +45,12 @@ const EMPTY_META: PaginationMeta = { page: 1, pageSize: 20, totalItems: 0, total
     <section>
       <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item">Area personale</li><li class="breadcrumb-item active">Notifiche</li></ol></nav>
       <app-page-header title="Notifiche" subtitle="Promemoria e aggiornamenti sulle tue spese">
-        <button class="btn btn-outline-primary" type="button" [disabled]="busy() || notifications.unreadCount() === 0" (click)="markAllRead()"><i class="bi bi-check2-all me-2"></i>Segna tutte come lette</button>
+        <button class="btn btn-primary" type="button" [disabled]="busy() || notifications.unreadCount() === 0" (click)="markAllRead()"><i class="bi bi-check2-all me-2"></i>Segna tutte come lette</button>
       </app-page-header>
 
       <div class="row g-3 mb-3">
-        <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm"><div class="card-body"><span class="small text-body-secondary">Risultati</span><strong class="d-block fs-4">{{ meta().totalItems }}</strong></div></div></div>
-        <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm"><div class="card-body"><span class="small text-body-secondary">Non lette</span><strong class="d-block fs-4">{{ notifications.unreadCount() }}</strong></div></div></div>
+        <div class="col-6 col-lg-3"><app-counter-card label="Risultati" [value]="meta().totalItems" icon="bi-bell" /></div>
+        <div class="col-6 col-lg-3"><app-counter-card label="Non lette" [value]="notifications.unreadCount()" icon="bi-envelope-exclamation" /></div>
       </div>
 
       <div class="card border-0 shadow-sm mb-3"><div class="card-body notification-search">

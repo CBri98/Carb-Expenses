@@ -53,7 +53,7 @@ export class ExperienceSettingsComponent {
     sidebarCollapsedByDefault: false, compactTables: false, defaultPageSize: 20,
     rememberExpenseFilters: true, defaultExpenseStatus: 'COMPLETED' as 'COMPLETED' | 'PLANNED',
     defaultPaymentMethod: '' as PaymentMethod | '', defaultCalendarView: 'MONTH' as CalendarViewPreference,
-    dashboardTrendMonths: 6 as 6 | 12,
+    dashboardTrendMonths: 12 as 6 | 12,
   });
 
   constructor() {

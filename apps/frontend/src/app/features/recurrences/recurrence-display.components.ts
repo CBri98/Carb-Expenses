@@ -36,9 +36,10 @@ export class RecurrenceStatusBadgeComponent {
   template: `
     @if (recurrenceId()) {
       <a
-        class="badge rounded-pill text-bg-primary text-decoration-none"
+        class="recurrence-expense-link"
         [routerLink]="['/recurrences', recurrenceId()]"
-        [attr.aria-label]="'Apri ricorrenza ' + recurrenceName()"
+        [attr.aria-label]="'Spesa ricorrente. Apri ricorrenza ' + recurrenceName()"
+        [attr.title]="recurrenceName()"
         (click)="$event.stopPropagation()"
         (keydown)="$event.stopPropagation()"
       >
@@ -46,6 +47,20 @@ export class RecurrenceStatusBadgeComponent {
       </a>
     }
   `,
+  styles: [`
+    .recurrence-expense-link {
+      display: inline-flex;
+      gap: .2rem;
+      align-items: center;
+      color: var(--primary-strong);
+      font-size: .78rem;
+      font-weight: 700;
+      line-height: 1.3;
+      text-decoration: none;
+    }
+    .recurrence-expense-link:hover { text-decoration: underline; }
+    .recurrence-expense-link:focus-visible { border-radius: .2rem; outline: var(--focus-ring); outline-offset: 2px; }
+  `],
 })
 export class RecurrenceExpenseIndicatorComponent {
   readonly recurrenceId = input<string | null>(null);

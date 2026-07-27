@@ -47,15 +47,21 @@ export class DashboardComponent {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly actionBusy = signal<string | null>(null);
+  readonly hiddenCategoryIds = signal<ReadonlySet<string>>(new Set());
 
   readonly periodLabel = computed(() => dashboardPeriodLabel(this.selected().month, this.selected().year));
   readonly dailyLabels = computed(() => this.data()?.dailyTrend.map((point) => String(point.day)) ?? []);
   readonly dailyValues = computed(() => this.data()?.dailyTrend.map((point) => Number(point.total)) ?? []);
   readonly dailyCounts = computed(() => this.data()?.dailyTrend.map((point) => point.expenseCount) ?? []);
-  readonly categoryLabels = computed(() => this.data()?.categoryDistribution.map((item) => item.name) ?? []);
-  readonly categoryValues = computed(() => this.data()?.categoryDistribution.map((item) => Number(item.total)) ?? []);
-  readonly categoryCounts = computed(() => this.data()?.categoryDistribution.map((item) => item.expenseCount) ?? []);
-  readonly categoryColors = computed(() => this.data()?.categoryDistribution.map((item) => item.color) ?? []);
+  readonly visibleCategories = computed(() => {
+    const hidden = this.hiddenCategoryIds();
+    return this.data()?.categoryDistribution.filter((item) => !hidden.has(item.categoryId)) ?? [];
+  });
+  readonly categoryLabels = computed(() => this.visibleCategories().map((item) => item.name));
+  readonly categoryValues = computed(() => this.visibleCategories().map((item) => Number(item.total)));
+  readonly categoryCounts = computed(() => this.visibleCategories().map((item) => item.expenseCount));
+  readonly categoryColors = computed(() => this.visibleCategories().map((item) => item.color));
+  readonly topDistributionCategory = computed(() => this.data()?.categoryDistribution[0] ?? null);
   readonly historyLabels = computed(() => this.data()?.monthlyTrend.map((point) => point.label) ?? []);
   readonly historyValues = computed(() => this.data()?.monthlyTrend.map((point) => Number(point.total)) ?? []);
   readonly historyCounts = computed(() => this.data()?.monthlyTrend.map((point) => point.expenseCount) ?? []);
@@ -75,12 +81,6 @@ export class DashboardComponent {
       average: dashboard ? formatEuroAmount(dashboard.summary.dailyAverage) : formatEuroAmount('0.00'),
       emptyDays: points.filter((point) => Number(point.total) === 0).length,
     };
-  });
-  readonly categoryDescription = computed(() => {
-    const top = this.data()?.categoryDistribution[0];
-    return top
-      ? `${top.name} è la categoria principale con ${formatEuroAmount(top.total)} (${top.percentage}%).`
-      : 'Nessuna categoria con spese completate.';
   });
   readonly historyDescription = computed(() => {
     const points = this.data()?.monthlyTrend.filter((point) => Number(point.total) > 0) ?? [];
@@ -114,6 +114,10 @@ export class DashboardComponent {
       .pipe(
         tap(([params]) => {
           const period = periodFromParams(params.get('month'), params.get('year'), this.today);
+          const previous = this.selected();
+          if (previous.month !== period.month || previous.year !== period.year) {
+            this.hiddenCategoryIds.set(new Set());
+          }
           this.selected.set(period);
           if (params.get('month') === null || params.get('year') === null) {
             void this.navigate(period, true);
@@ -225,7 +229,7 @@ export class DashboardComponent {
   }
 
   openCategoryPoint(selection: DashboardChartSelection): void {
-    const item = this.data()?.categoryDistribution[selection.index];
+    const item = this.visibleCategories()[selection.index];
     if (!item) return;
     void this.router.navigate(['/expenses'], { queryParams: {
       month: this.selected().month, year: this.selected().year,
@@ -247,6 +251,21 @@ export class DashboardComponent {
 
   openCategoryIndex(index: number): void {
     this.openCategoryPoint({ index, datasetIndex: 0, label: '', value: null });
+  }
+
+  isCategoryHidden(categoryId: string): boolean {
+    return this.hiddenCategoryIds().has(categoryId);
+  }
+
+  toggleCategoryVisibility(categoryId: string): void {
+    const next = new Set(this.hiddenCategoryIds());
+    if (next.has(categoryId)) next.delete(categoryId);
+    else next.add(categoryId);
+    this.hiddenCategoryIds.set(next);
+  }
+
+  showAllCategories(): void {
+    this.hiddenCategoryIds.set(new Set());
   }
 
   openHistoryIndex(index: number): void {

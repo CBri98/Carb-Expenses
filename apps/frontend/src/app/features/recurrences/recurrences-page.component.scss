@@ -1,7 +1,4 @@
 .recurrence-search { display: grid; grid-template-columns: minmax(10rem, 34rem); }
-.filter-group { padding: 1rem; background: var(--surface-soft); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
-.filter-group__heading h3 { margin: 0; font-size: .92rem; }
-.filter-group__heading p { margin: .2rem 0 .85rem; color: var(--text-secondary); font-size: .82rem; }
 .recurrence-card { padding: 1rem; border-bottom: 1px solid var(--border-color); }
 .recurrence-card:last-child { border-bottom: 0; }
 th { white-space: nowrap; font-size: .78rem; text-transform: uppercase; color: var(--text-secondary); }

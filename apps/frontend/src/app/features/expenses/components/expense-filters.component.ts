@@ -28,6 +28,7 @@ import type {
 } from '../../../shared/models/expense.models';
 import { EXPENSE_STATUSES, PAYMENT_METHODS } from '../../../shared/models/expense.models';
 import { FilterPanelComponent } from '../../../shared/components/filter-panel.component';
+import { MultiselectValueComponent } from '../../../shared/components/multiselect-value.component';
 
 @Component({
   selector: 'app-expense-filters',
@@ -38,6 +39,7 @@ import { FilterPanelComponent } from '../../../shared/components/filter-panel.co
     NgOptionTemplateDirective,
     NgLabelTemplateDirective,
     FilterPanelComponent,
+    MultiselectValueComponent,
   ],
   templateUrl: './expense-filters.component.html',
   styleUrl: './expense-filters.component.scss',

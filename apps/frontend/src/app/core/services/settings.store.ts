@@ -41,7 +41,7 @@ const DEFAULT_PREFERENCES: PreferenceCache = {
     defaultExpenseStatus: 'COMPLETED',
     defaultPaymentMethod: null,
     defaultCalendarView: 'MONTH',
-    dashboardTrendMonths: 6,
+    dashboardTrendMonths: 12,
   },
   icons: {
     enabledCategoryIcons: [...DEFAULT_CATEGORY_ICONS],

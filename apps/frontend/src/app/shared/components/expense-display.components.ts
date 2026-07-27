@@ -4,7 +4,6 @@ import type { ExpenseStatus, PaymentMethod } from '../models/expense.models';
 import {
   expenseStatusLabel,
   formatEuroAmount,
-  formatItalianDate,
   formatItalianDateTime,
   formatItalianExtendedDate,
   paymentMethodLabel,
@@ -20,7 +19,7 @@ export class EuroAmountPipe implements PipeTransform {
 @Pipe({ name: 'italianExpenseDate', standalone: true })
 export class ItalianExpenseDatePipe implements PipeTransform {
   transform(value: string): string {
-    return formatItalianDate(value);
+    return formatItalianExtendedDate(value);
   }
 }
 

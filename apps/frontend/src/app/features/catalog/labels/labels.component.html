@@ -49,7 +49,7 @@
 
   <app-filter-panel titleId="label-filters-title" panelId="label-filters-panel" [expanded]="filtersExpanded()" [activeCount]="activeFilterCount()" [summary]="filterSummary()" (expandedChange)="filtersExpanded.set($event)" (resetRequested)="resetFilters()">
     <form [formGroup]="filters" aria-label="Filtri etichette">
-      <div class="filter-group"><div class="filter-group__heading"><h3>Classificazione e stato</h3><p>Ogni modifica viene applicata automaticamente.</p></div><div class="row g-3">
+      <div class="row g-3"><div class="col-12"><h3 class="filter-section-title">Classificazione e stato</h3></div>
         <div class="col-12 col-md-7">
           <label class="form-label" for="label-category">Categoria</label>
           <ng-select labelForId="label-category" [items]="categories()" bindLabel="name" bindValue="id" placeholder="Tutte" notFoundText="Nessuna categoria trovata" ariaLabel="Filtra etichette per categoria" formControlName="categoryId">
@@ -64,8 +64,8 @@
             <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
           </ng-select>
         </div>
-      </div></div>
-      <div class="d-flex justify-content-end mt-3"><button class="btn btn-outline-secondary" type="button" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Azzera filtri</button></div>
+      </div>
+      <div class="d-flex justify-content-end mt-3"><button class="btn btn-outline-secondary" type="button" [disabled]="activeFilterCount() === 0 && !filters.controls.search.value" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Reimposta</button></div>
     </form>
   </app-filter-panel>
 

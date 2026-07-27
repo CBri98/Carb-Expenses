@@ -5,13 +5,13 @@ import { IsInt, IsOptional, Max, Min } from 'class-validator';
 import { DashboardPeriodQueryDto } from './dashboard-period-query.dto';
 
 export class MonthlyTrendQueryDto extends DashboardPeriodQueryDto {
-  @ApiPropertyOptional({ default: 6, minimum: 1, maximum: 24 })
+  @ApiPropertyOptional({ default: 12, minimum: 1, maximum: 24 })
   @Transform(({ value }: { value: unknown }) =>
-    value === undefined || value === '' ? 6 : Number(value),
+    value === undefined || value === '' ? 12 : Number(value),
   )
   @IsInt()
   @Min(1)
   @Max(24)
   @IsOptional()
-  months = 6;
+  months = 12;
 }

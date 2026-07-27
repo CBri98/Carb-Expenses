@@ -141,14 +141,38 @@ try {
 
   await socket.command('Page.navigate', { url: `${frontendUrl}/dashboard?month=7&year=2026` });
   await waitFor(socket, "location.pathname === '/dashboard' && document.querySelectorAll('.stat-card').length >= 6 && document.querySelectorAll('.chart-insights').length >= 2", 'dashboard rifinita');
-  const dashboardRefinement = await socket.evaluate(`({
-    categoryAlternatives: document.querySelectorAll('.category-summary__button').length,
-    dailyInsights: document.querySelectorAll('.chart-insights:first-of-type > div').length,
-    hasNumericUserDate: /\\b\\d{2}\\/\\d{2}\\/\\d{4}\\b/.test(document.querySelector('app-dashboard')?.textContent || '')
-  })`);
+  const dashboardRefinement = await socket.evaluate(`(() => {
+    const cards = Array.from(document.querySelectorAll('.stat-card'));
+    const badge = document.querySelector('.stat-card__badge');
+    const badgeCard = badge?.closest('.stat-card');
+    const disclosure = document.querySelector('.chart-data-disclosure');
+    if (disclosure) disclosure.open = true;
+    return {
+      categoryAlternatives: document.querySelectorAll('.category-summary__link').length,
+      categoryVisibilityButtons: document.querySelectorAll('.category-visibility').length,
+      dailyInsights: document.querySelectorAll('.chart-insights:first-of-type > div').length,
+      hasNumericUserDate: /\\b\\d{2}\\/\\d{2}\\/\\d{4}\\b/.test(document.querySelector('app-dashboard')?.textContent || ''),
+      badgeAbsolute: badge ? getComputedStyle(badge).position === 'absolute' : false,
+      badgeInsideCard: Boolean(badgeCard && badge.getBoundingClientRect().top >= badgeCard.getBoundingClientRect().top),
+      rowHeights: cards.map(card => Math.round(card.getBoundingClientRect().height)),
+      disclosureRows: disclosure?.querySelectorAll('tbody tr').length || 0,
+      disclosureColumns: Array.from(disclosure?.querySelectorAll('th') || []).map(item => item.textContent.trim()),
+      trendMonths: document.querySelector('.dashboard-trend-months .ng-value-label')?.textContent.trim() || ''
+    };
+  })()`);
   assert(dashboardRefinement.categoryAlternatives > 0, 'Legenda categorie Dashboard non interattiva');
+  assert(dashboardRefinement.categoryVisibilityButtons === dashboardRefinement.categoryAlternatives, 'Pulsanti visibilità categorie mancanti');
   assert(dashboardRefinement.dailyInsights >= 3, 'Insight sintetici Dashboard mancanti');
   assert(!dashboardRefinement.hasNumericUserDate, 'Dashboard mostra ancora date DD/MM/YYYY');
+  assert(dashboardRefinement.badgeAbsolute && dashboardRefinement.badgeInsideCard, 'Badge StatCard non posizionato in alto nella card');
+  assert(new Set(dashboardRefinement.rowHeights.slice(3)).size === 1, `Badge StatCard altera l’allineamento della riga: ${dashboardRefinement.rowHeights.join(', ')}`);
+  assert(dashboardRefinement.disclosureRows > 0 && dashboardRefinement.disclosureColumns.join('|') === 'Data|Totale|Spese', 'Dati giornalieri espansi non strutturati');
+  assert(dashboardRefinement.trendMonths.includes('12 mesi'), `Default storico inatteso: ${dashboardRefinement.trendMonths}`);
+  await socket.evaluate(`document.querySelector('.category-visibility')?.click()`);
+  await waitFor(socket, "document.querySelector('.category-visibility')?.getAttribute('aria-pressed') === 'false' && document.querySelector('.category-visibility')?.closest('li')?.classList.contains('category-summary__item--hidden')", 'categoria nascosta dal grafico');
+  const categoryToggle = true;
+  await socket.evaluate(`document.querySelector('.category-visibility')?.click()`);
+  await waitFor(socket, "document.querySelector('.category-visibility')?.getAttribute('aria-pressed') === 'true'", 'categoria ripristinata nel grafico');
 
   await socket.command('Page.navigate', { url: `${frontendUrl}/expenses/new` });
   await waitFor(socket, "location.pathname === '/expenses/new' && Boolean(document.querySelector('app-expense-form'))", 'form spesa rifinito');
@@ -156,6 +180,29 @@ try {
   assert(expenseFormSections.includes('Dati principali'), `Sezione Dati principali assente: ${expenseFormSections.join(', ')}`);
   assert(expenseFormSections.includes('Classificazione'), `Sezione Classificazione assente: ${expenseFormSections.join(', ')}`);
   assert(expenseFormSections.includes('Dettagli'), `Sezione Dettagli assente: ${expenseFormSections.join(', ')}`);
+  const expenseFormCards = await socket.evaluate(`({ count: document.querySelectorAll('app-expense-form .form-section').length, nestedInOuterCard: Boolean(document.querySelector('app-expense-form .form-section')?.parentElement?.closest('.card')) })`);
+  assert(expenseFormCards.count >= 3 && !expenseFormCards.nestedInOuterCard, 'Form Spesa non presentato come card separate');
+
+  await socket.command('Page.navigate', { url: `${frontendUrl}/expenses` });
+  await waitFor(socket, "location.pathname === '/expenses' && Boolean(document.querySelector('#expense-search')) && Boolean(document.querySelector('app-expense-table'))", 'lista spese 10.6');
+  const expensesRefinement = await socket.evaluate(`({
+    searchInCard: Boolean(document.querySelector('#expense-search')?.closest('.card')),
+    fullMonthInTable: /(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)/i.test(document.querySelector('app-expense-table tbody')?.textContent || ''),
+    recurringIndicatorsAreBadges: document.querySelectorAll('app-recurrence-expense-indicator .badge').length,
+    recurringTextIndicators: document.querySelectorAll('app-recurrence-expense-indicator .recurrence-expense-link').length
+  })`);
+  assert(expensesRefinement.searchInCard, 'Ricerca Spese fuori dalla card');
+  assert(expensesRefinement.fullMonthInTable, 'Le date della tabella Spese non mostrano il mese completo');
+  assert(expensesRefinement.recurringIndicatorsAreBadges === 0, 'Indicatore Spesa ricorrente ancora in formato badge');
+  await socket.evaluate(`if (!document.querySelector('#expense-filter-category')) document.querySelector('app-expense-filters .filters__toggle')?.click()`);
+  await waitFor(socket, "Boolean(document.querySelector('#expense-filter-category'))", 'filtri spese aperti');
+  await socket.evaluate(`document.querySelector('#expense-filter-category')?.closest('.ng-select-container')?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))`);
+  await waitFor(socket, "Boolean(document.querySelector('.ng-dropdown-panel .ng-option:not(.ng-option-disabled)'))", 'opzioni categorie spese');
+  await socket.evaluate(`document.querySelector('.ng-dropdown-panel .ng-option:not(.ng-option-disabled)')?.click()`);
+  await waitFor(socket, "Boolean(document.querySelector('app-expense-filters app-multiselect-value'))", 'chip multiselect categoria');
+  const multiselectChip = await socket.evaluate(`(() => { const chip = document.querySelector('app-expense-filters app-multiselect-value'); const button = chip?.querySelector('button'); const style = chip ? getComputedStyle(chip.querySelector('.multi-value__label')) : null; return { removeButton: Boolean(button), removeLabel: button?.getAttribute('aria-label') || '', paddingLeft: style?.paddingLeft || '0px', colorVariable: chip?.querySelector('.multi-value')?.getAttribute('style') || '' }; })()`);
+  assert(multiselectChip.removeButton && multiselectChip.removeLabel.startsWith('Rimuovi '), 'Crocetta individuale multiselect assente');
+  assert(parseFloat(multiselectChip.paddingLeft) > 0 && multiselectChip.colorVariable.includes('--multi-value-color'), 'Padding o colore chip multiselect non applicato');
 
   await socket.command('Page.navigate', { url: `${frontendUrl}/reports/monthly?month=7&year=2026` });
   await waitFor(socket, "location.pathname === '/reports/monthly' && Boolean(document.querySelector('#monthly-search')) && Boolean(document.querySelector('app-monthly-report-page app-filter-panel'))", 'report mensile rifinito');
@@ -174,6 +221,12 @@ try {
   await socket.command('Page.navigate', { url: `${frontendUrl}/recurrences` });
   await waitFor(socket, "location.pathname === '/recurrences' && Boolean(document.querySelector('app-recurrences-page')) && Boolean(document.querySelector('#recurrence-search'))", 'lista ricorrenze');
   await waitFor(socket, "Array.from(document.querySelectorAll('a')).some(item => /^\\/recurrences\\/[0-9a-f-]+$/i.test(item.getAttribute('href') || ''))", 'prima ricorrenza');
+  await socket.evaluate(`if (!document.querySelector('app-recurrences-page .filters__panel')) document.querySelector('app-recurrences-page .filters__toggle')?.click()`);
+  await waitFor(socket, "Boolean(document.querySelector('app-recurrences-page .filters__panel'))", 'filtri ricorrenze aperti');
+  const recurrenceRefinement = await socket.evaluate(`({ counterIcons: document.querySelectorAll('app-recurrences-page app-counter-card .counter-card__icon').length, nestedFilterCards: document.querySelectorAll('app-recurrences-page .filters__panel .card').length, resetSemantic: Array.from(document.querySelectorAll('app-recurrences-page button')).some(item => item.textContent.trim() === 'Reimposta') })`);
+  assert(recurrenceRefinement.counterIcons === 4, 'Icone counter card Ricorrenze mancanti');
+  assert(recurrenceRefinement.nestedFilterCards === 0, 'Card annidata nei filtri Ricorrenze');
+  assert(recurrenceRefinement.resetSemantic, 'Semantica Reimposta assente nei filtri Ricorrenze');
   const detailPath = await socket.evaluate(`Array.from(document.querySelectorAll('a')).map(item => item.getAttribute('href') || '').find(path => /^\\/recurrences\\/[0-9a-f-]+$/i.test(path)) || ''`);
   assert(/^\/recurrences\/[0-9a-f-]+$/i.test(detailPath), `Link dettaglio ricorrenza non trovato: ${detailPath}`);
   const recurrenceSearch = await socket.evaluate(`document.querySelector('tbody tr strong')?.textContent.trim() || ''`);
@@ -190,6 +243,15 @@ try {
   await waitFor(socket, "Boolean(document.querySelector('app-recurrence-detail')) && document.querySelectorAll('[role=tab]').length === 3", 'dettaglio ricorrenza con tab');
   await socket.evaluate(`document.querySelector('#recurrence-tab-occurrences').click()`);
   await waitFor(socket, "Boolean(document.querySelector('#recurrence-panel-occurrences'))", 'tab occorrenze ricorrenza');
+
+  await socket.command('Page.navigate', { url: `${frontendUrl}/notifications` });
+  await waitFor(socket, "location.pathname === '/notifications' && Boolean(document.querySelector('app-notifications-page'))", 'notifiche 10.6');
+  const notificationRefinement = await socket.evaluate(`({
+    counterIcons: document.querySelectorAll('app-notifications-page app-counter-card .counter-card__icon').length,
+    themedReadAll: Boolean(Array.from(document.querySelectorAll('app-notifications-page button')).find(item => item.textContent.includes('Segna tutte come lette'))?.classList.contains('btn-primary'))
+  })`);
+  assert(notificationRefinement.counterIcons === 2, 'Icone counter card Notifiche mancanti');
+  assert(notificationRefinement.themedReadAll, 'Pulsante Segna tutte come lette non tematizzato');
 
   await socket.evaluate(`fetch(${JSON.stringify(`${apiUrl}/auth/logout`)}, {
     method: 'POST', credentials: 'include'
@@ -208,8 +270,13 @@ try {
     categoryFiltersPersistInUrl: true,
     dashboardRefinement,
     expenseFormSections,
+    expenseFormCards,
+    expensesRefinement,
+    multiselectChip,
     monthlyReportRefinement,
     comparisonChartsInteractive: true,
+    recurrenceRefinement,
+    notificationRefinement,
     recurrenceFlowCovered: true,
   }, null, 2));
 } catch (error) {

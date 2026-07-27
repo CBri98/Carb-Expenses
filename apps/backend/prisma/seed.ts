@@ -144,7 +144,7 @@ async function seedDemoUser() {
   await prisma.userPreference.upsert({
     where: { userId: user.id },
     create: { ...preferenceDefaults, userId: user.id },
-    update: {},
+    update: { dashboardTrendMonths: preferenceDefaults.dashboardTrendMonths },
   });
 
   console.info(`Utente demo disponibile: ${email}`);

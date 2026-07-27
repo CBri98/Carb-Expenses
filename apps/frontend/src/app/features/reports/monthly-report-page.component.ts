@@ -30,6 +30,7 @@ import {
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.component';
 import { EuroAmountPipe, ItalianExpenseDatePipe } from '../../shared/components/expense-display.components';
 import { FilterPanelComponent } from '../../shared/components/filter-panel.component';
+import { MultiselectValueComponent } from '../../shared/components/multiselect-value.component';
 import {
   EXPENSE_STATUSES,
   PAYMENT_METHODS,
@@ -72,6 +73,7 @@ import { PaymentMethodBreakdownComponent } from './payment-method-breakdown.comp
     LoadingSkeletonComponent,
     ConfirmDialogComponent,
     FilterPanelComponent,
+    MultiselectValueComponent,
     EuroAmountPipe,
     ItalianExpenseDatePipe,
     DashboardChartComponent,

@@ -9,10 +9,10 @@
 
   @if (summary(); as data) {
     <div class="row g-3 mb-3">
-      <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="small text-body-secondary">Attive</span><strong class="d-block fs-4">{{ data.activeCount }}</strong></div></div></div>
-      <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="small text-body-secondary">In pausa</span><strong class="d-block fs-4">{{ data.pausedCount }}</strong></div></div></div>
-      <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="small text-body-secondary">Occorrenze entro 30 giorni</span><strong class="d-block fs-4">{{ data.upcomingOccurrences }}</strong></div></div></div>
-      <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="small text-body-secondary">Totale pianificato</span><strong class="d-block fs-4">{{ data.upcomingTotal | euroAmount }}</strong></div></div></div>
+      <div class="col-6 col-xl-3"><app-counter-card label="Attive" [value]="data.activeCount" icon="bi-play-circle" /></div>
+      <div class="col-6 col-xl-3"><app-counter-card label="In pausa" [value]="data.pausedCount" icon="bi-pause-circle" /></div>
+      <div class="col-6 col-xl-3"><app-counter-card label="Occorrenze entro 30 giorni" [value]="data.upcomingOccurrences" icon="bi-calendar2-week" /></div>
+      <div class="col-6 col-xl-3"><app-counter-card label="Totale pianificato" [value]="data.upcomingTotal | euroAmount" icon="bi-cash-stack" /></div>
     </div>
   }
 
@@ -37,9 +37,8 @@
     (resetRequested)="resetFilters()"
   >
     <form [formGroup]="filters">
-      <div class="filter-group">
-        <div class="filter-group__heading"><h3>Classificazione e stato</h3><p>Restringi l’elenco: ogni modifica viene applicata automaticamente.</p></div>
-        <div class="row g-3">
+      <div class="row g-3">
+          <div class="col-12"><h3 class="filter-section-title">Classificazione e stato</h3></div>
           <div class="col-12 col-md-4"><label class="form-label" for="recurrence-status-filter">Stato</label><ng-select labelForId="recurrence-status-filter" [items]="statuses" bindLabel="label" bindValue="value" formControlName="status" placeholder="Tutti" ariaLabel="Filtra per stato"><ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template><ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template></ng-select></div>
           <div class="col-12 col-md-4"><label class="form-label" for="recurrence-frequency-filter">Frequenza</label><ng-select labelForId="recurrence-frequency-filter" [items]="frequencies" bindLabel="label" bindValue="value" formControlName="frequency" placeholder="Tutte" ariaLabel="Filtra per frequenza"><ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template><ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template></ng-select></div>
           <div class="col-12 col-md-4">
@@ -49,9 +48,8 @@
               <ng-template ng-label-tmp let-item="item"><span class="entity-select-option"><i class="bi" [class]="item.icon" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
             </ng-select>
           </div>
-        </div>
       </div>
-      <div class="d-flex justify-content-end mt-3"><button class="btn btn-outline-secondary" type="button" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Azzera filtri</button></div>
+      <div class="d-flex justify-content-end mt-3"><button class="btn btn-outline-secondary" type="button" [disabled]="activeFilterCount() === 0 && !searchDraft()" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Reimposta</button></div>
     </form>
   </app-filter-panel>
 
@@ -60,7 +58,7 @@
   } @else if (items().length === 0 && meta().totalItems === 0 && !searchDraft() && activeFilterCount() === 0) {
     <app-empty-state title="Non hai ancora configurato spese ricorrenti." description="Crea una regola per pianificare automaticamente le prossime spese."><a class="btn btn-primary" routerLink="/recurrences/new"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Crea la prima ricorrenza</a></app-empty-state>
   } @else if (items().length === 0) {
-    <app-empty-state title="Nessuna ricorrenza corrisponde ai filtri applicati." description="Modifica o azzera i criteri di ricerca."><button class="btn btn-outline-primary" type="button" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Azzera filtri</button></app-empty-state>
+    <app-empty-state title="Nessuna ricorrenza corrisponde ai filtri applicati." description="Modifica o reimposta i criteri di ricerca."><button class="btn btn-outline-secondary" type="button" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Reimposta</button></app-empty-state>
   } @else {
     <div class="card border-0 shadow-sm overflow-hidden">
       <div class="table-responsive d-none d-md-block"><table class="table align-middle mb-0">

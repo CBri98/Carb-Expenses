@@ -60,7 +60,7 @@ describe('FilterPanelComponent', () => {
     fixture.componentInstance.expanded.set(false);
     fixture.detectChanges();
     const resetButton = [...element.querySelectorAll<HTMLButtonElement>('button')]
-      .find((button) => button.textContent?.includes('Azzera'));
+      .find((button) => button.textContent?.includes('Reimposta'));
     resetButton?.click();
 
     expect(fixture.componentInstance.resetCount()).toBe(1);

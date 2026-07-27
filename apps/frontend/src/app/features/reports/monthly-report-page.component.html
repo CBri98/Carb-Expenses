@@ -226,7 +226,7 @@
           <label class="form-label" for="monthly-labels">Etichette</label>
           <ng-select labelForId="monthly-labels" [items]="labels()" bindLabel="name" bindValue="id" [multiple]="true" [closeOnSelect]="false" [ngModel]="filters().labelIds ?? []" (ngModelChange)="updateLabelValues($event)" placeholder="Tutte" ariaLabel="Filtra per etichette">
             <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon || 'bi-tag'" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
-            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon || 'bi-tag'" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item" let-clear="clear"><app-multiselect-value [label]="item.name" [icon]="item.icon || 'bi-tag'" [color]="item.color" (removed)="clear(item)" /></ng-template>
           </ng-select>
           <small class="text-body-secondary">Selezione multipla con semantica “almeno una”.</small>
         </div>
