@@ -1,9 +1,13 @@
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, type ParamMap, Router, RouterLink } from '@angular/router';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import {
   catchError,
   combineLatest,
+  debounceTime,
+  distinctUntilChanged,
   EMPTY,
   finalize,
   forkJoin,
@@ -25,6 +29,7 @@ import {
 } from '../../shared/components/catalog-display.components';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.component';
 import { EuroAmountPipe, ItalianExpenseDatePipe } from '../../shared/components/expense-display.components';
+import { FilterPanelComponent } from '../../shared/components/filter-panel.component';
 import {
   EXPENSE_STATUSES,
   PAYMENT_METHODS,
@@ -61,9 +66,12 @@ import { PaymentMethodBreakdownComponent } from './payment-method-breakdown.comp
   standalone: true,
   imports: [
     RouterLink,
+    FormsModule,
+    NgSelectComponent,
     EmptyStateComponent,
     LoadingSkeletonComponent,
     ConfirmDialogComponent,
+    FilterPanelComponent,
     EuroAmountPipe,
     ItalianExpenseDatePipe,
     DashboardChartComponent,
@@ -86,6 +94,7 @@ export class MonthlyReportPageComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly settings = inject(SettingsStore);
   private readonly refresh = new Subject<void>();
+  private readonly searchChanges = new Subject<string>();
   private readonly today = currentReportPeriod();
   private observedExpenseVersion = 0;
 
@@ -103,6 +112,20 @@ export class MonthlyReportPageComponent {
   readonly notice = signal<string | null>(null);
   readonly deleteTarget = signal<ExpenseListItem | null>(null);
   readonly deleting = signal(false);
+  readonly filtersExpanded = signal(false);
+  readonly searchDraft = signal('');
+  readonly pageSizes = [10, 20, 50];
+  readonly activeFilterCount = computed(() => {
+    const filters = this.filters();
+    return Number(Boolean(filters.categoryId))
+      + Number(Boolean(filters.status))
+      + Number(Boolean(filters.paymentMethod))
+      + Number(Boolean(filters.labelIds?.length));
+  });
+  readonly activeFilterSummary = computed(() => {
+    const count = this.activeFilterCount();
+    return count ? `${count} ${count === 1 ? 'filtro strutturato attivo' : 'filtri strutturati attivi'}` : 'Nessun filtro strutturato applicato';
+  });
 
   readonly dailyLabels = computed(() => this.report()?.dailyTrend.map((point) => String(point.day)) ?? []);
   readonly dailyCompleted = computed(() => this.report()?.dailyTrend.map((point) => Number(point.completedTotal)) ?? []);
@@ -125,6 +148,17 @@ export class MonthlyReportPageComponent {
 
   constructor() {
     this.settings.ensureLoaded();
+    this.searchChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe((search) => {
+      if (search === (this.filters().search ?? '')) return;
+      const next = { ...this.filters(), page: 1 };
+      if (search) next.search = search;
+      else delete next.search;
+      void this.navigate(this.selected(), next);
+    });
     this.categoriesService
       .load({ sortBy: 'sortOrder', sortDirection: 'asc' })
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -144,6 +178,7 @@ export class MonthlyReportPageComponent {
           }
           this.selected.set(parsed.period);
           this.filters.set(parsed.filters);
+          this.searchDraft.set(parsed.filters.search ?? '');
           this.loading.set(true);
           this.error.set(null);
           const listQuery: MonthlyExpensesQuery = {
@@ -223,16 +258,51 @@ export class MonthlyReportPageComponent {
     void this.navigate(this.selected(), next);
   }
 
-  resetFilters(): void { void this.navigate(this.selected(), defaultFilters()); }
+  updateSearch(value: string): void {
+    const normalized = value.slice(0, 150);
+    this.searchDraft.set(normalized);
+    this.searchChanges.next(normalized.trim());
+  }
+
+  updateStructuredFilter(
+    key: 'categoryId' | 'status' | 'paymentMethod' | 'pageSize',
+    value: string | number | null,
+  ): void {
+    const next = { ...this.filters(), page: 1 };
+    if (key === 'pageSize') next.pageSize = Number(value);
+    else if (value) setFilter(next, key, String(value));
+    else delete next[key];
+    void this.navigate(this.selected(), next);
+  }
+
+  updateLabelValues(labelIds: string[]): void {
+    const next = { ...this.filters(), page: 1 };
+    if (labelIds.length) next.labelIds = labelIds;
+    else delete next.labelIds;
+    void this.navigate(this.selected(), next);
+  }
+
+  resetFilters(): void {
+    this.searchDraft.set('');
+    void this.navigate(this.selected(), defaultFilters(this.settings.experience().defaultPageSize));
+  }
   goToPage(page: number): void {
     void this.navigate(this.selected(), { ...this.filters(), page });
   }
   sortBy(sortBy: ExpenseQueryParams['sortBy']): void {
     if (!sortBy) return;
     const current = this.filters();
-    const sortDirection =
-      current.sortBy === sortBy && current.sortDirection === 'asc' ? 'desc' : 'asc';
-    void this.navigate(this.selected(), { ...current, page: 1, sortBy, sortDirection });
+    const next = { ...current, page: 1 };
+    if (current.sortBy !== sortBy) {
+      next.sortBy = sortBy;
+      next.sortDirection = 'asc';
+    } else if (current.sortDirection === 'asc') {
+      next.sortDirection = 'desc';
+    } else {
+      delete next.sortBy;
+      delete next.sortDirection;
+    }
+    void this.navigate(this.selected(), next);
   }
 
   isLabelSelected(id: string): boolean { return this.filters().labelIds?.includes(id) ?? false; }
@@ -263,6 +333,14 @@ export class MonthlyReportPageComponent {
   openCategoryPoint(selection: DashboardChartSelection): void {
     const category = this.report()?.categoryDistribution[selection.index];
     if (category) this.navigateToExpenses({ categoryIds: [category.categoryId], statuses: ['COMPLETED'] });
+  }
+
+  openDailyIndex(index: number, datasetIndex: 0 | 1): void {
+    this.openDailyPoint({ index, datasetIndex, label: '', value: null });
+  }
+
+  openCategoryIndex(index: number): void {
+    this.openCategoryPoint({ index, datasetIndex: 0, label: '', value: null });
   }
 
   openPaymentMethod(paymentMethod: PaymentMethod): void {

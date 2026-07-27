@@ -97,12 +97,15 @@ export class LoadingSkeletonComponent {}
 @Component({
   selector: 'app-counter-card',
   standalone: true,
-  template: `<article class="card counter-card h-100"><div class="card-body d-flex align-items-center gap-3">
+  template: `<article class="card counter-card h-100" [class.counter-card--interactive]="interactive()" [attr.role]="interactive() ? 'button' : null" [attr.tabindex]="interactive() ? 0 : null" (click)="activate()" (keydown.enter)="activate($event)" (keydown.space)="activate($event)"><div class="card-body d-flex align-items-center gap-3">
     <span class="counter-card__icon" aria-hidden="true"><i class="bi" [class]="icon()"></i></span>
     <div><span class="small text-body-secondary">{{ label() }}</span><strong class="d-block fs-4">{{ value() }}</strong></div>
   </div></article>`,
   styles: [`
     .counter-card { border: 0; box-shadow: var(--shadow-sm); }
+    .counter-card--interactive { cursor: pointer; transition: transform var(--motion-fast, 160ms) ease, box-shadow var(--motion-fast, 160ms) ease; }
+    .counter-card--interactive:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .counter-card--interactive:focus-visible { outline: var(--focus-ring, 3px solid rgb(var(--primary-rgb) / 35%)); outline-offset: 2px; }
     .counter-card__icon { display: grid; width: 2.5rem; height: 2.5rem; flex: 0 0 auto; color: var(--primary); background: var(--primary-soft); border-radius: .7rem; place-items: center; }
   `],
 })
@@ -110,6 +113,14 @@ export class CounterCardComponent {
   readonly label = input.required<string>();
   readonly value = input.required<number | string>();
   readonly icon = input('bi-bar-chart');
+  readonly interactive = input(false);
+  readonly activated = output<void>();
+
+  activate(event?: Event): void {
+    if (!this.interactive()) return;
+    event?.preventDefault();
+    this.activated.emit();
+  }
 }
 
 @Component({

@@ -50,15 +50,13 @@ describe('DashboardComponent', () => {
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
     const periodYear = element.querySelector<HTMLInputElement>('.dashboard-year-input');
-    const trendMonths = element.querySelector<HTMLSelectElement>('#dashboard-trend-months');
-    const trendYear = element.querySelector<HTMLSelectElement>('.history-year-controls label select');
+    const trendYear = element.querySelector<HTMLInputElement>('#dashboard-trend-year');
     const currentYear = Number(new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Europe/Rome',
       year: 'numeric',
     }).format(new Date()));
 
     expect(periodYear?.value).toBe('2026');
-    expect(trendMonths?.value).toBe('6');
     expect(trendYear?.value).toBe(String(currentYear));
     expect(load).toHaveBeenCalledWith({ month: 7, year: 2026 }, currentYear, 6);
 

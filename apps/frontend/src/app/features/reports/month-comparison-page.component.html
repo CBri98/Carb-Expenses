@@ -19,8 +19,8 @@
     <app-month-selector label="Periodo B" idPrefix="period-b" [period]="periodB()" (periodChange)="changePeriodB($event)" />
   </div>
   <div class="d-flex flex-wrap gap-2 mt-3">
-    <button class="btn btn-sm btn-outline-primary" type="button" (click)="currentVsPrevious()">Mese corrente vs precedente</button>
-    <button class="btn btn-sm btn-outline-secondary" type="button" (click)="lastTwoMonths()">Ultimi due mesi conclusi</button>
+    <button class="btn btn-sm btn-outline-primary" type="button" (click)="currentVsPrevious()"><i class="bi bi-calendar-check me-2" aria-hidden="true"></i>Mese corrente vs precedente</button>
+    <button class="btn btn-sm btn-outline-secondary" type="button" (click)="lastTwoMonths()"><i class="bi bi-calendar-range me-2" aria-hidden="true"></i>Ultimi due mesi conclusi</button>
   </div>
 </section>
 
@@ -37,7 +37,7 @@
   <div class="alert alert-danger" role="alert">
     <h2 class="h5">Confronto non disponibile</h2>
     <p>{{ error() }}</p>
-    <button class="btn btn-danger" type="button" (click)="retry()">Riprova</button>
+    <button class="btn btn-danger" type="button" (click)="retry()"><i class="bi bi-arrow-repeat me-2" aria-hidden="true"></i>Riprova</button>
   </div>
 } @else if (comparison(); as comparisonData) {
   @if (comparisonData.samePeriod) {
@@ -85,11 +85,12 @@
           [datasetLabel]="comparisonData.periodA.shortLabel"
           [secondaryDatasetLabel]="comparisonData.periodB.shortLabel"
           ariaLabel="Confronto dei totali completati e pianificati dei due mesi"
+          (pointSelected)="openTotalPoint($event)"
         />
         <table class="table table-sm mt-3">
           <caption class="visually-hidden">Alternativa tabellare al confronto dei totali</caption>
           <thead><tr><th>Stato</th><th class="text-end">{{ comparisonData.periodA.shortLabel }}</th><th class="text-end">{{ comparisonData.periodB.shortLabel }}</th></tr></thead>
-          <tbody><tr><th>Completate</th><td class="text-end">{{ totalAValues()[0] | euroAmount }}</td><td class="text-end">{{ totalBValues()[0] | euroAmount }}</td></tr><tr><th>Pianificate</th><td class="text-end">{{ totalAValues()[1] | euroAmount }}</td><td class="text-end">{{ totalBValues()[1] | euroAmount }}</td></tr></tbody>
+          <tbody><tr><th>Completate</th><td class="text-end"><button class="report-data-link" type="button" (click)="openTotalPoint({ index: 0, datasetIndex: 0, label: '', value: null })">{{ totalAValues()[0] | euroAmount }}</button></td><td class="text-end"><button class="report-data-link" type="button" (click)="openTotalPoint({ index: 0, datasetIndex: 1, label: '', value: null })">{{ totalBValues()[0] | euroAmount }}</button></td></tr><tr><th>Pianificate</th><td class="text-end"><button class="report-data-link" type="button" (click)="openTotalPoint({ index: 1, datasetIndex: 0, label: '', value: null })">{{ totalAValues()[1] | euroAmount }}</button></td><td class="text-end"><button class="report-data-link" type="button" (click)="openTotalPoint({ index: 1, datasetIndex: 1, label: '', value: null })">{{ totalBValues()[1] | euroAmount }}</button></td></tr></tbody>
         </table>
       </div>
     </section>
@@ -109,6 +110,7 @@
             [datasetLabel]="comparisonData.periodA.shortLabel"
             [secondaryDatasetLabel]="comparisonData.periodB.shortLabel"
             ariaLabel="Confronto degli importi per categoria tra i due mesi"
+            (pointSelected)="openCategoryPoint($event)"
           />
         } @else {
           <p class="text-body-secondary text-center py-5">Nessuna categoria da confrontare.</p>
@@ -129,6 +131,7 @@
       [datasetLabel]="comparisonData.periodA.shortLabel"
       [secondaryDatasetLabel]="comparisonData.periodB.shortLabel"
       ariaLabel="Confronto giornaliero delle spese completate; i giorni inesistenti sono valori nulli"
+      (pointSelected)="openDailyPoint($event)"
     />
     <details>
       <summary>Tabella dei valori giornalieri</summary>
@@ -139,8 +142,8 @@
             @for (point of comparisonData.daily; track point.day) {
               <tr>
                 <th>{{ point.day }}</th>
-                <td class="text-end">@if (point.periodATotal !== null) { {{ point.periodATotal | euroAmount }} } @else { <span aria-label="Giorno non presente">—</span> }</td>
-                <td class="text-end">@if (point.periodBTotal !== null) { {{ point.periodBTotal | euroAmount }} } @else { <span aria-label="Giorno non presente">—</span> }</td>
+                <td class="text-end">@if (point.periodATotal !== null) { <button class="report-data-link" type="button" (click)="openDailyIndex($index, 0)">{{ point.periodATotal | euroAmount }}</button> } @else { <span aria-label="Giorno non presente">—</span> }</td>
+                <td class="text-end">@if (point.periodBTotal !== null) { <button class="report-data-link" type="button" (click)="openDailyIndex($index, 1)">{{ point.periodBTotal | euroAmount }}</button> } @else { <span aria-label="Giorno non presente">—</span> }</td>
               </tr>
             }
           </tbody>
@@ -152,20 +155,25 @@
   <section class="report-card mb-4 p-0 overflow-hidden" aria-labelledby="category-table-title">
     <div class="p-3 p-lg-4 border-bottom">
       <div class="card-heading"><div><h2 id="category-table-title" class="h5">Tabella comparativa categorie</h2><p>Variazioni espresse anche testualmente</p></div></div>
-      <div class="d-flex flex-wrap gap-3">
-        <div>
+      <app-filter-panel titleId="comparison-category-filters-title" panelId="comparison-category-filters-panel" [expanded]="filtersExpanded()" [activeCount]="activeFilterCount()" [summary]="activeFilterSummary()" (expandedChange)="filtersExpanded.set($event)" (resetRequested)="resetCategoryFilters()">
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
           <label class="form-label" for="category-direction">Variazione</label>
-          <select id="category-direction" class="form-select" [value]="categoryDirection()" (change)="setDirection($event)">
-            <option value="ALL">Tutte</option><option value="INCREASE">Aumenti</option><option value="DECREASE">Diminuzioni</option><option value="UNCHANGED">Invariate</option><option value="NOT_COMPARABLE">Non confrontabili</option>
-          </select>
+          <ng-select labelForId="category-direction" [items]="directionOptions" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" [ngModel]="categoryDirection()" (ngModelChange)="setDirection($event)" ariaLabel="Filtra per variazione">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
         </div>
-        <div>
+        <div class="col-12 col-md-6">
           <label class="form-label" for="category-sort">Ordina per</label>
-          <select id="category-sort" class="form-select" [value]="categorySort()" (change)="setSort($event)">
-            <option value="CHANGE">Differenza assoluta</option><option value="PERIOD_A">Totale periodo A</option><option value="PERIOD_B">Totale periodo B</option><option value="NAME">Nome categoria</option>
-          </select>
+          <ng-select labelForId="category-sort" [items]="sortOptions" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" [ngModel]="categorySort()" (ngModelChange)="setSort($event)" ariaLabel="Ordina categorie">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
         </div>
+        <div class="col-12 d-flex justify-content-end"><button class="btn btn-outline-secondary" type="button" (click)="resetCategoryFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Azzera filtri</button></div>
       </div>
+      </app-filter-panel>
     </div>
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
@@ -174,8 +182,8 @@
           @for (category of categoryRows(); track category.categoryId) {
             <tr>
               <th><span class="color-dot me-2" [style.background-color]="category.color" aria-hidden="true"></span>{{ category.name }}</th>
-              <td class="text-end">{{ category.periodATotal | euroAmount }}</td>
-              <td class="text-end">{{ category.periodBTotal | euroAmount }}</td>
+              <td class="text-end"><button class="report-data-link" type="button" (click)="openCategoryPeriod(category.categoryId, 'A')">{{ category.periodATotal | euroAmount }}</button></td>
+              <td class="text-end"><button class="report-data-link" type="button" (click)="openCategoryPeriod(category.categoryId, 'B')">{{ category.periodBTotal | euroAmount }}</button></td>
               <td class="text-end">{{ signedAmount(category.absoluteChange) }}</td>
               <td>{{ direction(category.direction) }} · {{ percentage(category.percentageChange) }}</td>
             </tr>

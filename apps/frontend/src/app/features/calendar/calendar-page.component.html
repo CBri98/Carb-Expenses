@@ -16,7 +16,7 @@
   @if (error()) {
     <div class="alert alert-danger d-flex flex-wrap align-items-center gap-2" role="alert">
       <i class="bi bi-exclamation-triangle" aria-hidden="true"></i><span class="flex-grow-1">{{ error() }}</span>
-      <button class="btn btn-sm btn-outline-danger" type="button" (click)="retry()">Riprova</button>
+      <button class="btn btn-sm btn-outline-danger" type="button" (click)="retry()"><i class="bi bi-arrow-repeat me-2" aria-hidden="true"></i>Riprova</button>
       <button class="btn-close" type="button" aria-label="Chiudi errore" (click)="error.set(null)"></button>
     </div>
   }
@@ -24,7 +24,7 @@
   <article class="card border-0 shadow-sm calendar-toolbar"><div class="card-body"><div class="calendar-toolbar__row">
     <div class="btn-group" role="group" aria-label="Navigazione temporale">
       <button class="btn btn-outline-secondary" type="button" aria-label="Periodo precedente" (click)="previous()"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
-      <button class="btn btn-outline-secondary" type="button" (click)="current()">Oggi</button>
+      <button class="btn btn-outline-secondary" type="button" (click)="current()"><i class="bi bi-calendar-check me-2" aria-hidden="true"></i>Oggi</button>
       <button class="btn btn-outline-secondary" type="button" aria-label="Periodo successivo" (click)="next()"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
     </div>
     <h2 class="calendar-toolbar__heading" aria-live="polite">{{ heading() }}</h2>
@@ -222,7 +222,7 @@
         <input id="calendar-move-date" class="form-control" type="date" required [ngModel]="moveDate()" (ngModelChange)="moveDate.set($event)">
         <p class="form-text">Questa azione usa la normale modifica della spesa. Se la richiesta fallisce, la data originale viene ripristinata.</p>
       </div>
-      <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" (click)="cancelDateChange()">Annulla</button><button class="btn btn-primary" type="button" [disabled]="!moveDate()" (click)="confirmDateChange()">Salva nuova data</button></div>
+      <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" (click)="cancelDateChange()"><i class="bi bi-x-lg me-2" aria-hidden="true"></i>Annulla</button><button class="btn btn-primary" type="button" [disabled]="!moveDate()" (click)="confirmDateChange()"><i class="bi bi-check-lg me-2" aria-hidden="true"></i>Salva nuova data</button></div>
     </div></div>
   </div>
   <button class="modal-backdrop show calendar-move-backdrop" type="button" aria-label="Chiudi finestra cambia data" (click)="cancelDateChange()"></button>

@@ -1,5 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -90,7 +91,7 @@ async function createFixtureWithService() {
   };
   await TestBed.configureTestingModule({
     imports: [CategoriesComponent],
-    providers: [{ provide: CategoryService, useValue: service }],
+    providers: [provideRouter([]), { provide: CategoryService, useValue: service }],
   }).compileComponents();
   return { fixture: TestBed.createComponent(CategoriesComponent), service };
 }

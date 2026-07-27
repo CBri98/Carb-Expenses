@@ -2,6 +2,7 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   NgLabelTemplateDirective,
   NgOptionTemplateDirective,
@@ -68,6 +69,8 @@ export class CategoriesComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly formBuilder = inject(FormBuilder);
   private readonly settings = inject(SettingsStore);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly categories = this.categoryService.categories;
   readonly availableIcons = computed(() => this.settings.icons().enabledCategoryIcons);
@@ -116,8 +119,18 @@ export class CategoriesComponent {
     this.settings.ensureLoaded();
     this.filters.valueChanges
       .pipe(debounceTime(250), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => { this.filterVersion.update((value) => value + 1); this.load(); });
-    this.load();
+      .subscribe(() => { this.filterVersion.update((value) => value + 1); this.navigateFilters(); });
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const type = params.get('type');
+      const active = params.get('active');
+      this.filters.setValue({
+        search: params.get('search') ?? '',
+        type: type === 'default' || type === 'custom' ? type : 'all',
+        active: active === 'true' || active === 'false' ? active : 'all',
+      }, { emitEvent: false });
+      this.filterVersion.update((value) => value + 1);
+      this.load();
+    });
   }
 
   activeFilterCount(): number {
@@ -274,6 +287,10 @@ export class CategoriesComponent {
     this.filters.setValue({ search: '', type: 'all', active: 'all' });
   }
 
+  filterFromSummary(type: 'all' | 'custom' = 'all', active: 'all' | 'true' | 'false' = 'all'): void {
+    this.filters.patchValue({ type, active });
+  }
+
   updateColor(color: string): void {
     this.form.controls.color.setValue(color);
     this.form.controls.color.markAsTouched();
@@ -311,6 +328,19 @@ export class CategoriesComponent {
       sortBy: 'sortOrder',
       sortDirection: 'asc',
     };
+  }
+
+  private navigateFilters(): void {
+    const value = this.filters.getRawValue();
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        ...(value.search.trim() ? { search: value.search.trim() } : {}),
+        ...(value.type !== 'all' ? { type: value.type } : {}),
+        ...(value.active !== 'all' ? { active: value.active } : {}),
+      },
+      replaceUrl: true,
+    });
   }
 
   private showSuccess(text: string): void {

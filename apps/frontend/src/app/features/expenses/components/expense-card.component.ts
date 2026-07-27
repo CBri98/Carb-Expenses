@@ -25,8 +25,8 @@ import { RecurrenceExpenseIndicatorComponent } from '../../recurrences/recurrenc
       @if (expense().nextReminderAt) { <p class="small text-body-secondary mb-3"><i class="bi bi-bell me-1" aria-hidden="true"></i>Prossimo: {{ expense().nextReminderAt! | italianDateTime }}@if (expense().activeReminderCount > 1) { · {{ expense().activeReminderCount }} attivi }</p> }
       @if (expense().labels.length) { <div class="d-flex flex-wrap gap-1 mb-3">@for (label of expense().labels; track label.id) { <app-label-badge [name]="label.name" [color]="label.color" [icon]="label.icon" /> }</div> }
       <div class="d-flex flex-wrap gap-2">
-        <button class="btn btn-sm btn-outline-primary" type="button" (click)="view.emit()">Dettaglio</button>
-        <button class="btn btn-sm btn-outline-secondary" type="button" (click)="edit.emit()">Modifica</button>
+        <button class="btn btn-sm btn-outline-primary" type="button" (click)="view.emit()"><i class="bi bi-eye me-1" aria-hidden="true"></i>Dettaglio</button>
+        <button class="btn btn-sm btn-outline-secondary" type="button" (click)="edit.emit()"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Modifica</button>
         <details class="action-menu"><summary class="btn btn-sm btn-outline-secondary">Altre azioni</summary><div class="action-menu__panel shadow">
           <button type="button" (click)="duplicate.emit()"><i class="bi bi-copy"></i>Duplica</button>
           @if (expense().status !== 'COMPLETED') { <button type="button" (click)="statusChange.emit('COMPLETED')"><i class="bi bi-check-circle"></i>Segna completata</button> }

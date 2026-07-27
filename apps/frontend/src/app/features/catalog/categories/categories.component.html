@@ -34,10 +34,10 @@
   }
 
   <div class="row g-3 mb-3" aria-label="Riepilogo categorie filtrate">
-    <div class="col-6 col-xl-3"><app-counter-card label="Totali" [value]="summary().total" icon="bi-collection" /></div>
-    <div class="col-6 col-xl-3"><app-counter-card label="Attive" [value]="summary().active" icon="bi-check-circle" /></div>
-    <div class="col-6 col-xl-3"><app-counter-card label="Disattivate" [value]="summary().inactive" icon="bi-pause-circle" /></div>
-    <div class="col-6 col-xl-3"><app-counter-card label="Personalizzate" [value]="summary().custom" icon="bi-person-gear" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Totali" [value]="summary().total" icon="bi-collection" [interactive]="true" (activated)="filterFromSummary()" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Attive" [value]="summary().active" icon="bi-check-circle" [interactive]="true" (activated)="filterFromSummary('all', 'true')" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Disattivate" [value]="summary().inactive" icon="bi-pause-circle" [interactive]="true" (activated)="filterFromSummary('all', 'false')" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Personalizzate" [value]="summary().custom" icon="bi-person-gear" [interactive]="true" (activated)="filterFromSummary('custom')" /></div>
   </div>
 
   <div class="card border-0 shadow-sm catalog-search mb-3">
@@ -69,6 +69,8 @@
     </form>
   </app-filter-panel>
 
+  @if (reordering()) { <p class="small text-body-secondary" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Salvataggio del nuovo ordine…</p> }
+
   <article class="card catalog-card">
 
     @if (loading()) {
@@ -78,7 +80,7 @@
         title="Nessuna categoria trovata"
         message="Modifica i filtri oppure crea una categoria personale."
         ><button class="btn btn-primary" type="button" (click)="openCreate()">
-          Nuova categoria
+          <i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Nuova categoria
         </button></app-empty-state
       >
     } @else {
@@ -100,7 +102,7 @@
               <tr cdkDrag [cdkDragData]="category" [cdkDragDisabled]="!canReorder()">
                 <td data-label="Ordine">
                   <div class="btn-group btn-group-sm" role="group" aria-label="Riordina categoria">
-                    <button class="btn btn-outline-secondary drag-handle" type="button" cdkDragHandle [disabled]="!canReorder()" [attr.aria-label]="'Trascina ' + category.name" title="Trascina per riordinare"><i class="bi bi-grip-vertical" aria-hidden="true"></i></button>
+                    <button class="btn btn-outline-secondary drag-handle" type="button" cdkDragHandle [disabled]="!canReorder()" [attr.aria-label]="'Trascina ' + category.name" [attr.title]="canReorder() ? 'Trascina per riordinare' : 'Rimuovi ricerca, filtri e ordinamenti per modificare l’ordine.'"><i class="bi bi-grip-vertical" aria-hidden="true"></i></button>
                     <button
                       class="btn btn-outline-secondary"
                       type="button"
@@ -301,11 +303,12 @@
           </div>
           <div class="modal-footer">
             <button class="btn btn-outline-secondary" type="button" (click)="closeForm()">
-              Annulla</button
+              <i class="bi bi-x-lg me-2" aria-hidden="true"></i>Annulla</button
             ><button class="btn btn-primary" type="submit" [disabled]="saving()">
               @if (saving()) {
                 <span class="spinner-border spinner-border-sm me-2"></span>
               }
+              @else { <i class="bi bi-check-lg me-2" aria-hidden="true"></i> }
               Salva
             </button>
           </div>

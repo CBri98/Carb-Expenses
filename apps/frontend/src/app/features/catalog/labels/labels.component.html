@@ -69,6 +69,8 @@
     </form>
   </app-filter-panel>
 
+  @if (reordering()) { <p class="small text-body-secondary" role="status"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Salvataggio del nuovo ordine…</p> }
+
   <article class="card catalog-card">
 
     @if (loading()) {
@@ -78,7 +80,7 @@
         title="Nessuna etichetta trovata"
         message="Modifica i filtri oppure crea la tua prima etichetta."
         ><button class="btn btn-primary" type="button" (click)="openCreate()">
-          Nuova etichetta
+          <i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Nuova etichetta
         </button></app-empty-state
       >
     } @else {
@@ -100,7 +102,7 @@
               <tr cdkDrag [cdkDragData]="label" [cdkDragDisabled]="!canReorder()">
                 <td data-label="Ordine">
                   <div class="btn-group btn-group-sm" role="group" aria-label="Riordina etichetta">
-                    <button class="btn btn-outline-secondary drag-handle" type="button" cdkDragHandle [disabled]="!canReorder()" [attr.aria-label]="'Trascina ' + label.name" title="Trascina per riordinare"><i class="bi bi-grip-vertical" aria-hidden="true"></i></button>
+                    <button class="btn btn-outline-secondary drag-handle" type="button" cdkDragHandle [disabled]="!canReorder()" [attr.aria-label]="'Trascina ' + label.name" [attr.title]="canReorder() ? 'Trascina per riordinare' : 'Rimuovi ricerca, filtri e ordinamenti per modificare l’ordine.'"><i class="bi bi-grip-vertical" aria-hidden="true"></i></button>
                     <button
                       class="btn btn-outline-secondary"
                       type="button"
@@ -309,11 +311,12 @@
           </div>
           <div class="modal-footer">
             <button class="btn btn-outline-secondary" type="button" (click)="closeForm()">
-              Annulla</button
+              <i class="bi bi-x-lg me-2" aria-hidden="true"></i>Annulla</button
             ><button class="btn btn-primary" type="submit" [disabled]="saving()">
               @if (saving()) {
                 <span class="spinner-border spinner-border-sm me-2"></span>
               }
+              @else { <i class="bi bi-check-lg me-2" aria-hidden="true"></i> }
               Salva
             </button>
           </div>

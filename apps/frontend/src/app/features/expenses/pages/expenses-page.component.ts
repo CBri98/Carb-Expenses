@@ -11,7 +11,7 @@ import { LabelService } from '../../../core/services/label.service';
 import { SettingsStore } from '../../../core/services/settings.store';
 import { CounterCardComponent, EmptyStateComponent, LoadingSkeletonComponent, PageHeaderComponent } from '../../../shared/components/catalog-display.components';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog.component';
-import type { ExpenseListItem, ExpenseListSummary, ExpenseQueryParams, PaginationMeta } from '../../../shared/models/expense.models';
+import type { ExpenseListItem, ExpenseListSummary, ExpenseQueryParams, ExpenseStatus, PaginationMeta } from '../../../shared/models/expense.models';
 import { ExpenseFiltersComponent } from '../components/expense-filters.component';
 import { ExpenseTableComponent, type ExpenseStatusAction } from '../components/expense-table.component';
 import { PaginationComponent } from '../components/pagination.component';
@@ -107,6 +107,14 @@ export class ExpensesPageComponent {
       delete next.sortBy;
       delete next.sortDirection;
     }
+    void this.navigate(next);
+  }
+
+  filterByStatus(status?: ExpenseStatus): void {
+    const next = { ...this.query(), page: 1 };
+    delete next.status;
+    delete next.statuses;
+    if (status) next.statuses = [status];
     void this.navigate(next);
   }
 

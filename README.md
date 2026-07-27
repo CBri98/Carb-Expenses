@@ -237,6 +237,8 @@ Layout, grafici Chart.js, pannelli filtro e componenti Bootstrap sono coerenti i
 
 La specifica è in [docs/PHASE_10_5_UI_REFINEMENT.md](docs/PHASE_10_5_UI_REFINEMENT.md); il resoconto delle verifiche finali è in [docs/PHASE_10_5_COMPLETION_2026-07-27.md](docs/PHASE_10_5_COMPLETION_2026-07-27.md).
 
+La chiusura include l'audit correttivo dell'intera specifica: form Spesa, KPI e insight Dashboard, alternative accessibili dei grafici, report filtrabili, cataloghi con stato persistente e controlli Impostazioni uniformati.
+
 
 ## Fase 5 — Dashboard
 

@@ -2,6 +2,7 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   NgLabelTemplateDirective,
   NgOptionTemplateDirective,
@@ -72,6 +73,8 @@ export class LabelsComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly formBuilder = inject(FormBuilder);
   private readonly settings = inject(SettingsStore);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly categories = this.categoryService.categories;
   readonly labels = this.labelService.labels;
@@ -117,9 +120,18 @@ export class LabelsComponent {
     this.settings.ensureLoaded();
     this.filters.valueChanges
       .pipe(debounceTime(250), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => { this.filterVersion.update((value) => value + 1); this.loadLabels(); });
+      .subscribe(() => { this.filterVersion.update((value) => value + 1); this.navigateFilters(); });
     this.loadCategories();
-    this.loadLabels();
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const active = params.get('active');
+      this.filters.setValue({
+        search: params.get('search') ?? '',
+        categoryId: params.get('categoryId'),
+        active: active === 'true' || active === 'false' ? active : 'all',
+      }, { emitEvent: false });
+      this.filterVersion.update((value) => value + 1);
+      this.loadLabels();
+    });
   }
 
   activeFilterCount(): number {
@@ -325,6 +337,19 @@ export class LabelsComponent {
       sortBy: 'sortOrder',
       sortDirection: 'asc',
     };
+  }
+
+  private navigateFilters(): void {
+    const value = this.filters.getRawValue();
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        ...(value.search.trim() ? { search: value.search.trim() } : {}),
+        ...(value.categoryId ? { categoryId: value.categoryId } : {}),
+        ...(value.active !== 'all' ? { active: value.active } : {}),
+      },
+      replaceUrl: true,
+    });
   }
 
   private showSuccess(text: string): void {

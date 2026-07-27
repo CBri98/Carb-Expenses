@@ -1,11 +1,14 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, type ParamMap, Router, RouterLink } from '@angular/router';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, EMPTY, finalize, switchMap, tap } from 'rxjs';
 
 import { ReportsService } from '../../core/services/reports.service';
 import { LoadingSkeletonComponent } from '../../shared/components/catalog-display.components';
 import { EuroAmountPipe, PaymentMethodBadgeComponent } from '../../shared/components/expense-display.components';
+import { FilterPanelComponent } from '../../shared/components/filter-panel.component';
 import type {
   ComparisonDirection,
   ComparisonMetric,
@@ -26,7 +29,7 @@ import {
   REPORT_METRIC_LABELS,
   reportPeriodFromParams,
 } from '../../shared/utilities/report-format';
-import { DashboardChartComponent } from '../dashboard/dashboard-chart.component';
+import { DashboardChartComponent, type DashboardChartSelection } from '../dashboard/dashboard-chart.component';
 import { MonthSelectorComponent } from './month-selector.component';
 
 type CategoryDirectionFilter = ComparisonDirection | 'ALL';
@@ -37,7 +40,10 @@ type CategorySort = 'CHANGE' | 'PERIOD_A' | 'PERIOD_B' | 'NAME';
   standalone: true,
   imports: [
     RouterLink,
+    FormsModule,
+    NgSelectComponent,
     LoadingSkeletonComponent,
+    FilterPanelComponent,
     EuroAmountPipe,
     PaymentMethodBadgeComponent,
     DashboardChartComponent,
@@ -65,6 +71,22 @@ export class MonthComparisonPageComponent {
   readonly error = signal<string | null>(null);
   readonly categoryDirection = signal<CategoryDirectionFilter>('ALL');
   readonly categorySort = signal<CategorySort>('CHANGE');
+  readonly filtersExpanded = signal(false);
+  readonly directionOptions: Array<{ value: CategoryDirectionFilter; label: string; icon: string }> = [
+    { value: 'ALL', label: 'Tutte', icon: 'bi-collection' },
+    { value: 'INCREASE', label: 'Aumenti', icon: 'bi-arrow-up-right' },
+    { value: 'DECREASE', label: 'Diminuzioni', icon: 'bi-arrow-down-right' },
+    { value: 'UNCHANGED', label: 'Invariate', icon: 'bi-dash-lg' },
+    { value: 'NOT_COMPARABLE', label: 'Non confrontabili', icon: 'bi-question-circle' },
+  ];
+  readonly sortOptions: Array<{ value: CategorySort; label: string; icon: string }> = [
+    { value: 'CHANGE', label: 'Differenza assoluta', icon: 'bi-arrow-left-right' },
+    { value: 'PERIOD_A', label: 'Totale periodo A', icon: 'bi-calendar2-minus' },
+    { value: 'PERIOD_B', label: 'Totale periodo B', icon: 'bi-calendar2-plus' },
+    { value: 'NAME', label: 'Nome categoria', icon: 'bi-sort-alpha-down' },
+  ];
+  readonly activeFilterCount = computed(() => Number(this.categoryDirection() !== 'ALL') + Number(this.categorySort() !== 'CHANGE'));
+  readonly activeFilterSummary = computed(() => this.activeFilterCount() ? `${this.activeFilterCount()} filtri di confronto attivi` : 'Ordinamento per differenza assoluta; tutte le variazioni');
   readonly metricLabels = REPORT_METRIC_LABELS;
 
   readonly periodA = computed<MonthlyReportQuery>(() => ({
@@ -122,6 +144,8 @@ export class MonthComparisonPageComponent {
             return EMPTY;
           }
           this.query.set(parsed.query);
+          this.categoryDirection.set(parsed.categoryDirection);
+          this.categorySort.set(parsed.categorySort);
           this.loading.set(true);
           this.error.set(null);
           return this.reports.monthComparison(parsed.query).pipe(
@@ -175,11 +199,18 @@ export class MonthComparisonPageComponent {
   retry(): void {
     void this.navigate(this.query());
   }
-  setDirection(event: Event): void {
-    this.categoryDirection.set((event.target as HTMLSelectElement).value as CategoryDirectionFilter);
+  setDirection(value: CategoryDirectionFilter): void {
+    this.categoryDirection.set(value);
+    void this.navigate(this.query());
   }
-  setSort(event: Event): void {
-    this.categorySort.set((event.target as HTMLSelectElement).value as CategorySort);
+  setSort(value: CategorySort): void {
+    this.categorySort.set(value);
+    void this.navigate(this.query());
+  }
+  resetCategoryFilters(): void {
+    this.categoryDirection.set('ALL');
+    this.categorySort.set('CHANGE');
+    void this.navigate(this.query());
   }
   metric(name: ComparisonMetricName): ComparisonMetric | undefined {
     return this.comparison()?.metrics.find((metric) => metric.metric === name);
@@ -199,27 +230,74 @@ export class MonthComparisonPageComponent {
     return { month: this.query().monthB, year: this.query().yearB };
   }
 
+  openTotalPoint(selection: DashboardChartSelection): void {
+    const period = selection.datasetIndex === 0 ? this.periodA() : this.periodB();
+    const status = selection.index === 0 ? 'COMPLETED' : 'PLANNED';
+    this.navigateToExpenses(period, { statuses: status });
+  }
+
+  openCategoryPoint(selection: DashboardChartSelection): void {
+    const category = this.comparison()?.categories[selection.index];
+    if (!category) return;
+    const period = selection.datasetIndex === 0 ? this.periodA() : this.periodB();
+    this.navigateToExpenses(period, { categoryIds: category.categoryId, statuses: 'COMPLETED' });
+  }
+
+  openDailyPoint(selection: DashboardChartSelection): void {
+    const point = this.comparison()?.daily[selection.index];
+    const date = selection.datasetIndex === 0 ? point?.periodADate : point?.periodBDate;
+    if (!date) return;
+    this.navigateToExpenses(undefined, { dateFrom: date, dateTo: date, statuses: 'COMPLETED' });
+  }
+
+  openCategoryPeriod(categoryId: string, period: 'A' | 'B'): void {
+    this.navigateToExpenses(period === 'A' ? this.periodA() : this.periodB(), { categoryIds: categoryId, statuses: 'COMPLETED' });
+  }
+
+  openDailyIndex(index: number, datasetIndex: 0 | 1): void {
+    this.openDailyPoint({ index, datasetIndex, label: '', value: null });
+  }
+
   private navigate(query: MonthComparisonQuery, replaceUrl = false): Promise<boolean> {
     return this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: query,
+      queryParams: {
+        ...query,
+        ...(this.categoryDirection() !== 'ALL' ? { categoryDirection: this.categoryDirection() } : {}),
+        ...(this.categorySort() !== 'CHANGE' ? { categorySort: this.categorySort() } : {}),
+      },
       replaceUrl,
     });
+  }
+
+  private navigateToExpenses(
+    period: MonthlyReportQuery | undefined,
+    filters: Record<string, string>,
+  ): void {
+    void this.router.navigate(['/expenses'], { queryParams: { ...(period ?? {}), ...filters } });
   }
 }
 
 function comparisonFromParams(
   params: ParamMap,
   fallback: MonthlyReportQuery,
-): { query: MonthComparisonQuery; valid: boolean } {
+): { query: MonthComparisonQuery; categoryDirection: CategoryDirectionFilter; categorySort: CategorySort; valid: boolean } {
   const previous = shiftDashboardPeriod(fallback.month, fallback.year, -1);
   const a = reportPeriodFromParams(params.get('monthA'), params.get('yearA'), previous);
   const b = reportPeriodFromParams(params.get('monthB'), params.get('yearB'), fallback);
   const query = { monthA: a.month, yearA: a.year, monthB: b.month, yearB: b.year };
+  const rawDirection = params.get('categoryDirection');
+  const categoryDirection = ['INCREASE', 'DECREASE', 'UNCHANGED', 'NOT_COMPARABLE'].includes(rawDirection ?? '')
+    ? rawDirection as CategoryDirectionFilter
+    : 'ALL';
+  const rawSort = params.get('categorySort');
+  const categorySort = ['PERIOD_A', 'PERIOD_B', 'NAME'].includes(rawSort ?? '') ? rawSort as CategorySort : 'CHANGE';
   const valid =
     params.get('monthA') === String(a.month) &&
     params.get('yearA') === String(a.year) &&
     params.get('monthB') === String(b.month) &&
-    params.get('yearB') === String(b.year);
-  return { query, valid };
+    params.get('yearB') === String(b.year) &&
+    (!rawDirection || rawDirection === categoryDirection) &&
+    (!rawSort || rawSort === categorySort);
+  return { query, categoryDirection, categorySort, valid };
 }

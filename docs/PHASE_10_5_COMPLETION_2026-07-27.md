@@ -2,6 +2,22 @@
 
 La Fase 10.5 è completata. Questo documento chiude l’handoff del 18 luglio 2026; la specifica autorevole resta `PHASE_10_5_UI_REFINEMENT.md`.
 
+## Audit correttivo del 27 luglio
+
+Una seconda verifica puntuale rispetto alla specifica completa ha evidenziato che la prima chiusura copriva l'handoff residuo, ma non tutte le rifiniture richieste. Prima della chiusura definitiva sono quindi stati completati anche:
+
+- formato date utente italiano leggibile (`14 lug 2026` e `14 luglio 2026`) al posto del formato numerico;
+- form Spesa riorganizzato nelle sezioni Dati principali, Classificazione e Dettagli, con gerarchia e azioni uniformi;
+- KPI Dashboard con dettaglio separato, badge categoria, importo e data della prossima spesa non concatenati;
+- insight sintetici e alternative testuali interattive per i grafici Dashboard e Report;
+- ricerca separata, pannello filtri condiviso, `ng-select`, ordinamento a tre stati e filtri persistenti nei query parameter nei report e nei cataloghi;
+- grafici del confronto mesi navigabili anche tramite tastiera e tabelle alternative collegate alle Spese filtrate;
+- contatori Categorie utilizzabili come filtri, stato di salvataggio del riordino e motivazione accessibile quando il trascinamento è disabilitato;
+- controlli Impostazioni uniformati a `ng-select` e azioni principali corredate da icone coerenti;
+- copertura E2E specifica per questi requisiti, oltre alla precedente verifica di reload, tema e responsive.
+
+La chiusura riportata nel resto del documento si riferisce a questo stato corretto e verificato, non alla precedente implementazione parziale.
+
 ## Tabelle
 
 - `FilterPanelComponent` condiviso per pannelli collassabili, conteggio, riepilogo e reset.
@@ -82,7 +98,7 @@ La Fase 10.5 è completata. Questo documento chiude l’handoff del 18 luglio 20
 - build backend e frontend: superate;
 - Docker Compose: backend, frontend e MariaDB healthy;
 - health API, Swagger e frontend: HTTP 200;
-- E2E browser reale: reload autenticato senza login intermedio, collisione cookie legacy, singola voce sidebar, accent light/dark, breakpoint 390/768/1440 senza overflow, form e tab Ricorrenze.
+- E2E browser reale: reload autenticato senza login intermedio, collisione cookie legacy, singola voce sidebar, accent light/dark, breakpoint 390/768/1440 senza overflow, filtri Categorie persistenti nell'URL, date Dashboard non numeriche, insight e alternative dei grafici, sezioni form Spesa, report mensile senza select native e confronto con tre grafici interattivi.
 
 ## Problemi residui
 

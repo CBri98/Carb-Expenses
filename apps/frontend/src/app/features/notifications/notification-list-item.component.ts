@@ -37,9 +37,9 @@ import {
       </div>
       <div class="notification-item__actions">
         @if (notification().status === 'UNREAD') {
-          <button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="busy()" (click)="read.emit(notification())">Segna letta</button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="busy()" (click)="read.emit(notification())"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Segna letta</button>
         } @else if (notification().status === 'READ') {
-          <button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="busy()" (click)="unread.emit(notification())">Segna non letta</button>
+          <button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="busy()" (click)="unread.emit(notification())"><i class="bi bi-envelope me-1" aria-hidden="true"></i>Segna non letta</button>
         }
         @if (notification().status !== 'ARCHIVED') {
           <button class="btn btn-sm btn-outline-danger" type="button" [disabled]="busy()" (click)="archived.emit(notification())" aria-label="Archivia notifica">

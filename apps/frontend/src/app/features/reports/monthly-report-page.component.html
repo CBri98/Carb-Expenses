@@ -19,7 +19,7 @@
     <button class="btn btn-outline-secondary" type="button" aria-label="Mese successivo" (click)="nextMonth()">
       <i class="bi bi-chevron-right" aria-hidden="true"></i>
     </button>
-    <button class="btn btn-outline-primary" type="button" (click)="currentMonth()">Mese corrente</button>
+    <button class="btn btn-outline-primary" type="button" (click)="currentMonth()"><i class="bi bi-calendar-check me-2" aria-hidden="true"></i>Mese corrente</button>
     <a class="btn btn-primary" routerLink="/reports/compare" [queryParams]="compareQuery()">
       <i class="bi bi-bar-chart me-2" aria-hidden="true"></i>Confronta
     </a>
@@ -49,7 +49,7 @@
   <div class="alert alert-danger" role="alert">
     <h2 class="h5">Report non disponibile</h2>
     <p>{{ error() }}</p>
-    <button class="btn btn-danger" type="button" (click)="retry()">Riprova</button>
+    <button class="btn btn-danger" type="button" (click)="retry()"><i class="bi bi-arrow-repeat me-2" aria-hidden="true"></i>Riprova</button>
   </div>
 } @else if (report(); as reportData) {
   @if (reportData.summary.completedCount === 0) {
@@ -82,7 +82,7 @@
       </div>
       <div class="col-12 col-sm-6 col-xl-4">
         <app-stat-card title="Categoria principale" [value]="reportData.topCategory?.name ?? 'Nessuna'"
-          icon="bi-pie-chart" [detail]="reportData.topCategory ? euro(reportData.topCategory.total) + ' · ' + reportData.topCategory.percentage + '%' : ''" [interactive]="reportData.topCategory !== null" (activated)="openTopCategory()" />
+          icon="bi-pie-chart" [detail]="reportData.topCategory ? euro(reportData.topCategory.total) : ''" [secondaryDetail]="reportData.topCategory ? reportData.topCategory.percentage + '% del totale mensile' : ''" [interactive]="reportData.topCategory !== null" (activated)="openTopCategory()" />
       </div>
       <div class="col-12 col-sm-6 col-xl-4">
         <app-stat-card title="Spesa più alta" [value]="reportData.highestExpense ? euro(reportData.highestExpense.amount) : '—'"
@@ -121,7 +121,7 @@
               <thead><tr><th>Data</th><th class="text-end">Completate</th><th class="text-end">Pianificate</th></tr></thead>
               <tbody>
                 @for (point of reportData.dailyTrend; track point.date) {
-                  <tr><td>{{ point.date | italianExpenseDate }}</td><td class="text-end">{{ point.completedTotal | euroAmount }} ({{ point.completedCount }})</td><td class="text-end">{{ point.plannedTotal | euroAmount }} ({{ point.plannedCount }})</td></tr>
+                  <tr><td>{{ point.date | italianExpenseDate }}</td><td class="text-end"><button class="report-data-link" type="button" (click)="openDailyIndex($index, 0)">{{ point.completedTotal | euroAmount }} ({{ point.completedCount }})</button></td><td class="text-end"><button class="report-data-link" type="button" (click)="openDailyIndex($index, 1)">{{ point.plannedTotal | euroAmount }} ({{ point.plannedCount }})</button></td></tr>
                 }
               </tbody>
             </table>
@@ -146,12 +146,12 @@
           />
           <ul class="category-list" aria-label="Riepilogo accessibile delle categorie">
             @for (category of reportData.categoryDistribution; track category.categoryId) {
-              <li>
+              <li><button class="category-list__button" type="button" (click)="openCategoryIndex($index)" [attr.aria-label]="'Apri le spese della categoria ' + category.name">
                 <span class="color-dot" [style.background-color]="category.color" aria-hidden="true"></span>
                 <span>{{ category.name }}</span>
                 <strong>{{ category.total | euroAmount }}</strong>
                 <span>{{ category.percentage }}%</span>
-              </li>
+              </button></li>
             }
           </ul>
         } @else {
@@ -187,47 +187,52 @@
         <div><h2 id="monthly-expenses-title" class="h5">Spese del mese</h2><p>Periodo fisso: {{ reportData.period.label }} · paginazione server-side</p></div>
         <a class="btn btn-sm btn-outline-primary" routerLink="/expenses">Vai alle spese</a>
       </div>
-      <div class="row g-2 align-items-end">
-        <div class="col-12 col-lg-4">
-          <label class="form-label" for="monthly-search">Ricerca</label>
-          <input id="monthly-search" class="form-control" type="search" [value]="filters().search ?? ''" placeholder="Descrizione, esercente o note" (change)="updateFilter('search', $event)" />
-        </div>
-        <div class="col-6 col-lg-2">
-          <label class="form-label" for="monthly-status">Stato</label>
-          <select id="monthly-status" class="form-select" [value]="filters().status ?? ''" (change)="updateFilter('status', $event)">
-            <option value="">Tutti</option>
-            @for (status of statuses; track status.value) { <option [value]="status.value">{{ status.label }}</option> }
-          </select>
-        </div>
-        <div class="col-6 col-lg-2">
-          <label class="form-label" for="monthly-category">Categoria</label>
-          <select id="monthly-category" class="form-select" [value]="filters().categoryId ?? ''" (change)="updateFilter('categoryId', $event)">
-            <option value="">Tutte</option>
-            @for (category of categories(); track category.id) { <option [value]="category.id">{{ category.name }}</option> }
-          </select>
-        </div>
-        <div class="col-12 col-lg-2">
-          <label class="form-label" for="monthly-payment">Pagamento</label>
-          <select id="monthly-payment" class="form-select" [value]="filters().paymentMethod ?? ''" (change)="updateFilter('paymentMethod', $event)">
-            <option value="">Tutti</option>
-            @for (method of paymentMethods; track method.value) { <option [value]="method.value">{{ method.label }}</option> }
-          </select>
-        </div>
-        <div class="col-6 col-lg-1">
-          <label class="form-label" for="monthly-page-size">Righe</label>
-          <select id="monthly-page-size" class="form-select" [value]="filters().pageSize" (change)="updateFilter('pageSize', $event)">
-            <option value="10">10</option><option value="20">20</option><option value="50">50</option>
-          </select>
-        </div>
-        <div class="col-6 col-lg-1"><button class="btn btn-outline-secondary w-100" type="button" (click)="resetFilters()">Azzera</button></div>
-        <div class="col-12">
-          <label class="form-label" for="monthly-labels">Etichette</label>
-          <select id="monthly-labels" class="form-select" multiple size="3" (change)="updateLabels($event)">
-            @for (label of labels(); track label.id) { <option [value]="label.id" [selected]="isLabelSelected(label.id)">{{ label.name }}</option> }
-          </select>
-          <small class="text-body-secondary">Selezione multipla con semantica “almeno una”.</small>
+      <div class="report-search mb-3">
+        <label class="form-label" for="monthly-search">Cerca nelle spese del mese</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+          <input id="monthly-search" class="form-control" type="search" maxlength="150" [ngModel]="searchDraft()" (ngModelChange)="updateSearch($event)" placeholder="Descrizione, esercente o note">
+          @if (searchDraft()) { <button class="btn btn-outline-secondary" type="button" aria-label="Cancella ricerca" (click)="updateSearch('')"><i class="bi bi-x-lg" aria-hidden="true"></i></button> }
         </div>
       </div>
+      <app-filter-panel titleId="monthly-filters-title" panelId="monthly-filters-panel" [expanded]="filtersExpanded()" [activeCount]="activeFilterCount()" [summary]="activeFilterSummary()" (expandedChange)="filtersExpanded.set($event)" (resetRequested)="resetFilters()">
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="monthly-status">Stato</label>
+          <ng-select labelForId="monthly-status" [items]="statuses" bindLabel="label" bindValue="value" [ngModel]="filters().status ?? null" (ngModelChange)="updateStructuredFilter('status', $event)" placeholder="Tutti" ariaLabel="Filtra per stato">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="monthly-category">Categoria</label>
+          <ng-select labelForId="monthly-category" [items]="categories()" bindLabel="name" bindValue="id" [ngModel]="filters().categoryId ?? null" (ngModelChange)="updateStructuredFilter('categoryId', $event)" placeholder="Tutte" ariaLabel="Filtra per categoria">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+          </ng-select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="monthly-payment">Pagamento</label>
+          <ng-select labelForId="monthly-payment" [items]="paymentMethods" bindLabel="label" bindValue="value" [ngModel]="filters().paymentMethod ?? null" (ngModelChange)="updateStructuredFilter('paymentMethod', $event)" placeholder="Tutti" ariaLabel="Filtra per metodo di pagamento">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="monthly-page-size">Righe</label>
+          <ng-select labelForId="monthly-page-size" [items]="pageSizes" [ngModel]="filters().pageSize" (ngModelChange)="updateStructuredFilter('pageSize', $event)" [clearable]="false" [searchable]="false" ariaLabel="Righe per pagina" />
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="monthly-labels">Etichette</label>
+          <ng-select labelForId="monthly-labels" [items]="labels()" bindLabel="name" bindValue="id" [multiple]="true" [closeOnSelect]="false" [ngModel]="filters().labelIds ?? []" (ngModelChange)="updateLabelValues($event)" placeholder="Tutte" ariaLabel="Filtra per etichette">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon || 'bi-tag'" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon || 'bi-tag'" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+          </ng-select>
+          <small class="text-body-secondary">Selezione multipla con semantica “almeno una”.</small>
+        </div>
+        <div class="col-12 d-flex justify-content-end"><button class="btn btn-outline-secondary" type="button" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Azzera filtri</button></div>
+      </div>
+      </app-filter-panel>
     </div>
 
     @if (expenses().length) {

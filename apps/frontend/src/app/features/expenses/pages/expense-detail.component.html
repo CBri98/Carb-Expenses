@@ -11,17 +11,17 @@
       <div class="d-flex flex-wrap gap-2 mb-4 detail-actions" aria-label="Azioni spesa">
         <button class="btn btn-primary" type="button" [disabled]="busy()" (click)="edit()"><i class="bi bi-pencil me-2"></i>Modifica</button>
         <button class="btn btn-outline-secondary" type="button" [disabled]="busy()" (click)="duplicate()"><i class="bi bi-copy me-2"></i>Duplica</button>
-        @if (item.status !== 'COMPLETED') { <button class="btn btn-outline-success" type="button" [disabled]="busy()" (click)="setStatus('COMPLETED')">Segna completata</button> }
-        @if (item.status !== 'PLANNED') { <button class="btn btn-outline-warning" type="button" [disabled]="busy()" (click)="setStatus('PLANNED')">Segna pianificata</button> }
-        @if (item.status !== 'CANCELLED') { <button class="btn btn-outline-secondary" type="button" [disabled]="busy()" (click)="setStatus('CANCELLED')">Annulla spesa</button> }
+        @if (item.status !== 'COMPLETED') { <button class="btn btn-outline-success" type="button" [disabled]="busy()" (click)="setStatus('COMPLETED')"><i class="bi bi-check-circle me-2" aria-hidden="true"></i>Segna completata</button> }
+        @if (item.status !== 'PLANNED') { <button class="btn btn-outline-warning" type="button" [disabled]="busy()" (click)="setStatus('PLANNED')"><i class="bi bi-clock-history me-2" aria-hidden="true"></i>Segna pianificata</button> }
+        @if (item.status !== 'CANCELLED') { <button class="btn btn-outline-secondary" type="button" [disabled]="busy()" (click)="setStatus('CANCELLED')"><i class="bi bi-x-circle me-2" aria-hidden="true"></i>Annulla spesa</button> }
         <button class="btn btn-outline-danger ms-lg-auto" type="button" [disabled]="busy()" (click)="deleteOpen.set(true)"><i class="bi bi-trash me-2"></i>Elimina</button>
       </div>
-      <nav class="nav nav-tabs mb-4" aria-label="Sezioni dettaglio spesa">
-        <button class="nav-link" type="button" [class.active]="activeTab() === 'general'" [attr.aria-selected]="activeTab() === 'general'" (click)="activeTab.set('general')">Generale</button>
-        <button class="nav-link" type="button" [class.active]="activeTab() === 'reminders'" [attr.aria-selected]="activeTab() === 'reminders'" (click)="activeTab.set('reminders')">Promemoria <span class="badge text-bg-secondary ms-1">{{ reminders().length }}</span></button>
+      <nav class="nav nav-tabs mb-4" role="tablist" aria-label="Sezioni dettaglio spesa">
+        <button id="expense-general-tab" class="nav-link" role="tab" type="button" aria-controls="expense-general-panel" [class.active]="activeTab() === 'general'" [attr.aria-selected]="activeTab() === 'general'" (click)="activeTab.set('general')">Informazioni generali</button>
+        <button id="expense-reminders-tab" class="nav-link" role="tab" type="button" aria-controls="expense-reminders-panel" [class.active]="activeTab() === 'reminders'" [attr.aria-selected]="activeTab() === 'reminders'" (click)="activeTab.set('reminders')">Promemoria <span class="badge text-bg-secondary ms-1">{{ reminders().length }}</span></button>
       </nav>
       @if (activeTab() === 'general') {
-      <div class="row g-4 detail-grid">
+      <div id="expense-general-panel" class="row g-4 detail-grid" role="tabpanel" aria-labelledby="expense-general-tab" tabindex="0">
         @if (item.recurrence; as recurrence) {
           <div class="col-12">
             <span>Origine</span>
@@ -37,7 +37,7 @@
         <div class="col-12 col-md-6"><span>Ultima modifica</span><strong>{{ item.updatedAt | italianDateTime }}</strong></div>
       </div>
       } @else {
-      <section aria-labelledby="expense-reminders-title">
+      <section id="expense-reminders-panel" role="tabpanel" aria-labelledby="expense-reminders-tab" tabindex="0">
         <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center mb-3">
           <div><h2 class="h5 mb-1" id="expense-reminders-title">Promemoria</h2><p class="text-body-secondary mb-0">Avvisi interni collegati a questa spesa.</p></div>
         </div>

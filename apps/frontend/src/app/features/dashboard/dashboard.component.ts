@@ -8,7 +8,7 @@ import { catchError, combineLatest, EMPTY, finalize, type Observable, startWith,
 import { DashboardService } from '../../core/services/dashboard.service';
 import { ExpenseService } from '../../core/services/expense.service';
 import { SettingsStore } from '../../core/services/settings.store';
-import { EuroAmountPipe } from '../../shared/components/expense-display.components';
+import { EuroAmountPipe, ItalianExtendedDatePipe } from '../../shared/components/expense-display.components';
 import type { DashboardData, DashboardPeriodQuery, RecentExpense, UpcomingExpense } from '../../shared/models/dashboard.models';
 import { changeLabel, dashboardPeriodLabel, ITALIAN_MONTHS, shiftDashboardPeriod } from '../../shared/utilities/dashboard-format';
 import { formatEuroAmount, formatItalianDate } from '../../shared/utilities/expense-format';
@@ -19,7 +19,7 @@ import { UpcomingExpensesComponent } from './upcoming-expenses.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, FormsModule, NgSelectComponent, EuroAmountPipe, DashboardChartComponent, RecentExpensesComponent, StatCardComponent, UpcomingExpensesComponent],
+  imports: [RouterLink, FormsModule, NgSelectComponent, EuroAmountPipe, ItalianExtendedDatePipe, DashboardChartComponent, RecentExpensesComponent, StatCardComponent, UpcomingExpensesComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -42,6 +42,7 @@ export class DashboardComponent {
   readonly currentYear = this.today.year;
   readonly trendYear = signal(this.currentYear);
   readonly trendMonths = signal<6 | 12>(this.settings.experience().dashboardTrendMonths);
+  readonly trendMonthOptions = [{ value: 6, label: '6 mesi' }, { value: 12, label: '12 mesi' }] as const;
   readonly data = signal<DashboardData | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -60,10 +61,20 @@ export class DashboardComponent {
   readonly historyCounts = computed(() => this.data()?.monthlyTrend.map((point) => point.expenseCount) ?? []);
   readonly hasHistory = computed(() => this.historyValues().some((value) => value > 0));
   readonly dailyDescription = computed(() => {
-    const points = this.data()?.dailyTrend.filter((point) => Number(point.total) > 0) ?? [];
-    if (!points.length) return 'Nessuna spesa completata nel periodo.';
-    const peak = points.reduce((current, point) => Number(point.total) > Number(current.total) ? point : current);
-    return `Picco il giorno ${peak.day}: ${formatEuroAmount(peak.total)} in ${peak.expenseCount} ${peak.expenseCount === 1 ? 'spesa' : 'spese'}.`;
+    return `Spese completate giorno per giorno a ${this.periodLabel().toLowerCase()}.`;
+  });
+  readonly dailyInsights = computed(() => {
+    const dashboard = this.data();
+    const points = dashboard?.dailyTrend ?? [];
+    const spendingDays = points.filter((point) => Number(point.total) > 0);
+    const peak = spendingDays.length
+      ? spendingDays.reduce((current, point) => Number(point.total) > Number(current.total) ? point : current)
+      : null;
+    return {
+      peak: peak ? `${formatItalianDate(peak.date)} — ${formatEuroAmount(peak.total)}` : 'Nessun dato',
+      average: dashboard ? formatEuroAmount(dashboard.summary.dailyAverage) : formatEuroAmount('0.00'),
+      emptyDays: points.filter((point) => Number(point.total) === 0).length,
+    };
   });
   readonly categoryDescription = computed(() => {
     const top = this.data()?.categoryDistribution[0];
@@ -76,6 +87,22 @@ export class DashboardComponent {
     if (!points.length) return 'Nessun dato storico disponibile.';
     const peak = points.reduce((current, point) => Number(point.total) > Number(current.total) ? point : current);
     return `Massimo del periodo: ${peak.label}, ${formatEuroAmount(peak.total)}.`;
+  });
+  readonly historyInsights = computed(() => {
+    const points = this.data()?.monthlyTrend.filter((point) => Number(point.total) > 0) ?? [];
+    if (!points.length) return null;
+    const highest = points.reduce((current, point) => Number(point.total) > Number(current.total) ? point : current);
+    const lowest = points.reduce((current, point) => Number(point.total) < Number(current.total) ? point : current);
+    const average = points.reduce((total, point) => total + Number(point.total), 0) / points.length;
+    const first = Number(points[0]?.total ?? 0);
+    const last = Number(points.at(-1)?.total ?? 0);
+    const change = last - first;
+    return {
+      highest: `${highest.label} — ${formatEuroAmount(highest.total)}`,
+      lowest: `${lowest.label} — ${formatEuroAmount(lowest.total)}`,
+      average: formatEuroAmount(average.toFixed(2)),
+      change: `${change > 0 ? '+' : ''}${formatEuroAmount(change.toFixed(2))}`,
+    };
   });
 
   constructor() {
@@ -140,8 +167,8 @@ export class DashboardComponent {
     this.trendYear.set(this.currentYear);
     this.refresh.next();
   }
-  selectTrendMonths(event: Event): void {
-    const months = Number((event.target as HTMLSelectElement).value);
+  selectTrendMonths(value: number): void {
+    const months = Number(value);
     if ((months !== 6 && months !== 12) || months === this.trendMonths()) return;
     this.trendMonthsManual = true;
     this.trendMonths.set(months);
@@ -212,6 +239,18 @@ export class DashboardComponent {
     void this.router.navigate(['/expenses'], { queryParams: {
       month: point.month, year: point.year, statuses: 'COMPLETED',
     } });
+  }
+
+  openDailyIndex(index: number): void {
+    this.openDailyPoint({ index, datasetIndex: 0, label: '', value: null });
+  }
+
+  openCategoryIndex(index: number): void {
+    this.openCategoryPoint({ index, datasetIndex: 0, label: '', value: null });
+  }
+
+  openHistoryIndex(index: number): void {
+    this.openHistoryPoint({ index, datasetIndex: 0, label: '', value: null });
   }
 
   private navigate(period: DashboardPeriodQuery, replaceUrl = false): Promise<boolean> {

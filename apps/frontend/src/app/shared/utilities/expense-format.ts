@@ -30,7 +30,14 @@ export function normalizeAmount(value: string): string {
 
 export function formatItalianDate(value: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  return match ? `${match[3]}/${match[2]}/${match[1]}` : value;
+  if (!match) return value;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12));
+  return new Intl.DateTimeFormat('it-IT', {
+    timeZone: 'Europe/Rome',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(date);
 }
 
 export function formatItalianExtendedDate(value: string): string {
@@ -39,7 +46,6 @@ export function formatItalianExtendedDate(value: string): string {
   const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12));
   return new Intl.DateTimeFormat('it-IT', {
     timeZone: 'Europe/Rome',
-    weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',

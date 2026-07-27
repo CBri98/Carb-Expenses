@@ -30,7 +30,7 @@ import { RecurrenceExpenseIndicatorComponent } from '../recurrences/recurrence-d
               >
                 <td class="text-nowrap">{{ expense.expenseDate | italianExpenseDate }}</td>
                 <td>
-                  <a [routerLink]="['/expenses', expense.id]" (click)="$event.stopPropagation()">{{ expense.description }}</a>
+                  <span class="recent-description">{{ expense.description }}</span>
                   @if (expense.recurrence; as recurrence) {
                     <div class="mt-1">
                       <app-recurrence-expense-indicator [recurrenceId]="recurrence.id" [recurrenceName]="recurrence.name" />
@@ -56,7 +56,7 @@ import { RecurrenceExpenseIndicatorComponent } from '../recurrences/recurrence-d
     .empty-list i { font-size:1.7rem; }
     .empty-list p { margin:.5rem 0; }
     .table { font-size:.88rem; }
-    a { font-weight:650; }
+    .recent-description { display:block; font-weight:700; }
     .recent-row { cursor:pointer; }
     .recent-row:focus-visible { position:relative; z-index:1; outline:3px solid rgb(var(--primary-rgb) / 35%); outline-offset:-3px; }
     .recent-row--planned > * { --bs-table-bg:var(--warning-soft); --bs-table-hover-bg:color-mix(in srgb, var(--warning) 24%, var(--surface)); background-color:var(--bs-table-bg); }

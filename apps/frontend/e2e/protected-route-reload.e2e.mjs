@@ -132,6 +132,45 @@ try {
   assert(responsive.every((entry) => !entry.overflow), `Overflow orizzontale rilevato: ${JSON.stringify(responsive)}`);
   await socket.command('Emulation.clearDeviceMetricsOverride');
 
+  const categoryCardsInteractive = await socket.evaluate(`document.querySelectorAll('app-counter-card [role="button"]').length >= 4`);
+  assert(categoryCardsInteractive, 'Le counter card Categorie non sono interattive');
+  await socket.evaluate(`(() => { const input = document.querySelector('#category-search'); input.value = 'Casa'; input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await waitFor(socket, "new URLSearchParams(location.search).get('search') === 'Casa'", 'query parameter ricerca categorie');
+  const disabledReorderHint = await socket.evaluate(`document.querySelector('.drag-handle')?.getAttribute('title') || ''`);
+  assert(disabledReorderHint.includes('Rimuovi ricerca'), 'Tooltip riordino disabilitato non disponibile');
+
+  await socket.command('Page.navigate', { url: `${frontendUrl}/dashboard?month=7&year=2026` });
+  await waitFor(socket, "location.pathname === '/dashboard' && document.querySelectorAll('.stat-card').length >= 6 && document.querySelectorAll('.chart-insights').length >= 2", 'dashboard rifinita');
+  const dashboardRefinement = await socket.evaluate(`({
+    categoryAlternatives: document.querySelectorAll('.category-summary__button').length,
+    dailyInsights: document.querySelectorAll('.chart-insights:first-of-type > div').length,
+    hasNumericUserDate: /\\b\\d{2}\\/\\d{2}\\/\\d{4}\\b/.test(document.querySelector('app-dashboard')?.textContent || '')
+  })`);
+  assert(dashboardRefinement.categoryAlternatives > 0, 'Legenda categorie Dashboard non interattiva');
+  assert(dashboardRefinement.dailyInsights >= 3, 'Insight sintetici Dashboard mancanti');
+  assert(!dashboardRefinement.hasNumericUserDate, 'Dashboard mostra ancora date DD/MM/YYYY');
+
+  await socket.command('Page.navigate', { url: `${frontendUrl}/expenses/new` });
+  await waitFor(socket, "location.pathname === '/expenses/new' && Boolean(document.querySelector('app-expense-form'))", 'form spesa rifinito');
+  const expenseFormSections = await socket.evaluate(`Array.from(document.querySelectorAll('app-expense-form .form-section__title')).map(item => item.textContent.trim())`);
+  assert(expenseFormSections.includes('Dati principali'), `Sezione Dati principali assente: ${expenseFormSections.join(', ')}`);
+  assert(expenseFormSections.includes('Classificazione'), `Sezione Classificazione assente: ${expenseFormSections.join(', ')}`);
+  assert(expenseFormSections.includes('Dettagli'), `Sezione Dettagli assente: ${expenseFormSections.join(', ')}`);
+
+  await socket.command('Page.navigate', { url: `${frontendUrl}/reports/monthly?month=7&year=2026` });
+  await waitFor(socket, "location.pathname === '/reports/monthly' && Boolean(document.querySelector('#monthly-search')) && Boolean(document.querySelector('app-monthly-report-page app-filter-panel'))", 'report mensile rifinito');
+  const monthlyReportRefinement = await socket.evaluate(`({
+    nativeSelects: document.querySelectorAll('app-monthly-report-page select').length,
+    filterPanels: document.querySelectorAll('app-monthly-report-page app-filter-panel').length,
+    accessibleChartLinks: document.querySelectorAll('app-monthly-report-page .report-data-link, app-monthly-report-page .category-list__button').length
+  })`);
+  assert(monthlyReportRefinement.nativeSelects === 0, 'Il Report mensile contiene ancora select native');
+  assert(monthlyReportRefinement.filterPanels > 0, 'FilterPanel Report mensile assente');
+  assert(monthlyReportRefinement.accessibleChartLinks > 0, 'Alternative interattive ai grafici del Report mensile assenti');
+
+  await socket.command('Page.navigate', { url: `${frontendUrl}/reports/compare?monthA=6&yearA=2026&monthB=7&yearB=2026` });
+  await waitFor(socket, "location.pathname === '/reports/compare' && document.querySelectorAll('app-dashboard-chart').length >= 3 && Boolean(document.querySelector('app-filter-panel'))", 'confronto mensile rifinito');
+
   await socket.command('Page.navigate', { url: `${frontendUrl}/recurrences` });
   await waitFor(socket, "location.pathname === '/recurrences' && Boolean(document.querySelector('app-recurrences-page')) && Boolean(document.querySelector('#recurrence-search'))", 'lista ricorrenze');
   await waitFor(socket, "Array.from(document.querySelectorAll('a')).some(item => /^\\/recurrences\\/[0-9a-f-]+$/i.test(item.getAttribute('href') || ''))", 'prima ricorrenza');
@@ -166,6 +205,11 @@ try {
     accentColorsReact: true,
     lightDarkSurfacesDiffer: true,
     responsiveWidths: responsive,
+    categoryFiltersPersistInUrl: true,
+    dashboardRefinement,
+    expenseFormSections,
+    monthlyReportRefinement,
+    comparisonChartsInteractive: true,
     recurrenceFlowCovered: true,
   }, null, 2));
 } catch (error) {

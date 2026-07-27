@@ -81,7 +81,7 @@
   </section>
 
   <div class="d-flex justify-content-end gap-2 mt-4">
-    <button class="btn btn-outline-secondary" type="button" (click)="cancelled.emit()" [disabled]="submitting()">Annulla</button>
-    <button class="btn btn-primary" type="submit" [disabled]="submitting() || catalogLoading()">@if (submitting()) { <span class="spinner-border spinner-border-sm me-2"></span> }Salva ricorrenza</button>
+    <button class="btn btn-outline-secondary" type="button" (click)="cancelled.emit()" [disabled]="submitting()"><i class="bi bi-x-lg me-2" aria-hidden="true"></i>Annulla</button>
+    <button class="btn btn-primary" type="submit" [disabled]="submitting() || catalogLoading()">@if (submitting()) { <span class="spinner-border spinner-border-sm me-2"></span> } @else { <i class="bi bi-check-lg me-2" aria-hidden="true"></i> }Salva ricorrenza</button>
   </div>
 </form>
