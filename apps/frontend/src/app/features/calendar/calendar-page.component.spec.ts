@@ -32,6 +32,8 @@ const planned: CalendarExpenseEvent = {
   },
   labels: [],
   paymentMethod: 'DIRECT_DEBIT',
+  generatedByRecurrence: false,
+  recurrence: null,
 };
 const completed: ExpenseDetail = {
   id: planned.id,
@@ -47,6 +49,11 @@ const completed: ExpenseDetail = {
   labels: [],
   createdAt: '2026-07-01T08:00:00.000Z',
   updatedAt: '2026-07-16T08:00:00.000Z',
+  generatedByRecurrence: false,
+  occurrenceDate: null,
+  recurrence: null,
+  nextReminderAt: null,
+  activeReminderCount: 0,
 };
 
 describe('CalendarExpenseEventComponent', () => {
@@ -91,6 +98,23 @@ describe('CalendarPageComponent', () => {
     expect(component.selectedTime()).toBe('09:00');
   });
 
+  it('carica la vista annuale con una singola richiesta e costruisce tutti i dodici mesi', async () => {
+    const context = await setupPage({}, {
+      view: 'year',
+      date: '2026-07-16',
+      status: 'PLANNED,COMPLETED',
+    });
+    const component = context.fixture.componentInstance;
+    expect(context.calendar.expenses).toHaveBeenCalledTimes(1);
+    expect(context.calendar.expenses).toHaveBeenCalledWith(expect.objectContaining({
+      start: '2026-01-01',
+      end: '2027-01-01',
+    }));
+    expect(component.yearMonths()).toHaveLength(12);
+    expect(component.yearMonths()[0]).toMatchObject({ anchor: '2026-01-01', eventCount: 0 });
+    expect(component.yearMonths()[6]).toMatchObject({ anchor: '2026-07-01', eventCount: 1 });
+  });
+
   it('aggiorna rapidamente lo stato usando ExpenseService', async () => {
     const context = await setupPage({ setStatus: vi.fn(() => of(completed)) });
     const component = context.fixture.componentInstance;
@@ -122,7 +146,11 @@ describe('CalendarPageComponent', () => {
 async function setupPage(overrides: {
   update?: ReturnType<typeof vi.fn>;
   setStatus?: ReturnType<typeof vi.fn>;
-} = {}) {
+} = {}, queryParams: Record<string, string> = {
+  view: 'month',
+  date: '2026-07-16',
+  status: 'PLANNED,COMPLETED',
+}) {
   const changeVersion = signal(0);
   const expenses = {
     changeVersion: changeVersion.asReadonly(),
@@ -142,11 +170,7 @@ async function setupPage(overrides: {
       {
         provide: ActivatedRoute,
         useValue: {
-          queryParamMap: of(convertToParamMap({
-            view: 'month',
-            date: '2026-07-16',
-            status: 'PLANNED,COMPLETED',
-          })),
+          queryParamMap: of(convertToParamMap(queryParams)),
         },
       },
       { provide: Router, useValue: router },

@@ -15,6 +15,8 @@ const item: ExpenseListItem = {
   expenseDate: '2026-07-14', expenseTime: null, merchant: null, paymentMethod: 'CASH',
   notes: null, status: 'COMPLETED', labels: [], createdAt: '', updatedAt: '',
   category: { id: 'category-1', name: 'Casa', color: '#4F46E5', icon: 'bi-house', isActive: true },
+  generatedByRecurrence: false, occurrenceDate: null, recurrence: null,
+  nextReminderAt: null, activeReminderCount: 0,
 };
 
 describe('ExpensesPageComponent', () => {
@@ -39,6 +41,47 @@ describe('ExpensesPageComponent', () => {
     expect(setup.router.navigate).toHaveBeenLastCalledWith([], expect.objectContaining({
       queryParams: expect.objectContaining({ page: 3 }),
     }));
+  });
+
+  it('non sovrappone i filtri ricordati a una query URL esplicita', async () => {
+    window.localStorage.setItem(
+      'carbexpenses.expenses.filters.v1',
+      JSON.stringify({ search: 'vecchia ricerca', status: 'PLANNED' }),
+    );
+
+    const setup = await createFixture({ status: 'COMPLETED' });
+
+    expect(setup.expenses.list).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'COMPLETED' }),
+    );
+    expect(setup.expenses.list.mock.calls.at(-1)?.[0]).not.toHaveProperty('search');
+  });
+
+  it('non ripristina i filtri memorizzati dopo il reset della query', async () => {
+    window.localStorage.setItem(
+      'carbexpenses.expenses.filters.v1',
+      JSON.stringify({ search: 'benzina', status: 'PLANNED' }),
+    );
+    const setup = await createFixture({});
+    expect(setup.expenses.list).toHaveBeenCalledWith(
+      expect.objectContaining({ search: 'benzina', status: 'PLANNED' }),
+    );
+
+    setup.queryParamMap.next(convertToParamMap({
+      page: '1',
+      pageSize: '20',
+      sortBy: 'expenseDate',
+      sortDirection: 'desc',
+    }));
+
+    const lastQuery = setup.expenses.list.mock.calls.at(-1)?.[0];
+    expect(lastQuery).not.toHaveProperty('search');
+    expect(lastQuery).not.toHaveProperty('status');
+    const remembered = JSON.parse(
+      window.localStorage.getItem('carbexpenses.expenses.filters.v1') ?? '{}',
+    ) as Record<string, unknown>;
+    expect(remembered).not.toHaveProperty('search');
+    expect(remembered).not.toHaveProperty('status');
   });
 
   it('gestisce duplicazione e cambio stato tramite il service', async () => {
@@ -82,6 +125,7 @@ async function createFixture(params: Record<string, string>) {
       void query;
       return of({ items: [item], meta: { page: 2, pageSize: 20, totalItems: 43, totalPages: 3 } });
     }),
+    summary: vi.fn(() => of({ totalResults: 43, completed: 30, planned: 10, cancelled: 3 })),
     duplicate: vi.fn(() => of(item)), setStatus: vi.fn(() => of(item)),
     remove: vi.fn(() => of(undefined)), exportCsv: vi.fn(),
   };
@@ -95,5 +139,10 @@ async function createFixture(params: Record<string, string>) {
       { provide: Router, useValue: router },
     ],
   }).compileComponents();
-  return { fixture: TestBed.createComponent(ExpensesPageComponent), expenses, router };
+  return {
+    fixture: TestBed.createComponent(ExpensesPageComponent),
+    expenses,
+    router,
+    queryParamMap,
+  };
 }

@@ -24,6 +24,61 @@ enum PaymentMethod {
   OTHER
 }
 
+enum ReminderType {
+  SAME_DAY
+  ONE_DAY_BEFORE
+  THREE_DAYS_BEFORE
+  SEVEN_DAYS_BEFORE
+  CUSTOM
+}
+
+enum NotificationType {
+  EXPENSE_REMINDER
+  EXPENSE_DUE_TODAY
+  EXPENSE_OVERDUE
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum RecurrenceStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum ThemeMode {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum AccentColor {
+  INDIGO
+  LAVENDER
+  SKY
+  MINT
+  CORAL
+  ROSE
+}
+
+enum CalendarViewPreference {
+  MONTH
+  WEEK
+  LIST
+}
+
 model User {
   id                  String                   @id @default(uuid()) @db.VarChar(36)
   email               String                   @unique @db.VarChar(191)
@@ -38,9 +93,38 @@ model User {
   categoryPreferences UserCategoryPreference[]
   labels              Label[]
   expenses            Expense[]
+  expenseReminders    ExpenseReminder[]
+  notifications       Notification[]
+  recurrenceRules     RecurrenceRule[]
   refreshTokens       RefreshToken[]
+  preference          UserPreference?
 
   @@map("users")
+}
+
+model UserPreference {
+  userId                    String                 @id @map("user_id") @db.VarChar(36)
+  themeMode                 ThemeMode              @default(SYSTEM) @map("theme_mode")
+  accentColor               AccentColor            @default(INDIGO) @map("accent_color")
+  sidebarCollapsedByDefault Boolean                @default(false) @map("sidebar_collapsed_by_default")
+  compactTables             Boolean                @default(false) @map("compact_tables")
+  defaultPageSize           Int                    @default(20) @map("default_page_size")
+  rememberExpenseFilters    Boolean                @default(true) @map("remember_expense_filters")
+  defaultExpenseStatus      ExpenseStatus          @default(COMPLETED) @map("default_expense_status")
+  defaultPaymentMethod      PaymentMethod?         @map("default_payment_method")
+  defaultCalendarView       CalendarViewPreference @default(MONTH) @map("default_calendar_view")
+  dashboardTrendMonths      Int                    @default(6) @map("dashboard_trend_months")
+  defaultReminderTime       DateTime               @default(dbgenerated("'09:00:00'")) @map("default_reminder_time") @db.Time(0)
+  defaultReminderTypes      Json?                  @map("default_reminder_types")
+  dueTodayEnabled           Boolean                @default(true) @map("due_today_enabled")
+  overdueEnabled            Boolean                @default(true) @map("overdue_enabled")
+  enabledCategoryIcons      Json?                  @map("enabled_category_icons")
+  enabledLabelIcons         Json?                  @map("enabled_label_icons")
+  createdAt                 DateTime               @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt                 DateTime               @updatedAt @map("updated_at") @db.DateTime(3)
+  user                      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
 }
 
 model RefreshToken {
@@ -58,23 +142,24 @@ model RefreshToken {
 }
 
 model Category {
-  id          String                   @id @default(uuid()) @db.VarChar(36)
-  userId      String?                  @map("user_id") @db.VarChar(36)
-  name        String                   @db.VarChar(100)
-  slug        String                   @db.VarChar(120)
-  description String?                  @db.VarChar(255)
-  icon        String                   @db.VarChar(100)
-  color       String                   @db.VarChar(7)
-  sortOrder   Int                      @default(0) @map("sort_order")
-  isDefault   Boolean                  @default(false) @map("is_default")
-  isActive    Boolean                  @default(true) @map("is_active")
-  createdAt   DateTime                 @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt   DateTime                 @updatedAt @map("updated_at") @db.DateTime(3)
-  deletedAt   DateTime?                @map("deleted_at") @db.DateTime(3)
-  user        User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  labels      Label[]
-  preferences UserCategoryPreference[]
-  expenses    Expense[]
+  id              String                   @id @default(uuid()) @db.VarChar(36)
+  userId          String?                  @map("user_id") @db.VarChar(36)
+  name            String                   @db.VarChar(100)
+  slug            String                   @db.VarChar(120)
+  description     String?                  @db.VarChar(255)
+  icon            String                   @db.VarChar(100)
+  color           String                   @db.VarChar(7)
+  sortOrder       Int                      @default(0) @map("sort_order")
+  isDefault       Boolean                  @default(false) @map("is_default")
+  isActive        Boolean                  @default(true) @map("is_active")
+  createdAt       DateTime                 @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime                 @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt       DateTime?                @map("deleted_at") @db.DateTime(3)
+  user            User?                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  labels          Label[]
+  preferences     UserCategoryPreference[]
+  expenses        Expense[]
+  recurrenceRules RecurrenceRule[]
 
   @@unique([userId, slug], map: "categories_user_slug_key")
   @@index([userId], map: "categories_user_id_idx")
@@ -97,22 +182,23 @@ model UserCategoryPreference {
 }
 
 model Label {
-  id           String         @id @default(uuid()) @db.VarChar(36)
-  userId       String         @map("user_id") @db.VarChar(36)
-  categoryId   String?        @map("category_id") @db.VarChar(36)
-  name         String         @db.VarChar(100)
-  slug         String         @db.VarChar(120)
-  description  String?        @db.VarChar(255)
-  color        String         @db.VarChar(7)
-  icon         String?        @db.VarChar(100)
-  sortOrder    Int            @default(0) @map("sort_order")
-  isActive     Boolean        @default(true) @map("is_active")
-  createdAt    DateTime       @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt    DateTime       @updatedAt @map("updated_at") @db.DateTime(3)
-  deletedAt    DateTime?      @map("deleted_at") @db.DateTime(3)
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category     Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  expenseLinks ExpenseLabel[]
+  id              String                @id @default(uuid()) @db.VarChar(36)
+  userId          String                @map("user_id") @db.VarChar(36)
+  categoryId      String?               @map("category_id") @db.VarChar(36)
+  name            String                @db.VarChar(100)
+  slug            String                @db.VarChar(120)
+  description     String?               @db.VarChar(255)
+  color           String                @db.VarChar(7)
+  icon            String?               @db.VarChar(100)
+  sortOrder       Int                   @default(0) @map("sort_order")
+  isActive        Boolean               @default(true) @map("is_active")
+  createdAt       DateTime              @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime              @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt       DateTime?             @map("deleted_at") @db.DateTime(3)
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        Category?             @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  expenseLinks    ExpenseLabel[]
+  recurrenceLinks RecurrenceRuleLabel[]
 
   @@unique([userId, slug], map: "labels_user_slug_key")
   @@index([userId, deletedAt], map: "labels_user_deleted_idx")
@@ -122,31 +208,41 @@ model Label {
 }
 
 model Expense {
-  id            String         @id @default(uuid()) @db.VarChar(36)
-  userId        String         @map("user_id") @db.VarChar(36)
-  categoryId    String         @map("category_id") @db.VarChar(36)
-  description   String         @db.VarChar(150)
-  amount        Decimal        @db.Decimal(12, 2)
-  expenseDate   DateTime       @map("expense_date") @db.Date
-  expenseTime   DateTime?      @map("expense_time") @db.Time(0)
-  merchant      String?        @db.VarChar(150)
-  paymentMethod PaymentMethod  @default(OTHER) @map("payment_method")
-  notes         String?        @db.Text
-  status        ExpenseStatus  @default(COMPLETED)
-  createdAt     DateTime       @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt     DateTime       @updatedAt @map("updated_at") @db.DateTime(3)
-  deletedAt     DateTime?      @map("deleted_at") @db.DateTime(3)
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  labels        ExpenseLabel[]
+  id                     String            @id @default(uuid()) @db.VarChar(36)
+  userId                 String            @map("user_id") @db.VarChar(36)
+  categoryId             String            @map("category_id") @db.VarChar(36)
+  description            String            @db.VarChar(150)
+  amount                 Decimal           @db.Decimal(12, 2)
+  expenseDate            DateTime          @map("expense_date") @db.Date
+  expenseTime            DateTime?         @map("expense_time") @db.Time(0)
+  merchant               String?           @db.VarChar(150)
+  paymentMethod          PaymentMethod     @default(OTHER) @map("payment_method")
+  notes                  String?           @db.Text
+  status                 ExpenseStatus     @default(COMPLETED)
+  overdueNotifiedForDate DateTime?         @map("overdue_notified_for_date") @db.Date
+  recurrenceRuleId       String?           @map("recurrence_rule_id") @db.VarChar(36)
+  occurrenceDate         DateTime?         @map("occurrence_date") @db.Date
+  generatedByRecurrence  Boolean           @default(false) @map("generated_by_recurrence")
+  createdAt              DateTime          @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt              DateTime          @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt              DateTime?         @map("deleted_at") @db.DateTime(3)
+  user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category               Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  labels                 ExpenseLabel[]
+  reminders              ExpenseReminder[]
+  notifications          Notification[]
+  recurrenceRule         RecurrenceRule?   @relation(fields: [recurrenceRuleId], references: [id], onDelete: SetNull)
 
+  @@unique([recurrenceRuleId, occurrenceDate], map: "expenses_recurrence_occurrence_key")
   @@index([userId, expenseDate], map: "expenses_user_date_idx")
   @@index([userId, status], map: "expenses_user_status_idx")
   @@index([userId, categoryId], map: "expenses_user_category_idx")
   @@index([userId, paymentMethod], map: "expenses_user_payment_idx")
   @@index([userId, status, expenseDate, deletedAt], map: "expenses_dashboard_period_idx")
   @@index([userId, createdAt, deletedAt], map: "expenses_dashboard_recent_idx")
+  @@index([status, expenseDate, overdueNotifiedForDate, deletedAt], map: "expenses_overdue_scheduler_idx")
   @@index([deletedAt], map: "expenses_deleted_at_idx")
+  @@index([recurrenceRuleId, expenseDate, status, deletedAt], map: "expenses_recurrence_date_status_idx")
   @@map("expenses")
 }
 
@@ -159,4 +255,132 @@ model ExpenseLabel {
   @@id([expenseId, labelId])
   @@index([labelId], map: "expense_labels_label_id_idx")
   @@map("expense_labels")
+}
+
+model ExpenseReminder {
+  id            String         @id @default(uuid()) @db.VarChar(36)
+  userId        String         @map("user_id") @db.VarChar(36)
+  expenseId     String         @map("expense_id") @db.VarChar(36)
+  type          ReminderType
+  offsetMinutes Int?           @map("offset_minutes")
+  scheduledAt   DateTime       @map("scheduled_at") @db.DateTime(3)
+  isActive      Boolean        @default(true) @map("is_active")
+  processedAt   DateTime?      @map("processed_at") @db.DateTime(3)
+  cancelledAt   DateTime?      @map("cancelled_at") @db.DateTime(3)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.DateTime(3)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expense       Expense        @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@unique([expenseId, type, scheduledAt], map: "expense_reminders_equivalent_key")
+  @@index([userId], map: "expense_reminders_user_id_idx")
+  @@index([expenseId], map: "expense_reminders_expense_id_idx")
+  @@index([isActive, processedAt, scheduledAt], map: "expense_reminders_scheduler_idx")
+  @@map("expense_reminders")
+}
+
+model Notification {
+  id               String             @id @default(uuid()) @db.VarChar(36)
+  userId           String             @map("user_id") @db.VarChar(36)
+  expenseId        String?            @map("expense_id") @db.VarChar(36)
+  reminderId       String?            @map("reminder_id") @db.VarChar(36)
+  type             NotificationType
+  status           NotificationStatus @default(UNREAD)
+  title            String             @db.VarChar(150)
+  message          String             @db.VarChar(500)
+  scheduledAt      DateTime           @map("scheduled_at") @db.DateTime(3)
+  deduplicationKey String             @unique(map: "notifications_deduplication_key") @map("deduplication_key") @db.VarChar(255)
+  readAt           DateTime?          @map("read_at") @db.DateTime(3)
+  archivedAt       DateTime?          @map("archived_at") @db.DateTime(3)
+  createdAt        DateTime           @default(now()) @map("created_at") @db.DateTime(3)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expense          Expense?           @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  reminder         ExpenseReminder?   @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status, createdAt], map: "notifications_user_status_created_idx")
+  @@index([userId, createdAt], map: "notifications_user_created_idx")
+  @@index([expenseId], map: "notifications_expense_id_idx")
+  @@index([reminderId], map: "notifications_reminder_id_idx")
+  @@map("notifications")
+}
+
+model RecurrenceRule {
+  id                 String                       @id @default(uuid()) @db.VarChar(36)
+  userId             String                       @map("user_id") @db.VarChar(36)
+  categoryId         String                       @map("category_id") @db.VarChar(36)
+  name               String                       @db.VarChar(150)
+  description        String                       @db.VarChar(150)
+  amount             Decimal                      @db.Decimal(12, 2)
+  merchant           String?                      @db.VarChar(150)
+  paymentMethod      PaymentMethod                @default(OTHER) @map("payment_method")
+  notes              String?                      @db.Text
+  frequency          RecurrenceFrequency
+  interval           Int                          @default(1)
+  status             RecurrenceStatus             @default(ACTIVE)
+  startDate          DateTime                     @map("start_date") @db.Date
+  endDate            DateTime?                    @map("end_date") @db.Date
+  nextOccurrenceDate DateTime?                    @map("next_occurrence_date") @db.Date
+  lastGeneratedDate  DateTime?                    @map("last_generated_date") @db.Date
+  maxOccurrences     Int?                         @map("max_occurrences")
+  generatedCount     Int                          @default(0) @map("generated_count")
+  expenseTime        DateTime?                    @map("expense_time") @db.Time(0)
+  generateDaysAhead  Int                          @default(30) @map("generate_days_ahead")
+  pausedAt           DateTime?                    @map("paused_at") @db.DateTime(3)
+  completedAt        DateTime?                    @map("completed_at") @db.DateTime(3)
+  cancelledAt        DateTime?                    @map("cancelled_at") @db.DateTime(3)
+  generationVersion  Int                          @default(0) @map("generation_version")
+  createdAt          DateTime                     @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime                     @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt          DateTime?                    @map("deleted_at") @db.DateTime(3)
+  user               User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category           Category                     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  labels             RecurrenceRuleLabel[]
+  reminderTemplates  RecurrenceReminderTemplate[]
+  exceptions         RecurrenceException[]
+  expenses           Expense[]
+
+  @@index([userId, status, deletedAt], map: "recurrence_rules_user_status_deleted_idx")
+  @@index([status, nextOccurrenceDate, deletedAt], map: "recurrence_rules_scheduler_idx")
+  @@index([userId, categoryId], map: "recurrence_rules_user_category_idx")
+  @@map("recurrence_rules")
+}
+
+model RecurrenceRuleLabel {
+  recurrenceRuleId String         @map("recurrence_rule_id") @db.VarChar(36)
+  labelId          String         @map("label_id") @db.VarChar(36)
+  recurrenceRule   RecurrenceRule @relation(fields: [recurrenceRuleId], references: [id], onDelete: Cascade)
+  label            Label          @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([recurrenceRuleId, labelId])
+  @@index([labelId], map: "recurrence_rule_labels_label_id_idx")
+  @@map("recurrence_rule_labels")
+}
+
+model RecurrenceReminderTemplate {
+  id               String         @id @default(uuid()) @db.VarChar(36)
+  recurrenceRuleId String         @map("recurrence_rule_id") @db.VarChar(36)
+  type             ReminderType
+  offsetMinutes    Int            @map("offset_minutes")
+  reminderTime     DateTime?      @map("reminder_time") @db.Time(0)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.DateTime(3)
+  recurrenceRule   RecurrenceRule @relation(fields: [recurrenceRuleId], references: [id], onDelete: Cascade)
+
+  @@unique([recurrenceRuleId, type], map: "recurrence_reminder_templates_rule_type_key")
+  @@index([recurrenceRuleId], map: "recurrence_reminder_templates_rule_id_idx")
+  @@map("recurrence_reminder_templates")
+}
+
+model RecurrenceException {
+  id               String         @id @default(uuid()) @db.VarChar(36)
+  recurrenceRuleId String         @map("recurrence_rule_id") @db.VarChar(36)
+  occurrenceDate   DateTime       @map("occurrence_date") @db.Date
+  reason           String?        @db.VarChar(255)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.DateTime(3)
+  recurrenceRule   RecurrenceRule @relation(fields: [recurrenceRuleId], references: [id], onDelete: Cascade)
+
+  @@unique([recurrenceRuleId, occurrenceDate], map: "recurrence_exceptions_rule_date_key")
+  @@index([recurrenceRuleId], map: "recurrence_exceptions_rule_id_idx")
+  @@map("recurrence_exceptions")
 }

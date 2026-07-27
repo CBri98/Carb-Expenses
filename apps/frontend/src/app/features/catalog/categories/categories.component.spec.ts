@@ -81,6 +81,7 @@ async function createFixtureWithService() {
   const service = {
     categories: categories.asReadonly(),
     load: vi.fn(() => of(categories())),
+    summary: vi.fn(() => of({ total: 1, active: 1, inactive: 0, custom: 0 })),
     create: vi.fn(() => of({ ...defaultCategory, id: 'custom', isDefault: false, isCustom: true })),
     update: vi.fn(() => of(defaultCategory)),
     setStatus: vi.fn(() => of({ ...defaultCategory, isActive: false })),

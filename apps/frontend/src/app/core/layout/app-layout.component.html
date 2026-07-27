@@ -30,6 +30,13 @@
       <a routerLink="/expenses" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="closeMobile()">
         <i class="bi bi-receipt" aria-hidden="true"></i><span>Spese</span>
       </a>
+      <a routerLink="/recurrences" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="closeMobile()">
+        <i class="bi bi-arrow-repeat" aria-hidden="true"></i><span>Spese ricorrenti</span>
+      </a>
+      <a routerLink="/notifications" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="closeMobile()">
+        <i class="bi bi-bell" aria-hidden="true"></i><span>Notifiche</span>
+        @if (notifications.unreadCount() > 0) { <span class="badge text-bg-danger ms-auto">{{ notifications.unreadCount() > 9 ? '9+' : notifications.unreadCount() }}</span> }
+      </a>
       <a
         routerLink="/settings/categories"
         routerLinkActive="active"
@@ -72,16 +79,21 @@
       >
         <i class="bi bi-bar-chart" aria-hidden="true"></i><span>Confronto mensile</span>
       </a>
-      <span class="sidebar__disabled" aria-disabled="true"
-        ><i class="bi bi-gear"></i><span>Impostazioni</span></span
+      <a
+        routerLink="/settings"
+        [class.active]="isSettingsActive()"
+        [attr.aria-current]="isSettingsActive() ? 'page' : null"
+        (click)="closeMobile()"
       >
+        <i class="bi bi-gear" aria-hidden="true"></i><span>Impostazioni</span>
+      </a>
     </nav>
 
     <button
       class="sidebar__collapse d-none d-md-flex"
       type="button"
       [attr.aria-label]="collapsed() ? 'Espandi barra laterale' : 'Comprimi barra laterale'"
-      (click)="collapsed.set(!collapsed())"
+      (click)="toggleSidebar()"
     >
       <i
         class="bi"
@@ -118,6 +130,7 @@
         </div>
       </div>
       <div class="d-flex gap-2">
+        <app-notification-bell />
         <button class="btn btn-primary" type="button" (click)="quickExpenseOpen.set(true)">
           <i class="bi bi-plus-lg me-sm-2" aria-hidden="true"></i><span class="d-none d-sm-inline">Nuova spesa</span>
           <span class="visually-hidden d-sm-none">Nuova spesa</span>
@@ -128,11 +141,17 @@
         </button>
       </div>
     </header>
-    <main class="main-content"><router-outlet /></main>
+    <main class="main-content">
+      @if (settings.loaded() || settings.error()) {
+        <router-outlet />
+      } @else {
+        <div class="card"><div class="card-body d-flex align-items-center gap-3" role="status"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>Caricamento preferenze…</div></div>
+      }
+    </main>
   </div>
 </div>
 
 <app-quick-expense-modal [open]="quickExpenseOpen()" (closed)="quickExpenseOpen.set(false)" (created)="expenseCreated($event)" />
-@if (toast()) {
-  <div class="toast-container position-fixed bottom-0 end-0 p-3"><div class="toast show text-bg-success border-0" role="status"><div class="d-flex"><div class="toast-body"><i class="bi bi-check-circle me-2"></i>{{ toast() }}</div><button class="btn-close btn-close-white m-auto me-2" type="button" aria-label="Chiudi" (click)="toast.set(null)"></button></div></div></div>
+@if (toast(); as message) {
+  <div class="toast-container position-fixed bottom-0 end-0 p-3"><div class="toast show border-0" [class.text-bg-success]="message.tone === 'success'" [class.text-bg-danger]="message.tone === 'danger'" [class.text-bg-primary]="message.tone === 'info'" role="status"><div class="d-flex"><div class="toast-body"><i class="bi bi-info-circle me-2"></i>{{ message.text }}</div><button class="btn-close btn-close-white m-auto me-2" type="button" aria-label="Chiudi" (click)="toastService.dismiss()"></button></div></div></div>
 }

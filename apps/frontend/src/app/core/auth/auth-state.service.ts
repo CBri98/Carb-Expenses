@@ -25,6 +25,12 @@ export class AuthStateService {
     this.userState.set(null);
   }
 
+  updateUser(user: Partial<AuthUser> & Pick<AuthUser, 'id'>): void {
+    const current = this.userState();
+    if (!current || current.id !== user.id) return;
+    this.userState.set({ ...current, ...user });
+  }
+
   markInitialized(): void {
     this.initializedState.set(true);
   }

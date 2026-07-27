@@ -25,6 +25,11 @@ const planned: ExpenseListItem = {
     icon: 'bi-house',
     isActive: true,
   },
+  generatedByRecurrence: false,
+  occurrenceDate: null,
+  recurrence: null,
+  nextReminderAt: null,
+  activeReminderCount: 0,
 };
 
 describe('ExpenseTableComponent', () => {
@@ -43,6 +48,19 @@ describe('ExpenseTableComponent', () => {
 
     row?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(opened).toHaveBeenCalledTimes(2);
+  });
+
+  it('espone aria-sort e icone neutre per le colonne non ordinate', async () => {
+    await TestBed.configureTestingModule({ imports: [ExpenseTableComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(ExpenseTableComponent);
+    fixture.componentRef.setInput('expenses', [planned]);
+    fixture.componentRef.setInput('sortBy', 'amount');
+    fixture.componentRef.setInput('sortDirection', 'asc');
+    fixture.detectChanges();
+    const headers = (fixture.nativeElement as HTMLElement).querySelectorAll('thead th');
+    expect(headers[0]?.getAttribute('aria-sort')).toBe('none');
+    expect(headers[2]?.getAttribute('aria-sort')).toBe('ascending');
+    expect(headers[0]?.querySelector('.bi-arrow-down-up')).not.toBeNull();
   });
 });
 

@@ -1,4 +1,8 @@
-import type { ExpenseStatus, PaymentMethod } from '@prisma/client';
+import type {
+  ExpenseStatus,
+  PaymentMethod,
+  RecurrenceStatus,
+} from '@prisma/client';
 
 export interface CalendarEventCategory {
   id: string;
@@ -26,4 +30,6 @@ export interface CalendarExpenseEvent {
   category: CalendarEventCategory;
   labels: CalendarEventLabel[];
   paymentMethod: PaymentMethod;
+  generatedByRecurrence: boolean;
+  recurrence: { id: string; name: string; status: RecurrenceStatus } | null;
 }

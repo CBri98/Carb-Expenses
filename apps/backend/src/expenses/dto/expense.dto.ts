@@ -172,6 +172,14 @@ export class ExpenseQueryDto {
   @IsUUID()
   categoryId?: string;
 
+  @ApiPropertyOptional({ description: 'UUID separati da virgola', type: String })
+  @Transform(commaSeparatedIds)
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID(undefined, { each: true })
+  categoryIds?: string[];
+
   @ApiPropertyOptional({ description: 'UUID separati da virgola; semantica ANY', type: String })
   @Transform(commaSeparatedIds)
   @IsOptional()
@@ -185,10 +193,35 @@ export class ExpenseQueryDto {
   @IsEnum(ExpenseStatus)
   status?: ExpenseStatus;
 
+  @ApiPropertyOptional({ enum: ExpenseStatus, isArray: true })
+  @Transform(commaSeparatedIds)
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsEnum(ExpenseStatus, { each: true })
+  statuses?: ExpenseStatus[];
+
   @ApiPropertyOptional({ enum: PaymentMethod })
   @IsOptional()
   @IsEnum(PaymentMethod)
   paymentMethod?: PaymentMethod;
+
+  @ApiPropertyOptional({ enum: PaymentMethod, isArray: true })
+  @Transform(commaSeparatedIds)
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsEnum(PaymentMethod, { each: true })
+  paymentMethods?: PaymentMethod[];
+
+  @ApiPropertyOptional({
+    enum: ['ALL', 'EXCLUDE', 'ONLY'],
+    default: 'ALL',
+    description: 'Include tutte, esclude oppure mostra solo le occorrenze ricorrenti',
+  })
+  @IsOptional()
+  @IsIn(['ALL', 'EXCLUDE', 'ONLY'])
+  recurrenceMode?: 'ALL' | 'EXCLUDE' | 'ONLY';
 
   @ApiPropertyOptional({ example: '10.00', type: String })
   @Transform(decimalPoint)

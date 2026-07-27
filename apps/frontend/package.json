@@ -7,11 +7,13 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test --watch=false",
+    "test:e2e:reload": "node e2e/protected-route-reload.e2e.mjs",
     "typecheck": "ngc -p tsconfig.app.json --noEmit",
     "serve:ssr:carbexpenses": "node dist/carbexpenses/server/server.mjs"
   },
   "private": true,
   "dependencies": {
+    "@angular/cdk": "^22.0.5",
     "@angular/common": "^22.0.0",
     "@angular/compiler": "^22.0.0",
     "@angular/core": "^22.0.0",
@@ -26,6 +28,7 @@
     "bootstrap-icons": "^1.13.1",
     "chart.js": "^4.5.1",
     "express": "^5.1.0",
+    "ng2-charts": "^10.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },

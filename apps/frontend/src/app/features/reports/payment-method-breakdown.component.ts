@@ -1,6 +1,6 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 
-import { DashboardChartComponent } from '../dashboard/dashboard-chart.component';
+import { DashboardChartComponent, type DashboardChartSelection } from '../dashboard/dashboard-chart.component';
 import { EuroAmountPipe, PaymentMethodBadgeComponent } from '../../shared/components/expense-display.components';
 import type { PaymentMethodReportItem } from '../../shared/models/report.models';
 
@@ -18,6 +18,7 @@ import type { PaymentMethodReportItem } from '../../shared/models/report.models'
         [counts]="counts()"
         datasetLabel="Spese completate"
         ariaLabel="Breakdown delle spese completate per metodo di pagamento"
+        (pointSelected)="selectPoint($event)"
       />
       <div class="table-responsive mt-3">
         <table class="table table-sm align-middle mb-0">
@@ -45,6 +46,12 @@ export class PaymentMethodBreakdownComponent {
   readonly labels = computed(() => this.items().map((item) => paymentLabel(item.paymentMethod)));
   readonly values = computed(() => this.items().map((item) => Number(item.total)));
   readonly counts = computed(() => this.items().map((item) => item.expenseCount));
+  readonly selected = output<PaymentMethodReportItem['paymentMethod']>();
+
+  selectPoint(selection: DashboardChartSelection): void {
+    const item = this.items()[selection.index];
+    if (item) this.selected.emit(item.paymentMethod);
+  }
 }
 
 function paymentLabel(method: PaymentMethodReportItem['paymentMethod']): string {

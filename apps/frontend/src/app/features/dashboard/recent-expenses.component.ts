@@ -4,11 +4,12 @@ import { Router, RouterLink } from '@angular/router';
 import { CategoryBadgeComponent } from '../../shared/components/catalog-display.components';
 import { EuroAmountPipe, ExpenseStatusBadgeComponent, ItalianExpenseDatePipe } from '../../shared/components/expense-display.components';
 import type { RecentExpense } from '../../shared/models/dashboard.models';
+import { RecurrenceExpenseIndicatorComponent } from '../recurrences/recurrence-display.components';
 
 @Component({
   selector: 'app-recent-expenses',
   standalone: true,
-  imports: [RouterLink, CategoryBadgeComponent, EuroAmountPipe, ExpenseStatusBadgeComponent, ItalianExpenseDatePipe],
+  imports: [RouterLink, CategoryBadgeComponent, EuroAmountPipe, ExpenseStatusBadgeComponent, ItalianExpenseDatePipe, RecurrenceExpenseIndicatorComponent],
   template: `
     @if (expenses().length === 0) {
       <div class="empty-list"><i class="bi bi-receipt" aria-hidden="true"></i><p>Nessun inserimento recente.</p></div>
@@ -28,7 +29,14 @@ import type { RecentExpense } from '../../shared/models/dashboard.models';
                 (keydown.space)="open(expense, $event)"
               >
                 <td class="text-nowrap">{{ expense.expenseDate | italianExpenseDate }}</td>
-                <td><a [routerLink]="['/expenses', expense.id]" (click)="$event.stopPropagation()">{{ expense.description }}</a></td>
+                <td>
+                  <a [routerLink]="['/expenses', expense.id]" (click)="$event.stopPropagation()">{{ expense.description }}</a>
+                  @if (expense.recurrence; as recurrence) {
+                    <div class="mt-1">
+                      <app-recurrence-expense-indicator [recurrenceId]="recurrence.id" [recurrenceName]="recurrence.name" />
+                    </div>
+                  }
+                </td>
                 <td class="text-nowrap fw-semibold">{{ expense.amount | euroAmount }}</td>
                 <td><app-category-badge [name]="expense.category.name" [color]="expense.category.color" [icon]="expense.category.icon" /></td>
                 <td><app-expense-status-badge [status]="expense.status" /></td>
@@ -50,8 +58,8 @@ import type { RecentExpense } from '../../shared/models/dashboard.models';
     .table { font-size:.88rem; }
     a { font-weight:650; }
     .recent-row { cursor:pointer; }
-    .recent-row:focus-visible { position:relative; z-index:1; outline:3px solid rgb(124 131 214 / 35%); outline-offset:-3px; }
-    .recent-row--planned > * { --bs-table-bg:#fff8e8; --bs-table-hover-bg:#fff1d1; background-color:var(--bs-table-bg); }
+    .recent-row:focus-visible { position:relative; z-index:1; outline:3px solid rgb(var(--primary-rgb) / 35%); outline-offset:-3px; }
+    .recent-row--planned > * { --bs-table-bg:var(--warning-soft); --bs-table-hover-bg:color-mix(in srgb, var(--warning) 24%, var(--surface)); background-color:var(--bs-table-bg); }
     .recent-row--planned:hover > * { background-color:var(--bs-table-hover-bg); }
   `],
 })

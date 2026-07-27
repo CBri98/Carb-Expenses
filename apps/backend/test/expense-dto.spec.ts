@@ -56,4 +56,25 @@ describe('DTO spese', () => {
     expect(dto).toMatchObject({ page: 2, pageSize: 50, month: 7, year: 2026 });
     expect(dto.labelIds).toHaveLength(2);
   });
+
+  it('trasforma e valida i filtri multipli e la modalità ricorrenza', async () => {
+    const dto = plainToInstance(ExpenseQueryDto, {
+      categoryIds: '10000000-0000-4000-8000-000000000001,10000000-0000-4000-8000-000000000002',
+      statuses: 'COMPLETED,PLANNED',
+      paymentMethods: 'CASH,DEBIT_CARD',
+      recurrenceMode: 'EXCLUDE',
+    });
+    await expect(validate(dto)).resolves.toHaveLength(0);
+    expect(dto.categoryIds).toHaveLength(2);
+    expect(dto.statuses).toEqual([ExpenseStatus.COMPLETED, ExpenseStatus.PLANNED]);
+    expect(dto.paymentMethods).toEqual([PaymentMethod.CASH, PaymentMethod.DEBIT_CARD]);
+    expect(dto.recurrenceMode).toBe('EXCLUDE');
+
+    const errors = await validate(plainToInstance(ExpenseQueryDto, {
+      statuses: 'COMPLETED,INVALID', recurrenceMode: 'SOMETIMES',
+    }));
+    expect(errors.map((error) => error.property)).toEqual(expect.arrayContaining([
+      'statuses', 'recurrenceMode',
+    ]));
+  });
 });

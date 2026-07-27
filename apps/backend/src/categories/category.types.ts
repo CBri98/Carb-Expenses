@@ -18,3 +18,10 @@ export interface CategoryResponse {
 export type CategoryWithPreferences = Category & {
   preferences: UserCategoryPreference[];
 };
+
+export interface CategorySummary {
+  total: number;
+  active: number;
+  inactive: number;
+  custom: number;
+}

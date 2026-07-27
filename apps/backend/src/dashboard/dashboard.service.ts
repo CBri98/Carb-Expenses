@@ -13,6 +13,7 @@ import type { MonthlyTrendQueryDto } from './dto/monthly-trend-query.dto';
 const expenseInclude = {
   category: true,
   labels: { include: { label: true } },
+  recurrenceRule: { select: { id: true, name: true, status: true } },
 } satisfies Prisma.ExpenseInclude;
 
 @Injectable()

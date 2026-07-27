@@ -15,7 +15,14 @@
 
   @if (notice(); as currentNotice) { <div class="alert" [class.alert-success]="currentNotice.type === 'success'" [class.alert-danger]="currentNotice.type === 'danger'" role="status"><div class="d-flex justify-content-between gap-3"><span>{{ currentNotice.text }}</span><button class="btn-close" type="button" aria-label="Chiudi" (click)="notice.set(null)"></button></div></div> }
 
-  <app-expense-filters [query]="query()" [categories]="categories()" [labels]="labels()" (queryChange)="applyFilters($event)" />
+  <div class="row g-3 mb-3" aria-label="Riepilogo spese filtrate">
+    <div class="col-6 col-xl-3"><app-counter-card label="Totale risultati" [value]="summary().totalResults" icon="bi-receipt" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Completate" [value]="summary().completed" icon="bi-check-circle" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Pianificate" [value]="summary().planned" icon="bi-clock-history" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Annullate" [value]="summary().cancelled" icon="bi-x-circle" /></div>
+  </div>
+
+  <app-expense-filters [query]="query()" [categories]="categories()" [labels]="labels()" [defaultPageSize]="defaultPageSize()" (queryChange)="applyFilters($event)" />
 
   <article class="card expense-list-card">
     @if (loading()) { <app-loading-skeleton /> }

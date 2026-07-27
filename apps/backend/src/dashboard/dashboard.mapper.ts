@@ -18,6 +18,8 @@ export class DashboardMapper {
       expenseDate: isoDate(expense.expenseDate),
       daysUntilDue: daysBetween(today, expense.expenseDate),
       category: { id: expense.category.id, name: expense.category.name, color: expense.category.color, icon: expense.category.icon },
+      generatedByRecurrence: expense.generatedByRecurrence,
+      recurrence: expense.recurrenceRule,
     };
   }
   static upcomingExpense(expense: DashboardExpenseWithRelations, today: Date): UpcomingExpense {

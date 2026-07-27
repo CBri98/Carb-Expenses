@@ -20,6 +20,8 @@ const label: Label = {
   sortOrder: 1, isDefault: false, isActive: true,
   createdAt: '2026-07-14T08:00:00.000Z', updatedAt: '2026-07-14T08:00:00.000Z',
 };
+const otherCategory: Category = { ...category, id: '10000000-0000-4000-8000-000000000002', name: 'Auto', slug: 'auto' };
+const scopedLabel: Label = { ...label, id: '20000000-0000-4000-8000-000000000002', name: 'Casa nuova', slug: 'casa-nuova', categoryId: category.id };
 
 describe('ExpenseFormComponent', () => {
   it('propone carta di debito come metodo di pagamento iniziale', async () => {
@@ -50,7 +52,10 @@ describe('ExpenseFormComponent', () => {
     component.toggleLabel(label.id, event);
     component.submit();
     expect(submitted).toHaveBeenCalledWith(expect.objectContaining({
-      amount: '12.50', categoryId: category.id, labelIds: [label.id],
+      expense: expect.objectContaining({
+        amount: '12.50', categoryId: category.id, labelIds: [label.id],
+      }),
+      reminders: [],
     }));
   });
 
@@ -82,11 +87,24 @@ describe('ExpenseFormComponent', () => {
       status: 'PLANNED',
     });
   });
+
+  it('mantiene le etichette globali e rimuove quelle incompatibili al cambio categoria', async () => {
+    const fixture = await createFixture([label, scopedLabel]);
+    const component = fixture.componentInstance;
+    component.form.controls.categoryId.setValue(category.id);
+    component.form.controls.labelIds.setValue([label.id, scopedLabel.id]);
+
+    component.form.controls.categoryId.setValue(otherCategory.id);
+
+    expect(component.form.controls.labelIds.value).toEqual([label.id]);
+    expect(component.labelCompatibilityNotice()).toContain('rimossa un’etichetta');
+    expect(component.availableLabels().map((item) => item.id)).toEqual([label.id]);
+  });
 });
 
-async function createFixture() {
-  const categories = signal([category]);
-  const labels = signal([label]);
+async function createFixture(items: Label[] = [label]) {
+  const categories = signal([category, otherCategory]);
+  const labels = signal(items);
   await TestBed.configureTestingModule({
     imports: [ExpenseFormComponent],
     providers: [

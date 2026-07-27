@@ -48,19 +48,24 @@ describe('DashboardComponent', () => {
 
     const fixture = TestBed.createComponent(DashboardComponent);
     fixture.detectChanges();
-    const selects = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLSelectElement>('select');
+    const element = fixture.nativeElement as HTMLElement;
+    const periodYear = element.querySelector<HTMLInputElement>('.dashboard-year-input');
+    const trendMonths = element.querySelector<HTMLSelectElement>('#dashboard-trend-months');
+    const trendYear = element.querySelector<HTMLSelectElement>('.history-year-controls label select');
     const currentYear = Number(new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Europe/Rome',
       year: 'numeric',
     }).format(new Date()));
 
-    expect(selects[1]?.value).toBe('2026');
-    expect(selects[2]?.value).toBe(String(currentYear));
-    expect(load).toHaveBeenCalledWith({ month: 7, year: 2026 }, currentYear);
+    expect(periodYear?.value).toBe('2026');
+    expect(trendMonths?.value).toBe('6');
+    expect(trendYear?.value).toBe(String(currentYear));
+    expect(load).toHaveBeenCalledWith({ month: 7, year: 2026 }, currentYear, 6);
 
-    selects[2].value = '2024';
-    selects[2].dispatchEvent(new Event('change', { bubbles: true }));
+    if (!trendYear) throw new Error('Selettore anno andamento non trovato');
+    trendYear.value = '2024';
+    trendYear.dispatchEvent(new Event('change', { bubbles: true }));
     fixture.detectChanges();
-    expect(load).toHaveBeenLastCalledWith({ month: 7, year: 2026 }, 2024);
+    expect(load).toHaveBeenLastCalledWith({ month: 7, year: 2026 }, 2024, 6);
   });
 });

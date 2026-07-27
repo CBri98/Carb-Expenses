@@ -87,3 +87,17 @@ export interface ReorderItem {
   id: string;
   sortOrder: number;
 }
+
+export interface CategorySummary {
+  total: number;
+  active: number;
+  inactive: number;
+  custom: number;
+}
+
+export interface LabelSummary {
+  total: number;
+  withCategory: number;
+  withoutCategory: number;
+  unused: number;
+}

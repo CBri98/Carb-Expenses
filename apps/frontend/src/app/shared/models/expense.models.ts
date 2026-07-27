@@ -1,4 +1,5 @@
 export type ExpenseStatus = 'COMPLETED' | 'PLANNED' | 'CANCELLED';
+export type ExpenseRecurrenceMode = 'ALL' | 'EXCLUDE' | 'ONLY';
 export type PaymentMethod =
   | 'CASH'
   | 'DEBIT_CARD'
@@ -60,6 +61,15 @@ interface ExpenseBase {
   paymentMethod: PaymentMethod;
   notes: string | null;
   status: ExpenseStatus;
+  generatedByRecurrence: boolean;
+  occurrenceDate: string | null;
+  recurrence: {
+    id: string;
+    name: string;
+    status: import('./recurrence.models').RecurrenceStatus;
+  } | null;
+  nextReminderAt: string | null;
+  activeReminderCount: number;
   category: ExpenseCategory;
   labels: ExpenseLabel[];
   createdAt: string;
@@ -109,9 +119,13 @@ export interface ExpenseQueryParams {
   month?: number;
   year?: number;
   categoryId?: string;
+  categoryIds?: string[];
   labelIds?: string[];
   status?: ExpenseStatus;
+  statuses?: ExpenseStatus[];
   paymentMethod?: PaymentMethod;
+  paymentMethods?: PaymentMethod[];
+  recurrenceMode?: ExpenseRecurrenceMode;
   minAmount?: string;
   maxAmount?: string;
   includeFuture?: boolean;
@@ -125,10 +139,11 @@ export interface ExpenseFilters {
   dateTo: string;
   month: string;
   year: string;
-  categoryId: string;
+  categoryIds: string[];
   labelIds: string[];
-  status: string;
-  paymentMethod: string;
+  statuses: ExpenseStatus[];
+  paymentMethods: PaymentMethod[];
+  recurrenceMode: ExpenseRecurrenceMode;
   minAmount: string;
   maxAmount: string;
   pageSize: string;
@@ -149,6 +164,11 @@ export interface ExpenseFormValue {
   status: ExpenseStatus;
 }
 
+export interface ExpenseFormSubmission {
+  expense: CreateExpenseRequest;
+  reminders: import('./notification.models').ReminderDraft[];
+}
+
 export interface PaginationMeta {
   page: number;
   pageSize: number;
@@ -164,4 +184,11 @@ export interface PaginatedExpenseResponse {
 export interface ExpenseExportResult {
   blob: Blob;
   filename: string;
+}
+
+export interface ExpenseListSummary {
+  totalResults: number;
+  completed: number;
+  planned: number;
+  cancelled: number;
 }

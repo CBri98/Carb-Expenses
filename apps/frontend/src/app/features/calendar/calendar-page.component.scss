@@ -1,10 +1,10 @@
 :host { display: block; }
 
 .calendar-page {
-  --calendar-border: #e5e9f2;
-  --calendar-muted: #6d778d;
-  --calendar-pastel-blue: #eef3fb;
-  --calendar-pastel-lilac: #f4f0fa;
+  --calendar-border: var(--border-color);
+  --calendar-muted: var(--text-secondary);
+  --calendar-pastel-blue: var(--primary-soft);
+  --calendar-pastel-lilac: var(--surface-soft);
   display: grid;
   gap: 1rem;
 }
@@ -15,7 +15,6 @@
 }
 
 .calendar-toolbar,
-.calendar-filters,
 .calendar-month,
 .calendar-week,
 .calendar-list__day {
@@ -35,11 +34,6 @@
   text-align: center;
 }
 
-.calendar-filters {
-  overflow: visible;
-}
-
-.calendar-filters > summary,
 .overdue-panel > summary {
   display: flex;
   align-items: center;
@@ -52,15 +46,13 @@
   cursor: pointer;
   border: 0;
   border-radius: 1rem;
-  background: #fff;
+  background: var(--surface);
 }
 
-.calendar-filters > summary::-webkit-details-marker,
 .overdue-panel > summary::-webkit-details-marker {
   display: none;
 }
 
-.calendar-filters > summary::after,
 .overdue-panel > summary::after {
   content: '\f282';
   margin-left: auto;
@@ -68,17 +60,10 @@
   transition: transform .2s ease;
 }
 
-.calendar-filters[open] > summary::after,
 .overdue-panel[open] > summary::after {
   transform: rotate(180deg);
 }
 
-.calendar-filters[open] > summary {
-  border-bottom: 1px solid var(--calendar-border);
-  border-radius: 1rem 1rem 0 0;
-}
-
-.calendar-filters__hint,
 .overdue-panel__hint {
   color: var(--calendar-muted);
   font-size: .78rem;
@@ -87,14 +72,14 @@
 
 .overdue-panel {
   overflow: hidden;
-  border: 1px solid #f2cccc !important;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border-color)) !important;
   border-radius: 1rem;
-  background: #fff8f7;
+  background: var(--danger-soft);
 }
 
 .overdue-panel > summary {
-  background: #fff2f0;
-  color: #7e2f2f;
+  background: var(--danger-soft);
+  color: var(--bs-danger);
 }
 
 .overdue-panel__list {
@@ -108,9 +93,9 @@
   justify-content: space-between;
   gap: 1rem;
   padding: .7rem;
-  border: 1px solid #f0d9d5;
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border-color));
   border-radius: .65rem;
-  background: #fff;
+  background: var(--surface);
 }
 
 .overdue-panel__item > div:first-child {
@@ -128,16 +113,124 @@
   gap: .6rem;
   align-items: center;
   padding: .75rem 1rem;
-  color: #50617c;
-  border: 1px dashed #b9c8df;
+  color: var(--text-secondary);
+  border: 1px dashed var(--primary-border);
   border-radius: .8rem;
   background: var(--calendar-pastel-blue);
+}
+
+.calendar-search .card-body {
+  display: grid;
+  grid-template-columns: minmax(10rem, 34rem);
+}
+
+.calendar-year {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.calendar-year__month {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--surface);
+}
+
+.calendar-year__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .75rem .85rem;
+  border-bottom: 1px solid var(--calendar-border);
+  background: var(--surface-soft);
+}
+
+.calendar-year__header button {
+  padding: 0;
+  color: var(--text-primary);
+  border: 0;
+  background: transparent;
+  font-weight: 750;
+  text-align: left;
+}
+
+.calendar-year__header button:hover {
+  color: var(--primary-strong);
+  text-decoration: underline;
+}
+
+.calendar-year__weekdays,
+.calendar-year__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-year__weekdays {
+  padding: .4rem .45rem 0;
+  color: var(--calendar-muted);
+  font-size: .67rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.calendar-year__grid {
+  gap: .16rem;
+  padding: .35rem .45rem .6rem;
+}
+
+.calendar-year__day {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 2.15rem;
+  place-items: center;
+  padding: .18rem .08rem .42rem;
+  color: var(--text-primary);
+  font-size: .75rem;
+  border: 0;
+  border-radius: .45rem;
+  background: transparent;
+}
+
+button.calendar-year__day:hover,
+button.calendar-year__day:focus-visible {
+  background: var(--primary-soft);
+}
+
+.calendar-year__day--today {
+  color: #fff;
+  background: var(--primary-strong);
+  font-weight: 800;
+}
+
+button.calendar-year__day--today:hover,
+button.calendar-year__day--today:focus-visible {
+  background: var(--primary-strong);
+}
+
+.calendar-year__day--with-events:not(.calendar-year__day--today) {
+  font-weight: 700;
+}
+
+.calendar-year__dots {
+  position: absolute;
+  bottom: .2rem;
+  display: flex;
+  gap: .1rem;
+}
+
+.calendar-year__dots i {
+  width: .22rem;
+  height: .22rem;
+  border-radius: 50%;
 }
 
 .calendar-month {
   min-width: 0;
   overflow-x: auto;
-  background: #fff;
+  background: var(--surface);
 }
 
 .calendar-month__weekdays,
@@ -149,12 +242,12 @@
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   border-bottom: 1px solid var(--calendar-border);
-  background: #f8f9fc;
+  background: var(--surface-soft);
 }
 
 .calendar-month__weekdays span {
   padding: .65rem;
-  color: #536078;
+  color: var(--text-secondary);
   font-size: .78rem;
   font-weight: 800;
   text-align: center;
@@ -172,7 +265,7 @@
   padding: .5rem;
   border-right: 1px solid var(--calendar-border);
   border-bottom: 1px solid var(--calendar-border);
-  background: #fff;
+  background: var(--surface);
   transition: background .15s ease, box-shadow .15s ease;
 }
 
@@ -181,20 +274,20 @@
 }
 
 .calendar-day--outside {
-  background: #fafbfc;
+  background: var(--surface-soft);
 }
 
 .calendar-day--outside .calendar-day__date {
-  color: #8d96a8;
+  color: var(--text-secondary);
 }
 
 .calendar-day--today {
-  box-shadow: inset 0 0 0 2px #6c83b7;
-  background: #f8faff;
+  box-shadow: inset 0 0 0 2px var(--primary);
+  background: var(--primary-soft);
 }
 
 .calendar-day:has(.calendar-event[draggable='true']):hover {
-  background: #fbfcff;
+  background: var(--surface-soft);
 }
 
 .calendar-day__date {
@@ -204,7 +297,7 @@
   justify-content: space-between;
   margin-bottom: .4rem;
   padding: .1rem;
-  color: #3c465a;
+  color: var(--text-primary);
   border: 0;
   background: transparent;
   font-weight: 700;
@@ -228,7 +321,7 @@
   place-items: center;
   color: #fff;
   border-radius: 50%;
-  background: #526da8;
+  background: var(--primary-strong);
 }
 
 .calendar-day__events {
@@ -240,7 +333,7 @@
   width: 100%;
   margin-top: .4rem;
   padding: .25rem;
-  color: #526da8;
+  color: var(--primary-strong);
   font-size: .74rem;
   text-align: left;
   border: 0;
@@ -251,7 +344,7 @@
   display: grid;
   gap: 0;
   overflow: hidden;
-  background: #fff;
+  background: var(--surface);
 }
 
 .calendar-week__day {
@@ -266,8 +359,8 @@
 }
 
 .calendar-week__day--today {
-  background: #f7f9fe;
-  box-shadow: inset .25rem 0 #6c83b7;
+  background: var(--primary-soft);
+  box-shadow: inset .25rem 0 var(--primary);
 }
 
 .calendar-week__header {
@@ -277,7 +370,7 @@
   gap: .75rem;
   padding: 1rem;
   border-right: 1px solid var(--calendar-border);
-  background: color-mix(in srgb, var(--calendar-pastel-lilac) 70%, #fff);
+  background: color-mix(in srgb, var(--calendar-pastel-lilac) 70%, var(--surface));
 }
 
 .calendar-week__header > div:first-child {
@@ -341,14 +434,8 @@
 
 button:focus-visible,
 summary:focus-visible {
-  outline: 3px solid rgba(65, 92, 151, .35);
+  outline: 3px solid rgb(var(--primary-rgb) / 35%);
   outline-offset: 2px;
-}
-
-@media (min-width: 1200px) {
-  .calendar-filters {
-    open: true;
-  }
 }
 
 @media (max-width: 991.98px) {
@@ -363,6 +450,10 @@ summary:focus-visible {
 
   .calendar-view-switcher {
     justify-self: end;
+  }
+
+  .calendar-year {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .calendar-week__day {
@@ -390,7 +481,6 @@ summary:focus-visible {
     padding-inline: .65rem;
   }
 
-  .calendar-filters__hint,
   .overdue-panel__hint {
     display: none;
   }
@@ -438,10 +528,13 @@ summary:focus-visible {
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .calendar-year {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .calendar-filters > summary::after,
   .overdue-panel > summary::after,
   .calendar-day__date .bi {
     transition: none;

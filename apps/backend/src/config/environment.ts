@@ -5,6 +5,9 @@ const SUPPORTED_NODE_ENVIRONMENTS = new Set([
 ]);
 const SUPPORTED_SAME_SITE_VALUES = new Set(['lax', 'strict', 'none']);
 const DURATION_PATTERN = /^\d+(ms|s|m|h|d)$/;
+const LOCAL_TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+const CRON_EVERY_MINUTES_PATTERN = /^\*\/([1-9]|[1-5]\d) \* \* \* \*$/;
+const RECURRENCE_CRON_PATTERN = /^(?:[0-5]?\d|\*\/(?:[1-9]|[1-5]\d)) \* \* \* \*$/;
 
 function stringValue(config: Record<string, unknown>, key: string): string {
   const value = config[key];
@@ -56,6 +59,54 @@ function portValue(value: unknown): number {
   return port;
 }
 
+function reminderTimeValue(value: unknown): string {
+  const time = String(value ?? '09:00');
+  if (!LOCAL_TIME_PATTERN.test(time)) {
+    throw new Error('DEFAULT_EXPENSE_REMINDER_TIME deve usare il formato HH:mm');
+  }
+  return time;
+}
+
+function schedulerCronValue(value: unknown): string {
+  const cron = String(value ?? '*/1 * * * *').trim();
+  if (!CRON_EVERY_MINUTES_PATTERN.test(cron)) {
+    throw new Error('NOTIFICATION_SCHEDULER_CRON deve indicare un intervallo da 1 a 59 minuti');
+  }
+  return cron;
+}
+
+function pollIntervalValue(value: unknown): number {
+  const interval = Number(value ?? 60_000);
+  if (!Number.isInteger(interval) || interval < 60_000 || interval > 120_000) {
+    throw new Error('NOTIFICATION_POLL_INTERVAL_MS deve essere compreso tra 60000 e 120000');
+  }
+  return interval;
+}
+
+function boundedInteger(
+  value: unknown,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+  key: string,
+): number {
+  const parsed = Number(value ?? fallback);
+  if (!Number.isInteger(parsed) || parsed < minimum || parsed > maximum) {
+    throw new Error(`${key} deve essere compreso tra ${minimum} e ${maximum}`);
+  }
+  return parsed;
+}
+
+function recurrenceCronValue(value: unknown): string {
+  const cron = String(value ?? '0 * * * *').trim();
+  if (!RECURRENCE_CRON_PATTERN.test(cron)) {
+    throw new Error(
+      'RECURRENCE_SCHEDULER_CRON deve indicare un minuto orario o un intervallo da 1 a 59 minuti',
+    );
+  }
+  return cron;
+}
+
 export function validateEnvironment(
   config: Record<string, unknown>
 ): Record<string, unknown> {
@@ -88,6 +139,21 @@ export function validateEnvironment(
     throw new Error('COOKIE_SAME_SITE=none richiede COOKIE_SECURE=true');
   }
 
+  const maximumGenerationDays = boundedInteger(
+    config['MAX_RECURRENCE_GENERATION_DAYS_AHEAD'],
+    365,
+    1,
+    3650,
+    'MAX_RECURRENCE_GENERATION_DAYS_AHEAD',
+  );
+  const defaultGenerationDays = boundedInteger(
+    config['DEFAULT_RECURRENCE_GENERATION_DAYS_AHEAD'],
+    30,
+    1,
+    maximumGenerationDays,
+    'DEFAULT_RECURRENCE_GENERATION_DAYS_AHEAD',
+  );
+
   return {
     ...config,
     NODE_ENV: nodeEnvironment,
@@ -104,6 +170,27 @@ export function validateEnvironment(
     COOKIE_SECURE: cookieSecure,
     COOKIE_SAME_SITE: sameSite,
     DEFAULT_CURRENCY: String(config['DEFAULT_CURRENCY'] ?? 'EUR'),
-    DEFAULT_TIMEZONE: String(config['DEFAULT_TIMEZONE'] ?? 'Europe/Rome')
+    DEFAULT_TIMEZONE: String(config['DEFAULT_TIMEZONE'] ?? 'Europe/Rome'),
+    DEFAULT_EXPENSE_REMINDER_TIME: reminderTimeValue(
+      config['DEFAULT_EXPENSE_REMINDER_TIME']
+    ),
+    NOTIFICATION_SCHEDULER_CRON: schedulerCronValue(
+      config['NOTIFICATION_SCHEDULER_CRON']
+    ),
+    NOTIFICATION_POLL_INTERVAL_MS: pollIntervalValue(
+      config['NOTIFICATION_POLL_INTERVAL_MS']
+    ),
+    RECURRENCE_SCHEDULER_CRON: recurrenceCronValue(
+      config['RECURRENCE_SCHEDULER_CRON'],
+    ),
+    DEFAULT_RECURRENCE_GENERATION_DAYS_AHEAD: defaultGenerationDays,
+    MAX_RECURRENCE_GENERATION_DAYS_AHEAD: maximumGenerationDays,
+    MAX_RECURRENCE_OCCURRENCES_PER_RUN: boundedInteger(
+      config['MAX_RECURRENCE_OCCURRENCES_PER_RUN'],
+      500,
+      1,
+      5000,
+      'MAX_RECURRENCE_OCCURRENCES_PER_RUN',
+    ),
   };
 }

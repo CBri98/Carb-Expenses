@@ -1,11 +1,12 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { map, Observable, tap } from 'rxjs';
+import { catchError, map, Observable, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import type { ApiEnvelope } from '../auth/auth.models';
 import type {
   Category,
   CategoryQueryParams,
+  CategorySummary,
   CreateCategoryRequest,
   ReorderItem,
   UpdateCategoryRequest,
@@ -28,6 +29,14 @@ export class CategoryService {
       );
   }
 
+  summary(query: CategoryQueryParams = {}): Observable<CategorySummary> {
+    return this.http
+      .get<ApiEnvelope<CategorySummary>>(`${environment.apiBaseUrl}/categories/summary`, {
+        params: paramsFrom(query),
+      })
+      .pipe(map((response) => response.data));
+  }
+
   create(input: CreateCategoryRequest): Observable<Category> {
     return this.request('post', '', input).pipe(tap((item) => this.upsert(item)));
   }
@@ -43,11 +52,22 @@ export class CategoryService {
   }
 
   reorder(items: ReorderItem[]): Observable<Category[]> {
+    const previous = this.cache();
+    const positions = new Map(items.map((item) => [item.id, item.sortOrder]));
+    this.cache.set(
+      previous
+        .map((item) => ({ ...item, sortOrder: positions.get(item.id) ?? item.sortOrder }))
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    );
     return this.http
       .patch<ApiEnvelope<Category[]>>(`${environment.apiBaseUrl}/categories/reorder`, { items })
       .pipe(
         map((response) => response.data),
         tap((result) => this.cache.set(result)),
+        catchError((error: unknown) => {
+          this.cache.set(previous);
+          return throwError(() => error);
+        }),
       );
   }
 

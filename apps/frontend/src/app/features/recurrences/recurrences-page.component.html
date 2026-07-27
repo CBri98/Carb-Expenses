@@ -1,0 +1,115 @@
+<div class="container-fluid px-0">
+  <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item">Gestione</li><li class="breadcrumb-item active">Spese ricorrenti</li></ol></nav>
+  <app-page-header title="Spese ricorrenti" subtitle="Gestisci abbonamenti, rate e spese periodiche">
+    <a class="btn btn-primary" routerLink="/recurrences/new"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Nuova ricorrenza</a>
+  </app-page-header>
+
+  @if (notice()) { <div class="alert alert-success" role="status">{{ notice() }}</div> }
+  @if (error()) { <div class="alert alert-danger d-flex justify-content-between" role="alert"><span>{{ error() }}</span><button class="btn btn-sm btn-outline-danger" type="button" (click)="load(query())"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Riprova</button></div> }
+
+  @if (summary(); as data) {
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="small text-body-secondary">Attive</span><strong class="d-block fs-4">{{ data.activeCount }}</strong></div></div></div>
+      <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="small text-body-secondary">In pausa</span><strong class="d-block fs-4">{{ data.pausedCount }}</strong></div></div></div>
+      <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="small text-body-secondary">Occorrenze entro 30 giorni</span><strong class="d-block fs-4">{{ data.upcomingOccurrences }}</strong></div></div></div>
+      <div class="col-6 col-xl-3"><div class="card border-0 shadow-sm h-100"><div class="card-body"><span class="small text-body-secondary">Totale pianificato</span><strong class="d-block fs-4">{{ data.upcomingTotal | euroAmount }}</strong></div></div></div>
+    </div>
+  }
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body recurrence-search">
+      <label class="form-label" for="recurrence-search">Cerca nelle ricorrenze</label>
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+        <input id="recurrence-search" class="form-control" type="search" maxlength="150" placeholder="Nome, note o esercente…" [ngModel]="searchDraft()" (ngModelChange)="updateSearch($event)">
+        @if (searchDraft()) { <button class="btn btn-outline-secondary" type="button" aria-label="Cancella ricerca" (click)="updateSearch('')"><i class="bi bi-x-lg" aria-hidden="true"></i></button> }
+      </div>
+    </div>
+  </div>
+
+  <app-filter-panel
+    titleId="recurrence-filters-title"
+    panelId="recurrence-filters-panel"
+    [expanded]="filtersExpanded()"
+    [activeCount]="activeFilterCount()"
+    [summary]="filterSummary()"
+    (expandedChange)="filtersExpanded.set($event)"
+    (resetRequested)="resetFilters()"
+  >
+    <form [formGroup]="filters">
+      <div class="filter-group">
+        <div class="filter-group__heading"><h3>Classificazione e stato</h3><p>Restringi l’elenco: ogni modifica viene applicata automaticamente.</p></div>
+        <div class="row g-3">
+          <div class="col-12 col-md-4"><label class="form-label" for="recurrence-status-filter">Stato</label><ng-select labelForId="recurrence-status-filter" [items]="statuses" bindLabel="label" bindValue="value" formControlName="status" placeholder="Tutti" ariaLabel="Filtra per stato"><ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template><ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template></ng-select></div>
+          <div class="col-12 col-md-4"><label class="form-label" for="recurrence-frequency-filter">Frequenza</label><ng-select labelForId="recurrence-frequency-filter" [items]="frequencies" bindLabel="label" bindValue="value" formControlName="frequency" placeholder="Tutte" ariaLabel="Filtra per frequenza"><ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template><ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template></ng-select></div>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="recurrence-category-filter">Categoria</label>
+            <ng-select labelForId="recurrence-category-filter" [items]="categories()" bindLabel="name" bindValue="id" formControlName="categoryId" placeholder="Tutte" ariaLabel="Filtra per categoria">
+              <ng-template ng-option-tmp let-item="item"><span class="entity-select-option"><i class="bi" [class]="item.icon" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+              <ng-template ng-label-tmp let-item="item"><span class="entity-select-option"><i class="bi" [class]="item.icon" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+            </ng-select>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex justify-content-end mt-3"><button class="btn btn-outline-secondary" type="button" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Azzera filtri</button></div>
+    </form>
+  </app-filter-panel>
+
+  @if (loading()) {
+    <div class="card border-0 shadow-sm"><div class="card-body"><app-loading-skeleton /></div></div>
+  } @else if (items().length === 0 && meta().totalItems === 0 && !searchDraft() && activeFilterCount() === 0) {
+    <app-empty-state title="Non hai ancora configurato spese ricorrenti." description="Crea una regola per pianificare automaticamente le prossime spese."><a class="btn btn-primary" routerLink="/recurrences/new"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Crea la prima ricorrenza</a></app-empty-state>
+  } @else if (items().length === 0) {
+    <app-empty-state title="Nessuna ricorrenza corrisponde ai filtri applicati." description="Modifica o azzera i criteri di ricerca."><button class="btn btn-outline-primary" type="button" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Azzera filtri</button></app-empty-state>
+  } @else {
+    <div class="card border-0 shadow-sm overflow-hidden">
+      <div class="table-responsive d-none d-md-block"><table class="table align-middle mb-0">
+        <thead><tr>
+          <th [attr.aria-sort]="ariaSort('name')"><button class="sortable-header" type="button" (click)="sort('name')">Nome <i class="bi" [class]="sortIcon('name')" [class.sort-active]="query().sortBy === 'name'" aria-hidden="true"></i></button></th>
+          <th [attr.aria-sort]="ariaSort('amount')"><button class="sortable-header" type="button" (click)="sort('amount')">Importo <i class="bi" [class]="sortIcon('amount')" [class.sort-active]="query().sortBy === 'amount'" aria-hidden="true"></i></button></th>
+          <th>Frequenza</th><th>Categoria</th>
+          <th [attr.aria-sort]="ariaSort('nextOccurrenceDate')"><button class="sortable-header" type="button" (click)="sort('nextOccurrenceDate')">Prossima <i class="bi" [class]="sortIcon('nextOccurrenceDate')" [class.sort-active]="query().sortBy === 'nextOccurrenceDate'" aria-hidden="true"></i></button></th>
+          <th>Stato</th><th>Generate</th><th class="text-end">Azioni</th>
+        </tr></thead>
+        <tbody>@for (rule of items(); track rule.id) {
+          <tr class="clickable-row" tabindex="0" (click)="openRule(rule)" (keydown.enter)="openRule(rule)">
+            <td><strong class="d-block">{{ rule.name }}</strong>@if (rule.notes) { <small class="recurrence-note text-body-secondary" [title]="rule.notes">{{ rule.notes }}</small> } @else { <small class="text-body-secondary">Nessuna nota</small> }</td>
+            <td>{{ rule.amount | euroAmount }}</td>
+            <td>{{ rule.frequency | recurrenceFrequency:rule.interval }}</td>
+            <td><i class="bi me-1" [class]="rule.category.icon" [style.color]="rule.category.color" aria-hidden="true"></i>{{ rule.category.name }}</td>
+            <td>{{ rule.nextOccurrenceDate ? (rule.nextOccurrenceDate | italianExpenseDate) : '—' }}</td>
+            <td><app-recurrence-status-badge [status]="rule.status" /></td>
+            <td>{{ rule.generatedCount }}@if (rule.maxOccurrences) { / {{ rule.maxOccurrences }} }</td>
+            <td class="text-end"><div class="d-inline-flex gap-2">
+              <a class="btn btn-sm btn-outline-primary" [routerLink]="['/recurrences', rule.id]" (click)="$event.stopPropagation()"><i class="bi bi-eye me-1" aria-hidden="true"></i>Apri</a>
+              <app-recurrence-actions-menu [rule]="rule" (edit)="edit(rule)" (pauseRequested)="pause(rule)" (resumeRequested)="resume(rule)" (cancelRequested)="openCancel(rule)" (remove)="remove(rule)" />
+            </div></td>
+          </tr>
+        }</tbody>
+      </table></div>
+      <div class="d-md-none">@for (rule of items(); track rule.id) {
+        <article class="recurrence-card clickable-row" tabindex="0" (click)="openRule(rule)" (keydown.enter)="openRule(rule)">
+          <div class="d-flex justify-content-between gap-2"><div class="min-w-0"><strong class="d-block">{{ rule.name }}</strong><small class="d-block text-body-secondary">{{ rule.frequency | recurrenceFrequency:rule.interval }}</small></div><app-recurrence-status-badge [status]="rule.status" /></div>
+          @if (rule.notes) { <p class="recurrence-note small text-body-secondary my-2" [title]="rule.notes">{{ rule.notes }}</p> } @else { <p class="small text-body-secondary my-2">Nessuna nota</p> }
+          <strong class="d-block fs-5 mb-2">{{ rule.amount | euroAmount }}</strong>
+          <p class="small mb-3"><i class="bi me-1" [class]="rule.category.icon" [style.color]="rule.category.color" aria-hidden="true"></i>{{ rule.category.name }} · Prossima: {{ rule.nextOccurrenceDate ? (rule.nextOccurrenceDate | italianExpenseDate) : '—' }}</p>
+          <div class="d-flex justify-content-end gap-2">
+            <a class="btn btn-sm btn-outline-primary" [routerLink]="['/recurrences', rule.id]" (click)="$event.stopPropagation()"><i class="bi bi-eye me-1" aria-hidden="true"></i>Apri</a>
+            <app-recurrence-actions-menu [rule]="rule" (edit)="edit(rule)" (pauseRequested)="pause(rule)" (resumeRequested)="resume(rule)" (cancelRequested)="openCancel(rule)" (remove)="remove(rule)" />
+          </div>
+        </article>
+      }</div>
+    </div>
+    <app-pagination [meta]="meta()" (pageChange)="goToPage($event)" />
+  }
+</div>
+
+@if (cancelTarget(); as rule) {
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="cancel-recurrence-title">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+      <div class="modal-header"><h2 id="cancel-recurrence-title" class="modal-title fs-5">Termina {{ rule.name }}</h2><button class="btn-close" type="button" aria-label="Chiudi" (click)="cancelTarget.set(null)"></button></div>
+      <div class="modal-body"><p>Cosa vuoi fare con le spese future già generate?</p><div class="form-check"><input id="keep-future" class="form-check-input" type="radio" name="cancelFuture" [checked]="!cancelFuture()" (change)="cancelFuture.set(false)"><label for="keep-future" class="form-check-label">Mantienile pianificate</label></div><div class="form-check mt-2"><input id="cancel-future" class="form-check-input" type="radio" name="cancelFuture" [checked]="cancelFuture()" (change)="cancelFuture.set(true)"><label for="cancel-future" class="form-check-label">Annullale</label></div></div>
+      <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" (click)="cancelTarget.set(null)"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Indietro</button><button class="btn btn-danger" type="button" (click)="confirmCancel()" [disabled]="busyId() === rule.id"><i class="bi bi-stop-circle me-2" aria-hidden="true"></i>Termina ricorrenza</button></div>
+    </div></div>
+  </div><div class="modal-backdrop show"></div>
+}

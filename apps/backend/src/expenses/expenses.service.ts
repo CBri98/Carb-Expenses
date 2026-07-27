@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { ExpenseStatus, PaymentMethod, Prisma } from '@prisma/client';
 
 import type { ApiPayload } from '../common/interceptors/api-response.interceptor';
 import { dateOnly, romeCalendarDate } from '../dashboard/dashboard.utils';
+import { NotificationRemindersService } from '../notifications/notification-reminders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateExpenseDto,
@@ -22,6 +23,7 @@ import {
 import type {
   ExpenseCsvResult,
   ExpensePaginationMeta,
+  ExpenseListSummary,
   ExpenseResponse,
   ExpenseWithRelations,
 } from './expenses.types';
@@ -29,6 +31,12 @@ import type {
 const expenseInclude = {
   category: true,
   labels: { include: { label: true } },
+  recurrenceRule: { select: { id: true, name: true, status: true } },
+  reminders: {
+    where: { isActive: true, processedAt: null, cancelledAt: null },
+    select: { scheduledAt: true },
+    orderBy: { scheduledAt: 'asc' },
+  },
 } satisfies Prisma.ExpenseInclude;
 
 const paymentLabels: Record<PaymentMethod, string> = {
@@ -50,12 +58,15 @@ const statusLabels: Record<ExpenseStatus, string> = {
 
 @Injectable()
 export class ExpensesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly reminders?: NotificationRemindersService,
+  ) {}
 
   async create(userId: string, dto: CreateExpenseDto): Promise<ExpenseResponse> {
     await this.validateCategory(userId, dto.categoryId, true);
     const labelIds = dto.labelIds ?? [];
-    await this.validateLabels(userId, labelIds, new Set(), true);
+    await this.validateLabels(userId, labelIds, new Set(), true, dto.categoryId);
 
     const expense = await this.prisma.$transaction((transaction) =>
       transaction.expense.create({
@@ -110,14 +121,54 @@ export class ExpensesService {
     return ExpenseMapper.toResponse(await this.findOwned(userId, id));
   }
 
+  async summary(
+    userId: string,
+    query: ExpenseExportQueryDto,
+  ): Promise<ExpenseListSummary> {
+    const where = this.buildWhere(userId, query);
+    const withStatus = (status: ExpenseStatus): Prisma.ExpenseWhereInput => ({
+      AND: [where, { status }],
+    });
+    const [totalResults, completed, planned, cancelled] = await this.prisma.$transaction([
+      this.prisma.expense.count({ where }),
+      this.prisma.expense.count({ where: withStatus(ExpenseStatus.COMPLETED) }),
+      this.prisma.expense.count({ where: withStatus(ExpenseStatus.PLANNED) }),
+      this.prisma.expense.count({ where: withStatus(ExpenseStatus.CANCELLED) }),
+    ]);
+    return { totalResults, completed, planned, cancelled };
+  }
+
   async update(userId: string, id: string, dto: UpdateExpenseDto): Promise<ExpenseResponse> {
     const current = await this.findOwned(userId, id);
     if (dto.categoryId !== undefined) {
       await this.validateCategory(userId, dto.categoryId, dto.categoryId !== current.categoryId);
     }
-    if (dto.labelIds !== undefined) {
+    if (dto.labelIds !== undefined || dto.categoryId !== undefined) {
       const currentLabelIds = new Set(current.labels.map(({ labelId }) => labelId));
-      await this.validateLabels(userId, dto.labelIds, currentLabelIds, false);
+      await this.validateLabels(
+        userId,
+        dto.labelIds ?? [...currentLabelIds],
+        currentLabelIds,
+        false,
+        dto.categoryId ?? current.categoryId,
+      );
+    }
+
+    const nextDate = dto.expenseDate === undefined
+      ? current.expenseDate
+      : parseExpenseDate(dto.expenseDate);
+    const parsedTime = parseExpenseTime(dto.expenseTime);
+    const nextTime = parsedTime === undefined ? current.expenseTime : parsedTime;
+    const nextStatus = dto.status ?? current.status;
+    const dateOrTimeChanged = dto.expenseDate !== undefined || dto.expenseTime !== undefined;
+    if (this.reminders && dateOrTimeChanged) {
+      await this.reminders.validateExpenseMutation(
+        userId,
+        id,
+        nextDate,
+        nextTime,
+        nextStatus,
+      );
     }
 
     const data: Prisma.ExpenseUpdateInput = {
@@ -129,6 +180,7 @@ export class ExpensesService {
       paymentMethod: dto.paymentMethod,
       notes: optionalPlainText(dto.notes),
       status: dto.status,
+      overdueNotifiedForDate: dto.expenseDate === undefined ? undefined : null,
       category: dto.categoryId ? { connect: { id: dto.categoryId } } : undefined,
       labels:
         dto.labelIds === undefined
@@ -138,22 +190,33 @@ export class ExpensesService {
               create: dto.labelIds.map((labelId) => ({ labelId })),
             },
     };
-    const expense = await this.prisma.$transaction((transaction) =>
-      transaction.expense.update({
+    const expense = await this.prisma.$transaction(async (transaction) => {
+      const updated = await transaction.expense.update({
         where: { id },
         data,
         include: expenseInclude,
-      }),
-    );
+      });
+      await this.reminders?.handleExpenseMutation(
+        transaction,
+        id,
+        updated.status,
+        dateOrTimeChanged,
+      );
+      return updated;
+    });
     return ExpenseMapper.toResponse(expense);
   }
 
   async setStatus(userId: string, id: string, status: ExpenseStatus): Promise<ExpenseResponse> {
     await this.findOwned(userId, id);
-    const expense = await this.prisma.expense.update({
-      where: { id },
-      data: { status },
-      include: expenseInclude,
+    const expense = await this.prisma.$transaction(async (transaction) => {
+      const updated = await transaction.expense.update({
+        where: { id },
+        data: { status },
+        include: expenseInclude,
+      });
+      await this.reminders?.handleExpenseMutation(transaction, id, status, false);
+      return updated;
     });
     return ExpenseMapper.toResponse(expense);
   }
@@ -189,9 +252,17 @@ export class ExpensesService {
 
   async remove(userId: string, id: string): Promise<{ deleted: true }> {
     await this.findOwned(userId, id);
-    await this.prisma.expense.update({
-      where: { id },
-      data: { deletedAt: new Date() },
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.expense.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      });
+      await this.reminders?.handleExpenseMutation(
+        transaction,
+        id,
+        ExpenseStatus.CANCELLED,
+        false,
+      );
     });
     return { deleted: true };
   }
@@ -270,15 +341,20 @@ export class ExpensesService {
     ids: string[],
     currentIds: ReadonlySet<string>,
     requireAllActive: boolean,
+    categoryId: string,
   ): Promise<void> {
     if (ids.length === 0) return;
     const labels = await this.prisma.label.findMany({
       where: { id: { in: ids }, userId, deletedAt: null },
-      select: { id: true, isActive: true },
+      select: { id: true, isActive: true, categoryId: true },
     });
     const invalid =
       labels.length !== ids.length ||
-      labels.some((label) => !label.isActive && (requireAllActive || !currentIds.has(label.id)));
+      labels.some(
+        (label) =>
+          (!label.isActive && (requireAllActive || !currentIds.has(label.id))) ||
+          (label.categoryId !== null && label.categoryId !== categoryId),
+      );
     if (invalid) throw new BadRequestException('Una o più etichette non sono valide');
   }
 
@@ -310,9 +386,17 @@ export class ExpensesService {
       deletedAt: null,
       expenseDate: Object.keys(dateFilter).length ? dateFilter : undefined,
       amount: Object.keys(amountFilter).length ? amountFilter : undefined,
-      categoryId: query.categoryId,
-      status: query.status,
-      paymentMethod: query.paymentMethod,
+      categoryId: query.categoryIds?.length ? { in: query.categoryIds } : query.categoryId,
+      status: query.statuses?.length ? { in: query.statuses } : query.status,
+      paymentMethod: query.paymentMethods?.length
+        ? { in: query.paymentMethods }
+        : query.paymentMethod,
+      recurrenceRuleId:
+        query.recurrenceMode === 'ONLY'
+          ? { not: null }
+          : query.recurrenceMode === 'EXCLUDE'
+            ? null
+            : undefined,
       labels: query.labelIds?.length ? { some: { labelId: { in: query.labelIds } } } : undefined,
       OR: query.search
         ? [

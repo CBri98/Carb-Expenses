@@ -1,8 +1,9 @@
 import { formatExpenseDate, formatExpenseTime } from './expense.utils';
-import type { ExpenseResponse, ExpenseWithRelations } from './expenses.types';
+import type { ExpenseResponse, ExpenseWithReminderSummary } from './expenses.types';
 
 export class ExpenseMapper {
-  static toResponse(expense: ExpenseWithRelations): ExpenseResponse {
+  static toResponse(expense: ExpenseWithReminderSummary): ExpenseResponse {
+    const reminders = expense.reminders ?? [];
     return {
       id: expense.id,
       description: expense.description,
@@ -13,6 +14,19 @@ export class ExpenseMapper {
       paymentMethod: expense.paymentMethod,
       notes: expense.notes,
       status: expense.status,
+      generatedByRecurrence: expense.generatedByRecurrence,
+      occurrenceDate: expense.occurrenceDate
+        ? formatExpenseDate(expense.occurrenceDate)
+        : null,
+      recurrence: expense.recurrenceRule
+        ? {
+            id: expense.recurrenceRule.id,
+            name: expense.recurrenceRule.name,
+            status: expense.recurrenceRule.status,
+          }
+        : null,
+      nextReminderAt: reminders[0]?.scheduledAt.toISOString() ?? null,
+      activeReminderCount: reminders.length,
       category: {
         id: expense.category.id,
         name: expense.category.name,

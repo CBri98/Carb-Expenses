@@ -43,6 +43,12 @@ export class LabelsController {
     return this.labels.findAll(user.id, query);
   }
 
+  @Get('summary')
+  @ApiOperation({ summary: 'Restituisce i contatori delle etichette filtrate' })
+  summary(@CurrentUser() user: PublicUser, @Query() query: LabelQueryDto) {
+    return this.labels.summary(user.id, query);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Mostra il dettaglio di un’etichetta' })
   findOne(@CurrentUser() user: PublicUser, @Param('id', new ParseUUIDPipe()) id: string) {

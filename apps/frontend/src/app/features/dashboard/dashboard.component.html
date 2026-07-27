@@ -9,12 +9,8 @@
     </div>
     <div class="period-controls" aria-label="Selezione periodo dashboard">
       <button class="btn btn-outline-secondary" type="button" (click)="previousMonth()" aria-label="Mese precedente"><i class="bi bi-chevron-left"></i></button>
-      <label><span class="visually-hidden">Mese</span><select class="form-select" [value]="selected().month" (change)="selectMonth($event)">
-        @for (month of months; track $index) { <option [value]="$index + 1" [selected]="selected().month === $index + 1">{{ month }}</option> }
-      </select></label>
-      <label><span class="visually-hidden">Anno</span><select class="form-select" [value]="selected().year" (change)="selectYear($event)">
-        @for (year of years; track year) { <option [value]="year" [selected]="selected().year === year">{{ year }}</option> }
-      </select></label>
+      <label class="visually-hidden" for="dashboard-month">Mese</label><ng-select class="dashboard-month-select" labelForId="dashboard-month" [items]="monthOptions" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" [ngModel]="selected().month" (ngModelChange)="selectMonth($event)" ariaLabel="Mese dashboard" />
+      <label class="visually-hidden" for="dashboard-year">Anno</label><input id="dashboard-year" class="form-control dashboard-year-input" type="number" min="2000" max="2100" step="1" [value]="selected().year" (change)="selectYear($event)">
       <button class="btn btn-outline-primary text-nowrap" type="button" (click)="currentMonth()">Mese corrente</button>
       <button class="btn btn-outline-secondary" type="button" (click)="nextMonth()" aria-label="Mese successivo"><i class="bi bi-chevron-right"></i></button>
     </div>
@@ -39,9 +35,9 @@
       <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Totale speso" [value]="euro(dashboard.summary.totalSpent)" icon="bi-wallet2" [detail]="dashboard.summary.expenseCount + ' spese completate'" /></div>
       <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Variazione mensile" [value]="euro(dashboard.summary.absoluteChange)" icon="bi-arrow-left-right" [detail]="variationText()" /></div>
       <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Media giornaliera" [value]="euro(dashboard.summary.dailyAverage)" icon="bi-calendar-day" [detail]="dashboard.summary.period.isCurrentMonth ? 'Sui giorni trascorsi' : 'Sui giorni del mese'" /></div>
-      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Categoria principale" [value]="dashboard.summary.topCategory?.name ?? 'Nessun dato'" icon="bi-pie-chart" [detail]="dashboard.summary.topCategory ? euro(dashboard.summary.topCategory.total) + ' · ' + dashboard.summary.topCategory.percentage + '%' : ''" /></div>
-      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Spese future" [value]="euro(dashboard.summary.plannedTotal)" icon="bi-clock-history" detail="Pianificate da oggi in avanti" /></div>
-      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Prossima spesa" [value]="dashboard.summary.nextPlannedExpense?.description ?? 'Nessuna'" icon="bi-calendar2-event" [detail]="dashboard.summary.nextPlannedExpense ? euro(dashboard.summary.nextPlannedExpense.amount) + ' · ' + dashboard.summary.nextPlannedExpense.expenseDate : 'Nessuna spesa pianificata'" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Categoria principale" [value]="dashboard.summary.topCategory?.name ?? 'Nessun dato'" icon="bi-pie-chart" [detail]="dashboard.summary.topCategory ? euro(dashboard.summary.topCategory.total) + ' · ' + dashboard.summary.topCategory.percentage + '%' : ''" [interactive]="dashboard.summary.topCategory !== null" (activated)="openTopCategory()" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Spese future" [value]="euro(dashboard.summary.plannedTotal)" icon="bi-clock-history" detail="Pianificate da oggi in avanti" [interactive]="true" (activated)="openFutureExpenses()" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Prossima spesa" [value]="dashboard.summary.nextPlannedExpense?.description ?? 'Nessuna'" icon="bi-calendar2-event" [detail]="nextExpenseDetail(dashboard.summary.nextPlannedExpense)" [interactive]="dashboard.summary.nextPlannedExpense !== null" (activated)="openNextExpense()" /></div>
     </div>
 
     @if (dashboard.summary.expenseCount === 0) {
@@ -56,18 +52,18 @@
     <div class="row g-4 mb-4">
       <div class="col-12 col-xl-7">
         <article class="dashboard-card h-100" aria-labelledby="daily-title">
-          <div class="card-heading"><div><h2 id="daily-title" class="h5">Andamento giornaliero</h2><p>Spese completate giorno per giorno nel periodo.</p></div></div>
+          <div class="card-heading"><div><h2 id="daily-title" class="h5">Andamento giornaliero</h2><p>{{ dailyDescription() }}</p></div></div>
           @if (dashboard.summary.expenseCount > 0) {
-            <app-dashboard-chart type="line" [labels]="dailyLabels()" [values]="dailyValues()" [counts]="dailyCounts()" datasetLabel="Totale giornaliero" [ariaLabel]="'Andamento giornaliero delle spese di ' + periodLabel()" />
+            <app-dashboard-chart type="line" [labels]="dailyLabels()" [values]="dailyValues()" [counts]="dailyCounts()" datasetLabel="Totale giornaliero" [ariaLabel]="'Andamento giornaliero delle spese di ' + periodLabel()" (pointSelected)="openDailyPoint($event)" />
             <details><summary>Riepilogo testuale</summary><ul class="accessible-list">@for (point of dashboard.dailyTrend; track point.date) { @if (+point.total > 0) { <li>Giorno {{ point.day }}: {{ point.total | euroAmount }}, {{ point.expenseCount }} spese</li> } }</ul></details>
           } @else { <div class="chart-empty">Nessun dato da rappresentare per questo mese.</div> }
         </article>
       </div>
       <div class="col-12 col-xl-5">
         <article class="dashboard-card h-100" aria-labelledby="category-title">
-          <div class="card-heading"><div><h2 id="category-title" class="h5">Spese per categoria</h2><p>Distribuzione delle sole spese completate.</p></div></div>
+          <div class="card-heading"><div><h2 id="category-title" class="h5">Spese per categoria</h2><p>{{ categoryDescription() }}</p></div></div>
           @if (dashboard.categoryDistribution.length > 0) {
-            <app-dashboard-chart type="doughnut" [labels]="categoryLabels()" [values]="categoryValues()" [counts]="categoryCounts()" [colors]="categoryColors()" datasetLabel="Categorie" [ariaLabel]="'Distribuzione delle spese per categoria di ' + periodLabel()" />
+            <app-dashboard-chart type="doughnut" [labels]="categoryLabels()" [values]="categoryValues()" [counts]="categoryCounts()" [colors]="categoryColors()" datasetLabel="Categorie" [ariaLabel]="'Distribuzione delle spese per categoria di ' + periodLabel()" (pointSelected)="openCategoryPoint($event)" />
             <ul class="category-summary">@for (item of dashboard.categoryDistribution; track item.categoryId) { <li><span class="color-dot" [style.background]="item.color"></span><span>{{ item.name }}</span><strong>{{ item.total | euroAmount }}</strong><span>{{ item.percentage }}%</span></li> }</ul>
           } @else { <div class="chart-empty">Nessuna categoria con spese completate.</div> }
         </article>
@@ -75,8 +71,8 @@
     </div>
 
     <article class="dashboard-card mb-4" aria-labelledby="history-title">
-      <div class="card-heading flex-wrap gap-3">
-        <div><h2 id="history-title" class="h5">Andamento degli ultimi mesi</h2><p>Totali da gennaio a dicembre {{ trendYear() }}.</p></div>
+      <div class="card-heading history-card-heading">
+        <div><h2 id="history-title" class="h5">Andamento degli ultimi mesi</h2><p>{{ historyDescription() }}</p></div>
         <div class="history-year-controls" aria-label="Anno andamento mensile">
           <button
             class="btn btn-sm"
@@ -85,6 +81,8 @@
             [class.btn-outline-primary]="trendYear() !== currentYear"
             (click)="selectCurrentTrendYear()"
           >Anno corrente</button>
+          <label class="visually-hidden" for="dashboard-trend-months">Numero mesi andamento</label>
+          <select id="dashboard-trend-months" class="form-select form-select-sm" [value]="trendMonths()" (change)="selectTrendMonths($event)"><option [value]="6" [selected]="trendMonths() === 6">6 mesi</option><option [value]="12" [selected]="trendMonths() === 12">12 mesi</option></select>
           <label>
             <span class="visually-hidden">Anno personalizzato andamento mensile</span>
             <select class="form-select form-select-sm" [value]="trendYear()" (change)="selectTrendYear($event)">
@@ -94,7 +92,7 @@
         </div>
       </div>
       @if (hasHistory()) {
-        <app-dashboard-chart type="bar" [labels]="historyLabels()" [values]="historyValues()" [counts]="historyCounts()" datasetLabel="Totale mensile" ariaLabel="Andamento storico mensile delle spese" />
+        <app-dashboard-chart type="bar" [labels]="historyLabels()" [values]="historyValues()" [counts]="historyCounts()" datasetLabel="Totale mensile" ariaLabel="Andamento storico mensile delle spese" (pointSelected)="openHistoryPoint($event)" />
         <details><summary>Tabella riepilogativa</summary><ul class="accessible-list">@for (point of dashboard.monthlyTrend; track point.year + '-' + point.month) { <li>{{ point.label }}: {{ point.total | euroAmount }}, {{ point.expenseCount }} spese</li> }</ul></details>
       } @else { <div class="chart-empty">Non ci sono ancora dati storici disponibili.</div> }
     </article>

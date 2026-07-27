@@ -4,14 +4,16 @@ import { CategoryBadgeComponent, LabelBadgeComponent } from '../../../shared/com
 import {
   EuroAmountPipe,
   ExpenseStatusBadgeComponent,
+  ItalianDateTimePipe,
   ItalianExpenseDatePipe,
 } from '../../../shared/components/expense-display.components';
 import type { ExpenseListItem, ExpenseStatus } from '../../../shared/models/expense.models';
+import { RecurrenceExpenseIndicatorComponent } from '../../recurrences/recurrence-display.components';
 
 @Component({
   selector: 'app-expense-card',
   standalone: true,
-  imports: [CategoryBadgeComponent, LabelBadgeComponent, ExpenseStatusBadgeComponent, EuroAmountPipe, ItalianExpenseDatePipe],
+  imports: [CategoryBadgeComponent, LabelBadgeComponent, ExpenseStatusBadgeComponent, EuroAmountPipe, ItalianExpenseDatePipe, ItalianDateTimePipe, RecurrenceExpenseIndicatorComponent],
   template: `
     <article class="expense-card">
       <div class="d-flex justify-content-between gap-3 align-items-start">
@@ -19,6 +21,8 @@ import type { ExpenseListItem, ExpenseStatus } from '../../../shared/models/expe
         <strong class="text-nowrap">{{ expense().amount | euroAmount }}</strong>
       </div>
       <div class="d-flex flex-wrap gap-2 mb-3"><app-category-badge [name]="expense().category.name" [color]="expense().category.color" [icon]="expense().category.icon" /><app-expense-status-badge [status]="expense().status" /></div>
+      @if (expense().recurrence; as recurrence) { <div class="mb-3"><app-recurrence-expense-indicator [recurrenceId]="recurrence.id" [recurrenceName]="recurrence.name" /></div> }
+      @if (expense().nextReminderAt) { <p class="small text-body-secondary mb-3"><i class="bi bi-bell me-1" aria-hidden="true"></i>Prossimo: {{ expense().nextReminderAt! | italianDateTime }}@if (expense().activeReminderCount > 1) { · {{ expense().activeReminderCount }} attivi }</p> }
       @if (expense().labels.length) { <div class="d-flex flex-wrap gap-1 mb-3">@for (label of expense().labels; track label.id) { <app-label-badge [name]="label.name" [color]="label.color" [icon]="label.icon" /> }</div> }
       <div class="d-flex flex-wrap gap-2">
         <button class="btn btn-sm btn-outline-primary" type="button" (click)="view.emit()">Dettaglio</button>

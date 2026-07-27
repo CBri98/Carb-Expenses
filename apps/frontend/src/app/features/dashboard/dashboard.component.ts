@@ -1,22 +1,25 @@
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, combineLatest, EMPTY, finalize, type Observable, startWith, Subject, switchMap, tap } from 'rxjs';
 
 import { DashboardService } from '../../core/services/dashboard.service';
 import { ExpenseService } from '../../core/services/expense.service';
+import { SettingsStore } from '../../core/services/settings.store';
 import { EuroAmountPipe } from '../../shared/components/expense-display.components';
 import type { DashboardData, DashboardPeriodQuery, RecentExpense, UpcomingExpense } from '../../shared/models/dashboard.models';
 import { changeLabel, dashboardPeriodLabel, ITALIAN_MONTHS, shiftDashboardPeriod } from '../../shared/utilities/dashboard-format';
-import { formatEuroAmount } from '../../shared/utilities/expense-format';
-import { DashboardChartComponent } from './dashboard-chart.component';
+import { formatEuroAmount, formatItalianDate } from '../../shared/utilities/expense-format';
+import { DashboardChartComponent, type DashboardChartSelection } from './dashboard-chart.component';
 import { RecentExpensesComponent } from './recent-expenses.component';
 import { StatCardComponent } from './stat-card.component';
 import { UpcomingExpensesComponent } from './upcoming-expenses.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, EuroAmountPipe, DashboardChartComponent, RecentExpensesComponent, StatCardComponent, UpcomingExpensesComponent],
+  imports: [RouterLink, FormsModule, NgSelectComponent, EuroAmountPipe, DashboardChartComponent, RecentExpensesComponent, StatCardComponent, UpcomingExpensesComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })
@@ -26,15 +29,19 @@ export class DashboardComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly settings = inject(SettingsStore);
   private readonly refresh = new Subject<void>();
   private readonly today = currentPeriod();
+  private trendMonthsManual = false;
 
   readonly months = ITALIAN_MONTHS;
+  readonly monthOptions = ITALIAN_MONTHS.map((label, index) => ({ value: index + 1, label }));
   readonly years = Array.from({ length: 101 }, (_, index) => 2000 + index);
   readonly skeletonCards = [1, 2, 3, 4, 5, 6];
   readonly selected = signal<DashboardPeriodQuery>(this.today);
   readonly currentYear = this.today.year;
   readonly trendYear = signal(this.currentYear);
+  readonly trendMonths = signal<6 | 12>(this.settings.experience().dashboardTrendMonths);
   readonly data = signal<DashboardData | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -52,8 +59,27 @@ export class DashboardComponent {
   readonly historyValues = computed(() => this.data()?.monthlyTrend.map((point) => Number(point.total)) ?? []);
   readonly historyCounts = computed(() => this.data()?.monthlyTrend.map((point) => point.expenseCount) ?? []);
   readonly hasHistory = computed(() => this.historyValues().some((value) => value > 0));
+  readonly dailyDescription = computed(() => {
+    const points = this.data()?.dailyTrend.filter((point) => Number(point.total) > 0) ?? [];
+    if (!points.length) return 'Nessuna spesa completata nel periodo.';
+    const peak = points.reduce((current, point) => Number(point.total) > Number(current.total) ? point : current);
+    return `Picco il giorno ${peak.day}: ${formatEuroAmount(peak.total)} in ${peak.expenseCount} ${peak.expenseCount === 1 ? 'spesa' : 'spese'}.`;
+  });
+  readonly categoryDescription = computed(() => {
+    const top = this.data()?.categoryDistribution[0];
+    return top
+      ? `${top.name} è la categoria principale con ${formatEuroAmount(top.total)} (${top.percentage}%).`
+      : 'Nessuna categoria con spese completate.';
+  });
+  readonly historyDescription = computed(() => {
+    const points = this.data()?.monthlyTrend.filter((point) => Number(point.total) > 0) ?? [];
+    if (!points.length) return 'Nessun dato storico disponibile.';
+    const peak = points.reduce((current, point) => Number(point.total) > Number(current.total) ? point : current);
+    return `Massimo del periodo: ${peak.label}, ${formatEuroAmount(peak.total)}.`;
+  });
 
   constructor() {
+    this.settings.ensureLoaded();
     combineLatest([
       this.route.queryParamMap,
       this.refresh.pipe(startWith(undefined)),
@@ -69,7 +95,7 @@ export class DashboardComponent {
           this.error.set(null);
         }),
         switchMap(() =>
-          this.dashboard.load(this.selected(), this.trendYear()).pipe(
+          this.dashboard.load(this.selected(), this.trendYear(), this.trendMonths()).pipe(
             tap((data) => this.data.set(data)),
             finalize(() => this.loading.set(false)),
             catchDashboardError((message) => this.error.set(message)),
@@ -82,16 +108,26 @@ export class DashboardComponent {
     effect(() => {
       if (this.expenses.changeVersion() > 0) this.refresh.next();
     });
+    effect(() => {
+      const preferred = this.settings.experience().dashboardTrendMonths;
+      if (this.settings.loaded() && !this.trendMonthsManual && preferred !== this.trendMonths()) {
+        this.trendMonths.set(preferred);
+        this.refresh.next();
+      }
+    });
   }
 
   previousMonth(): void { void this.navigate(shiftDashboardPeriod(this.selected().month, this.selected().year, -1)); }
   nextMonth(): void { void this.navigate(shiftDashboardPeriod(this.selected().month, this.selected().year, 1)); }
   currentMonth(): void { void this.navigate(this.today); }
-  selectMonth(event: Event): void {
-    void this.navigate({ ...this.selected(), month: Number((event.target as HTMLSelectElement).value) });
+  selectMonth(month: number): void {
+    if (!Number.isInteger(month) || month < 1 || month > 12) return;
+    void this.navigate({ ...this.selected(), month });
   }
   selectYear(event: Event): void {
-    void this.navigate({ ...this.selected(), year: Number((event.target as HTMLSelectElement).value) });
+    const year = Number((event.target as HTMLInputElement).value);
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) return;
+    void this.navigate({ ...this.selected(), year });
   }
   selectTrendYear(event: Event): void {
     const year = Number((event.target as HTMLSelectElement).value);
@@ -102,6 +138,13 @@ export class DashboardComponent {
   selectCurrentTrendYear(): void {
     if (this.trendYear() === this.currentYear) return;
     this.trendYear.set(this.currentYear);
+    this.refresh.next();
+  }
+  selectTrendMonths(event: Event): void {
+    const months = Number((event.target as HTMLSelectElement).value);
+    if ((months !== 6 && months !== 12) || months === this.trendMonths()) return;
+    this.trendMonthsManual = true;
+    this.trendMonths.set(months);
     this.refresh.next();
   }
   retry(): void { this.refresh.next(); }
@@ -124,6 +167,52 @@ export class DashboardComponent {
     return summary ? changeLabel(summary.changeDirection, summary.percentageChange) : '';
   }
   euro(value: string): string { return formatEuroAmount(value); }
+  nextExpenseDetail(expense: DashboardData['summary']['nextPlannedExpense']): string {
+    return expense ? `${formatEuroAmount(expense.amount)} · ${formatItalianDate(expense.expenseDate)}` : 'Nessuna spesa pianificata';
+  }
+
+  openTopCategory(): void {
+    const category = this.data()?.summary.topCategory;
+    if (!category) return;
+    void this.router.navigate(['/expenses'], { queryParams: {
+      month: this.selected().month, year: this.selected().year,
+      categoryIds: category.id, statuses: 'COMPLETED',
+    } });
+  }
+
+  openFutureExpenses(): void {
+    void this.router.navigate(['/expenses'], { queryParams: { statuses: 'PLANNED' } });
+  }
+
+  openNextExpense(): void {
+    const expense = this.data()?.summary.nextPlannedExpense;
+    if (expense) void this.router.navigate(['/expenses', expense.id]);
+  }
+
+  openDailyPoint(selection: DashboardChartSelection): void {
+    const point = this.data()?.dailyTrend[selection.index];
+    if (!point) return;
+    void this.router.navigate(['/expenses'], { queryParams: {
+      dateFrom: point.date, dateTo: point.date, statuses: 'COMPLETED',
+    } });
+  }
+
+  openCategoryPoint(selection: DashboardChartSelection): void {
+    const item = this.data()?.categoryDistribution[selection.index];
+    if (!item) return;
+    void this.router.navigate(['/expenses'], { queryParams: {
+      month: this.selected().month, year: this.selected().year,
+      categoryIds: item.categoryId, statuses: 'COMPLETED',
+    } });
+  }
+
+  openHistoryPoint(selection: DashboardChartSelection): void {
+    const point = this.data()?.monthlyTrend[selection.index];
+    if (!point) return;
+    void this.router.navigate(['/expenses'], { queryParams: {
+      month: point.month, year: point.year, statuses: 'COMPLETED',
+    } });
+  }
 
   private navigate(period: DashboardPeriodQuery, replaceUrl = false): Promise<boolean> {
     return this.router.navigate([], {

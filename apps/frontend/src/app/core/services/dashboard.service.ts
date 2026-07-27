@@ -38,12 +38,12 @@ export class DashboardService {
   upcomingExpenses(limit = 5): Observable<UpcomingExpense[]> {
     return this.get<UpcomingExpense[]>('upcoming-expenses', { limit });
   }
-  load(query: DashboardPeriodQuery, trendYear: number): Observable<DashboardData> {
+  load(query: DashboardPeriodQuery, trendYear: number, trendMonths = 12): Observable<DashboardData> {
     return forkJoin({
       summary: this.summary(query),
       dailyTrend: this.dailyTrend(query),
       categoryDistribution: this.categoryDistribution(query),
-      monthlyTrend: this.monthlyTrend({ month: 12, year: trendYear }, 12),
+      monthlyTrend: this.monthlyTrend({ month: 12, year: trendYear }, trendMonths),
       recentExpenses: this.recentExpenses(),
       upcomingExpenses: this.upcomingExpenses(),
     });

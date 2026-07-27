@@ -1,10 +1,11 @@
 import { Component, DestroyRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs';
+import { finalize, map, switchMap } from 'rxjs';
 
 import { apiErrorMessage } from '../../../core/services/api-error';
 import { ExpenseService } from '../../../core/services/expense.service';
-import type { CreateExpenseRequest, ExpenseDetail } from '../../../shared/models/expense.models';
+import { ExpenseReminderService } from '../../../core/services/expense-reminder.service';
+import type { ExpenseDetail, ExpenseFormSubmission } from '../../../shared/models/expense.models';
 import { EscapeCloseDirective } from '../../../shared/directives/escape-close.directive';
 import { ExpenseFormComponent } from './expense-form.component';
 
@@ -41,6 +42,7 @@ import { ExpenseFormComponent } from './expense-form.component';
 })
 export class QuickExpenseModalComponent {
   private readonly expenses = inject(ExpenseService);
+  private readonly expenseReminders = inject(ExpenseReminderService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly form = viewChild(ExpenseFormComponent);
 
@@ -52,13 +54,18 @@ export class QuickExpenseModalComponent {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
 
-  save(payload: CreateExpenseRequest): void {
+  save(submission: ExpenseFormSubmission): void {
     if (this.saving()) return;
     this.saving.set(true);
     this.error.set(null);
     this.expenses
-      .create(payload)
+      .create(submission.expense)
       .pipe(
+        switchMap((expense) =>
+          this.expenseReminders
+            .sync(expense.id, [], submission.reminders)
+            .pipe(map(() => expense)),
+        ),
         finalize(() => this.saving.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )

@@ -55,7 +55,7 @@ import type { ExpenseListItem, ExpenseStatus } from '../../../shared/models/expe
       display: grid;
       min-width: 13rem;
       padding: .35rem;
-      background: #fff;
+      background: var(--surface);
       border: 1px solid var(--border-color);
       border-radius: .6rem;
       box-shadow: var(--shadow-md);
@@ -67,7 +67,7 @@ import type { ExpenseListItem, ExpenseStatus } from '../../../shared/models/expe
       padding: .55rem .65rem;
       color: var(--text-primary);
       text-align: left;
-      background: #fff;
+      background: var(--surface);
       border: 0;
       border-radius: .35rem;
     }

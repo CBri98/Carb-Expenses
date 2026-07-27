@@ -7,17 +7,8 @@
   @if (loading()) { <app-loading-skeleton /> }
   @else if (expense(); as item) {
     <article class="card border-0 shadow-sm"><div class="card-body p-4 p-lg-5">
-      <div class="d-flex flex-wrap justify-content-between gap-3 mb-4"><div><p class="text-body-secondary mb-1">{{ item.expenseDate | italianExpenseDate }}{{ item.expenseTime ? ' · ' + item.expenseTime : '' }}</p><h1 class="h3 mb-2">{{ item.description }}</h1><app-expense-status-badge [status]="item.status" /></div><strong class="expense-total">{{ item.amount | euroAmount }}</strong></div>
-      <div class="row g-4 detail-grid">
-        <div class="col-12 col-md-6"><span>Categoria</span><app-category-badge [name]="item.category.name" [color]="item.category.color" [icon]="item.category.icon" /></div>
-        <div class="col-12 col-md-6"><span>Metodo di pagamento</span><app-payment-method-badge [method]="item.paymentMethod" /></div>
-        <div class="col-12 col-md-6"><span>Esercente o beneficiario</span><strong>{{ item.merchant || 'Non indicato' }}</strong></div>
-        <div class="col-12 col-md-6"><span>Etichette</span><div class="d-flex flex-wrap gap-1">@for (label of item.labels; track label.id) { <app-label-badge [name]="label.name" [color]="label.color" [icon]="label.icon" /> } @empty { <strong>Nessuna</strong> }</div></div>
-        <div class="col-12"><span>Note</span><p class="mb-0 notes">{{ item.notes || 'Nessuna nota.' }}</p></div>
-        <div class="col-12 col-md-6"><span>Creata il</span><strong>{{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</strong></div>
-        <div class="col-12 col-md-6"><span>Ultima modifica</span><strong>{{ item.updatedAt | date:'dd/MM/yyyy HH:mm' }}</strong></div>
-      </div>
-      <div class="d-flex flex-wrap gap-2 mt-5 pt-4 border-top">
+      <div class="d-flex flex-wrap justify-content-between gap-3 mb-3"><div><p class="text-body-secondary mb-1 text-capitalize">{{ item.expenseDate | italianExtendedDate }}{{ item.expenseTime ? ' · ' + item.expenseTime : '' }}</p><h1 class="h3 mb-2">{{ item.description }}</h1><div class="d-flex flex-wrap gap-2"><app-category-badge [name]="item.category.name" [color]="item.category.color" [icon]="item.category.icon" /><app-expense-status-badge [status]="item.status" /></div></div><strong class="expense-total">{{ item.amount | euroAmount }}</strong></div>
+      <div class="d-flex flex-wrap gap-2 mb-4 detail-actions" aria-label="Azioni spesa">
         <button class="btn btn-primary" type="button" [disabled]="busy()" (click)="edit()"><i class="bi bi-pencil me-2"></i>Modifica</button>
         <button class="btn btn-outline-secondary" type="button" [disabled]="busy()" (click)="duplicate()"><i class="bi bi-copy me-2"></i>Duplica</button>
         @if (item.status !== 'COMPLETED') { <button class="btn btn-outline-success" type="button" [disabled]="busy()" (click)="setStatus('COMPLETED')">Segna completata</button> }
@@ -25,6 +16,42 @@
         @if (item.status !== 'CANCELLED') { <button class="btn btn-outline-secondary" type="button" [disabled]="busy()" (click)="setStatus('CANCELLED')">Annulla spesa</button> }
         <button class="btn btn-outline-danger ms-lg-auto" type="button" [disabled]="busy()" (click)="deleteOpen.set(true)"><i class="bi bi-trash me-2"></i>Elimina</button>
       </div>
+      <nav class="nav nav-tabs mb-4" aria-label="Sezioni dettaglio spesa">
+        <button class="nav-link" type="button" [class.active]="activeTab() === 'general'" [attr.aria-selected]="activeTab() === 'general'" (click)="activeTab.set('general')">Generale</button>
+        <button class="nav-link" type="button" [class.active]="activeTab() === 'reminders'" [attr.aria-selected]="activeTab() === 'reminders'" (click)="activeTab.set('reminders')">Promemoria <span class="badge text-bg-secondary ms-1">{{ reminders().length }}</span></button>
+      </nav>
+      @if (activeTab() === 'general') {
+      <div class="row g-4 detail-grid">
+        @if (item.recurrence; as recurrence) {
+          <div class="col-12">
+            <span>Origine</span>
+            <div><app-recurrence-expense-indicator [recurrenceId]="recurrence.id" [recurrenceName]="recurrence.name" /></div>
+          </div>
+        }
+        <div class="col-12 col-md-6"><span>Categoria</span><app-category-badge [name]="item.category.name" [color]="item.category.color" [icon]="item.category.icon" /></div>
+        <div class="col-12 col-md-6"><span>Metodo di pagamento</span><app-payment-method-badge [method]="item.paymentMethod" /></div>
+        <div class="col-12 col-md-6"><span>Esercente o beneficiario</span><strong>{{ item.merchant || 'Non indicato' }}</strong></div>
+        <div class="col-12 col-md-6"><span>Etichette</span><div class="d-flex flex-wrap gap-1">@for (label of item.labels; track label.id) { <app-label-badge [name]="label.name" [color]="label.color" [icon]="label.icon" /> } @empty { <strong>Nessuna</strong> }</div></div>
+        <div class="col-12"><span>Note</span><p class="mb-0 notes">{{ item.notes || 'Nessuna nota.' }}</p></div>
+        <div class="col-12 col-md-6"><span>Creata il</span><strong>{{ item.createdAt | italianDateTime }}</strong></div>
+        <div class="col-12 col-md-6"><span>Ultima modifica</span><strong>{{ item.updatedAt | italianDateTime }}</strong></div>
+      </div>
+      } @else {
+      <section aria-labelledby="expense-reminders-title">
+        <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center mb-3">
+          <div><h2 class="h5 mb-1" id="expense-reminders-title">Promemoria</h2><p class="text-body-secondary mb-0">Avvisi interni collegati a questa spesa.</p></div>
+        </div>
+        <app-expense-reminder-list [reminders]="reminders()" [busy]="busy()" (removed)="removeReminder($event)" />
+        @if (item.status === 'PLANNED') {
+          <div class="mt-3">
+            <app-expense-reminder-form [status]="item.status" [expenseDate]="item.expenseDate" [expenseTime]="item.expenseTime || ''" [reminders]="reminders()" [disabled]="busy()" (draftsChanged)="reminderDrafts.set($event)" (validityChanged)="remindersValid.set($event)" />
+            <button class="btn btn-outline-primary mt-3" type="button" [disabled]="busy() || !remindersValid()" (click)="saveReminders()"><i class="bi bi-bell me-2"></i>Salva promemoria</button>
+          </div>
+        } @else {
+          <p class="small text-body-secondary mt-3 mb-0">I promemoria futuri sono disattivati quando la spesa è completata o annullata.</p>
+        }
+      </section>
+      }
     </div></article>
   }
 </section>

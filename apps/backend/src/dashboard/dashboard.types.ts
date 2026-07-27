@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma, RecurrenceStatus } from '@prisma/client';
 import type { ExpenseResponse } from '../expenses/expenses.types';
 
 export interface DashboardCategory { id: string; name: string; color: string; icon: string }
@@ -6,6 +6,8 @@ export interface DashboardTopCategory extends DashboardCategory { total: string;
 export interface DashboardPlannedExpense {
   id: string; description: string; amount: string; expenseDate: string;
   daysUntilDue: number; category: DashboardCategory;
+  generatedByRecurrence: boolean;
+  recurrence: { id: string; name: string; status: RecurrenceStatus } | null;
 }
 export interface DashboardSummary {
   period: { month: number; year: number; label: string; isCurrentMonth: boolean };
@@ -21,5 +23,9 @@ export interface CategoryDistributionItem extends DashboardCategory { categoryId
 export interface MonthlyTrendPoint { month: number; year: number; label: string; total: string; expenseCount: number }
 export interface UpcomingExpense extends ExpenseResponse { daysUntilDue: number }
 export type DashboardExpenseWithRelations = Prisma.ExpenseGetPayload<{
-  include: { category: true; labels: { include: { label: true } } };
+  include: {
+    category: true;
+    labels: { include: { label: true } };
+    recurrenceRule: { select: { id: true; name: true; status: true } };
+  };
 }>;

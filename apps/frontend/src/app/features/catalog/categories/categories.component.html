@@ -33,43 +33,43 @@
     </div>
   }
 
-  <article class="card catalog-card">
-    <form class="catalog-toolbar" [formGroup]="filters" aria-label="Filtri categorie">
-      <div class="row g-3 align-items-end">
-        <div class="col-12 col-lg-5">
-          <label class="form-label" for="category-search">Cerca</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span
-            ><input
-              id="category-search"
-              class="form-control"
-              type="search"
-              formControlName="search"
-              placeholder="Nome o descrizione"
-            />
-          </div>
-        </div>
-        <div class="col-6 col-lg-2">
+  <div class="row g-3 mb-3" aria-label="Riepilogo categorie filtrate">
+    <div class="col-6 col-xl-3"><app-counter-card label="Totali" [value]="summary().total" icon="bi-collection" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Attive" [value]="summary().active" icon="bi-check-circle" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Disattivate" [value]="summary().inactive" icon="bi-pause-circle" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Personalizzate" [value]="summary().custom" icon="bi-person-gear" /></div>
+  </div>
+
+  <div class="card border-0 shadow-sm catalog-search mb-3">
+    <div class="card-body">
+      <label class="form-label" for="category-search">Cerca nelle categorie</label>
+      <div class="input-group"><span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span><input id="category-search" class="form-control" type="search" [formControl]="filters.controls.search" placeholder="Nome o descrizione">@if (filters.controls.search.value) { <button class="btn btn-outline-secondary" type="button" aria-label="Cancella ricerca" (click)="filters.controls.search.setValue('')"><i class="bi bi-x-lg" aria-hidden="true"></i></button> }</div>
+    </div>
+  </div>
+
+  <app-filter-panel titleId="category-filters-title" panelId="category-filters-panel" [expanded]="filtersExpanded()" [activeCount]="activeFilterCount()" [summary]="filterSummary()" (expandedChange)="filtersExpanded.set($event)" (resetRequested)="resetFilters()">
+    <form [formGroup]="filters" aria-label="Filtri categorie">
+      <div class="filter-group"><div class="filter-group__heading"><h3>Classificazione e stato</h3><p>Ogni modifica viene applicata automaticamente.</p></div><div class="row g-3">
+        <div class="col-12 col-md-6">
           <label class="form-label" for="category-type">Tipo</label>
           <ng-select labelForId="category-type" [items]="typeOptions" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" ariaLabel="Filtra per tipo di categoria" formControlName="type">
             <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
             <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
           </ng-select>
         </div>
-        <div class="col-6 col-lg-2">
+        <div class="col-12 col-md-6">
           <label class="form-label" for="category-active">Stato</label>
           <ng-select labelForId="category-active" [items]="activeOptions" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" ariaLabel="Filtra per stato categoria" formControlName="active">
             <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
             <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
           </ng-select>
         </div>
-        <div class="col-12 col-lg-3">
-          <button class="btn btn-outline-secondary w-100" type="button" (click)="resetFilters()">
-            <i class="bi bi-arrow-counterclockwise me-2"></i>Reimposta filtri
-          </button>
-        </div>
-      </div>
+      </div></div>
+      <div class="d-flex justify-content-end mt-3"><button class="btn btn-outline-secondary" type="button" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Azzera filtri</button></div>
     </form>
+  </app-filter-panel>
+
+  <article class="card catalog-card">
 
     @if (loading()) {
       <app-loading-skeleton />
@@ -95,11 +95,12 @@
               <th class="text-end">Azioni</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody cdkDropList [cdkDropListData]="categories()" [cdkDropListDisabled]="!canReorder()" (cdkDropListDropped)="drop($event)">
             @for (category of categories(); track category.id; let index = $index) {
-              <tr>
+              <tr cdkDrag [cdkDragData]="category" [cdkDragDisabled]="!canReorder()">
                 <td data-label="Ordine">
                   <div class="btn-group btn-group-sm" role="group" aria-label="Riordina categoria">
+                    <button class="btn btn-outline-secondary drag-handle" type="button" cdkDragHandle [disabled]="!canReorder()" [attr.aria-label]="'Trascina ' + category.name" title="Trascina per riordinare"><i class="bi bi-grip-vertical" aria-hidden="true"></i></button>
                     <button
                       class="btn btn-outline-secondary"
                       type="button"
@@ -268,6 +269,7 @@
               <div class="col-12">
                 <app-icon-picker
                   [value]="form.controls.icon.value"
+                  [availableIcons]="availableIcons()"
                   inputId="category-icon-search"
                   (valueChange)="updateIcon($event)"
                 />

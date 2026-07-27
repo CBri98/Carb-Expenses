@@ -101,6 +101,7 @@ async function createFixture() {
   const labels = {
     labels: labelItems.asReadonly(),
     load: vi.fn(() => of(labelItems())),
+    summary: vi.fn(() => of({ total: 1, withCategory: 1, withoutCategory: 0, unused: 1 })),
     create: vi.fn(() => of({ ...label, name: 'Spese condivise' })),
     update: vi.fn(() => of(label)),
     setStatus: vi.fn(() => of({ ...label, isActive: false })),

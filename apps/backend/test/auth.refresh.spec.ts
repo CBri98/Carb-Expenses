@@ -43,4 +43,20 @@ describe('AuthService: refresh e logout', () => {
       fixture.service.refresh(session.refreshToken)
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
+
+  it('revoca le altre sessioni conservando quella identificata dal jti corrente', async () => {
+    const current = await fixture.service.register({
+      email: 'sessions@example.com', password: 'Password1', firstName: 'Sessioni',
+    });
+    await fixture.service.login({ email: 'sessions@example.com', password: 'Password1' });
+
+    const result = await fixture.service.revokeOtherSessions(
+      current.user.id,
+      current.refreshToken,
+    );
+    const active = [...fixture.tokens.values()].filter((token) => !token.revokedAt);
+    expect(result).toEqual({ revokedCount: 1, currentSessionRetained: true });
+    expect(active).toHaveLength(1);
+    await expect(fixture.service.refresh(current.refreshToken)).resolves.toBeTruthy();
+  });
 });

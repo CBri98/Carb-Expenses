@@ -70,6 +70,10 @@
               <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon || 'bi-tag'" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}@if (!item.isActive) { <small>(disattivata)</small> }</span></ng-template>
               <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon || 'bi-tag'" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
             </ng-select>
+            <div class="form-text">Sono disponibili le etichette globali e quelle collegate alla categoria selezionata.</div>
+            @if (labelCompatibilityNotice(); as message) {
+              <div class="alert alert-info py-2 mt-2 mb-0" role="status">{{ message }}</div>
+            }
           </div>
         }
       </div>
@@ -103,6 +107,19 @@
         </div>
       </section>
     }
+
+    <app-expense-reminder-form
+      [status]="form.controls.status.value"
+      [expenseDate]="form.controls.expenseDate.value"
+      [expenseTime]="form.controls.expenseTime.value"
+      [reminders]="existingReminders()"
+      [defaultTypes]="expense() ? [] : settings.notifications().defaultReminderTypes"
+      [defaultTime]="settings.notifications().defaultReminderTime"
+      [resetVersion]="reminderResetVersion()"
+      [disabled]="submitting()"
+      (draftsChanged)="reminderDrafts.set($event)"
+      (validityChanged)="remindersValid.set($event)"
+    />
   </fieldset>
 
   <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">

@@ -132,6 +132,22 @@ describe('LabelsService', () => {
     expect(result).toHaveLength(1);
   });
 
+  it('calcola contatori e non utilizzate escludendo spese eliminate o altrui', async () => {
+    const global = label({ id: '20000000-0000-4000-8000-000000000002', categoryId: null });
+    prisma.label.findMany.mockResolvedValue([
+      { ...label(), category },
+      { ...global, category: null },
+    ]);
+    prisma.expenseLabel.groupBy.mockResolvedValue([{ labelId: label().id, _count: { _all: 1 } }]);
+
+    await expect(service.summary('user-1', new LabelQueryDto())).resolves.toEqual({
+      total: 2, withCategory: 1, withoutCategory: 1, unused: 1,
+    });
+    expect(prisma.expenseLabel.groupBy).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ expense: { userId: 'user-1', deletedAt: null } }),
+    }));
+  });
+
   it('applica soft delete', async () => {
     prisma.label.findFirst.mockResolvedValue({ ...label(), category });
 
@@ -164,6 +180,7 @@ function prismaMock() {
       create: vi.fn(),
       update: vi.fn(),
     },
+    expenseLabel: { groupBy: vi.fn() },
     $transaction: vi.fn(),
   };
   mock.$transaction.mockImplementation((operations: Array<Promise<unknown>>) =>

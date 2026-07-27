@@ -53,6 +53,46 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'notifications',
+        title: 'Notifiche | Carbexpenses',
+        loadComponent: () =>
+          import('./features/notifications/notifications-page.component').then(
+            (module) => module.NotificationsPageComponent,
+          ),
+      },
+      {
+        path: 'recurrences',
+        title: 'Spese ricorrenti | Carbexpenses',
+        loadComponent: () =>
+          import('./features/recurrences/recurrences-page.component').then(
+            (module) => module.RecurrencesPageComponent,
+          ),
+      },
+      {
+        path: 'recurrences/new',
+        title: 'Nuova ricorrenza | Carbexpenses',
+        loadComponent: () =>
+          import('./features/recurrences/recurrence-form-page.component').then(
+            (module) => module.RecurrenceFormPageComponent,
+          ),
+      },
+      {
+        path: 'recurrences/:id/edit',
+        title: 'Modifica ricorrenza | Carbexpenses',
+        loadComponent: () =>
+          import('./features/recurrences/recurrence-form-page.component').then(
+            (module) => module.RecurrenceFormPageComponent,
+          ),
+      },
+      {
+        path: 'recurrences/:id',
+        title: 'Dettaglio ricorrenza | Carbexpenses',
+        loadComponent: () =>
+          import('./features/recurrences/recurrence-detail.component').then(
+            (module) => module.RecurrenceDetailComponent,
+          ),
+      },
+      {
         path: 'calendar',
         title: 'Calendario | Carbexpenses',
         loadComponent: () =>
@@ -115,6 +155,56 @@ export const routes: Routes = [
           import('./features/catalog/labels/labels.component').then(
             (module) => module.LabelsComponent,
           ),
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./features/settings/settings-page.component').then(
+            (module) => module.SettingsPageComponent,
+          ),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'account' },
+          {
+            path: 'account',
+            title: 'Account | Carbexpenses',
+            loadComponent: () =>
+              import('./features/settings/account-settings.component').then(
+                (module) => module.AccountSettingsComponent,
+              ),
+          },
+          {
+            path: 'appearance',
+            title: 'Aspetto | Carbexpenses',
+            loadComponent: () =>
+              import('./features/settings/appearance-settings.component').then(
+                (module) => module.AppearanceSettingsComponent,
+              ),
+          },
+          {
+            path: 'experience',
+            title: 'Esperienza | Carbexpenses',
+            loadComponent: () =>
+              import('./features/settings/experience-settings.component').then(
+                (module) => module.ExperienceSettingsComponent,
+              ),
+          },
+          {
+            path: 'icons',
+            title: 'Icone | Carbexpenses',
+            loadComponent: () =>
+              import('./features/settings/icon-settings.component').then(
+                (module) => module.IconSettingsComponent,
+              ),
+          },
+          {
+            path: 'notifications',
+            title: 'Promemoria | Carbexpenses',
+            loadComponent: () =>
+              import('./features/settings/reminder-settings.component').then(
+                (module) => module.ReminderSettingsComponent,
+              ),
+          },
+        ],
       },
     ],
   },

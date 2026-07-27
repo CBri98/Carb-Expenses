@@ -37,26 +37,36 @@
     </div>
   </div></div></article>
 
-  <details class="card border-0 shadow-sm calendar-filters" [open]="filterOpen()" (toggle)="filterOpen.set($any($event.target).open)">
-    <summary class="card-header">
-      <span><i class="bi bi-funnel me-2" aria-hidden="true"></i>Filtri @if (activeFilterCount()) { <span class="badge rounded-pill text-bg-primary ms-1">{{ activeFilterCount() }}</span> }</span>
-      <span class="calendar-filters__hint">Sincronizzati nell’URL</span>
-    </summary>
-    <div class="card-body"><div class="row g-3 align-items-end">
-      <div class="col-12 col-xl-4">
-        <form (submit)="$event.preventDefault(); applySearch()">
-          <label class="form-label" for="calendar-search">Descrizione o esercente</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
-            <input id="calendar-search" class="form-control" type="search" maxlength="150" placeholder="Cerca nel periodo…" [ngModel]="searchDraft()" (ngModelChange)="searchDraft.set($event)" name="calendarSearch">
-            <button class="btn btn-outline-primary" type="submit">Applica</button>
-          </div>
-        </form>
+  <div class="calendar-search card border-0 shadow-sm">
+    <div class="card-body">
+      <label class="form-label" for="calendar-search">Cerca nel calendario</label>
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+        <input id="calendar-search" class="form-control" type="search" maxlength="150" placeholder="Descrizione o esercente…" [ngModel]="searchDraft()" (ngModelChange)="updateSearch($event)" name="calendarSearch">
+        @if (searchDraft()) {
+          <button class="btn btn-outline-secondary" type="button" aria-label="Cancella ricerca" (click)="updateSearch('')"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+        }
       </div>
+      <span class="visually-hidden" aria-live="polite">La ricerca viene applicata automaticamente.</span>
+    </div>
+  </div>
+
+  <app-filter-panel
+    title="Filtri calendario"
+    titleId="calendar-filters-title"
+    panelId="calendar-filters-panel"
+    [expanded]="filterOpen()"
+    [activeCount]="activeFilterCount()"
+    [summary]="activeFilterSummary()"
+    (expandedChange)="setFilterOpen($event)"
+    (resetRequested)="resetFilters()"
+  >
+    <div class="row g-3 align-items-end">
       <div class="col-12 col-md-6 col-xl-4">
         <label class="form-label" for="calendar-status">Stati</label>
         <ng-select labelForId="calendar-status" [items]="statuses" bindLabel="label" bindValue="value" [multiple]="true" [closeOnSelect]="false" [clearable]="false" notFoundText="Nessuno stato trovato" ariaLabel="Filtra per stati" [ngModel]="state().filters.status" (ngModelChange)="updateStatuses($event)">
-          <ng-template ng-option-tmp let-item="item"><span><i class="bi me-2" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
         </ng-select>
       </div>
       <div class="col-12 col-md-6 col-xl-4">
@@ -68,7 +78,8 @@
       <div class="col-12 col-md-6 col-xl-4">
         <label class="form-label" for="calendar-labels">Etichette <span class="text-body-secondary">(almeno una)</span></label>
         <ng-select labelForId="calendar-labels" [items]="labels()" bindLabel="name" bindValue="id" [multiple]="true" [closeOnSelect]="false" placeholder="Tutte le etichette" notFoundText="Nessuna etichetta trovata" ariaLabel="Filtra per etichette" [ngModel]="state().filters.labelIds" (ngModelChange)="updateLabels($event)">
-          <ng-template ng-option-tmp let-item="item"><span><i class="bi bi-tag me-2" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+          <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon || 'bi-tag'" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+          <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon || 'bi-tag'" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
         </ng-select>
       </div>
       <div class="col-12 col-md-6 col-xl-4">
@@ -80,8 +91,8 @@
       <div class="col-12 col-xl-4 d-flex justify-content-xl-end">
         <button class="btn btn-outline-secondary" type="button" [disabled]="!activeFilterCount()" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Azzera filtri</button>
       </div>
-    </div></div>
-  </details>
+    </div>
+  </app-filter-panel>
 
   @if (overdueEvents().length) {
     <details class="card border-0 overdue-panel" open>
@@ -110,7 +121,37 @@
     @if (!events().length) {
       <div class="calendar-empty-note" role="status"><i class="bi bi-calendar2-check" aria-hidden="true"></i>Nessuna spesa con i filtri correnti. Puoi comunque selezionare una data per crearne una.</div>
     }
-    @if (state().view === 'month') {
+    @if (state().view === 'year') {
+      <section class="calendar-year" aria-label="Calendario annuale">
+        @for (month of yearMonths(); track month.anchor) {
+          <article class="calendar-year__month card border-0 shadow-sm">
+            <header class="calendar-year__header">
+              <button type="button" (click)="openMonth(month.anchor)" [attr.aria-label]="'Apri ' + month.label + ' nella vista mensile'">{{ month.label }}</button>
+              <span class="badge rounded-pill" [class.text-bg-primary]="month.eventCount" [class.text-bg-secondary]="!month.eventCount">{{ month.eventCount }}</span>
+            </header>
+            <div class="calendar-year__weekdays" aria-hidden="true">
+              @for (weekday of weekdays; track weekday) { <span>{{ weekday.slice(0, 1) }}</span> }
+            </div>
+            <div class="calendar-year__grid">
+              @for (day of month.days; track day.date) {
+                @if (day.inCurrentMonth) {
+                  <button class="calendar-year__day" type="button" [class.calendar-year__day--today]="day.isToday" [class.calendar-year__day--with-events]="eventsForDay(day.date).length" [attr.aria-label]="dateLabel(day.date) + ': ' + eventsForDay(day.date).length + ' spese. Crea una nuova spesa'" (click)="openCreate(day.date)">
+                    <span>{{ day.dayNumber }}</span>
+                    @if (eventsForDay(day.date).length) {
+                      <span class="calendar-year__dots" aria-hidden="true">
+                        @for (event of eventsForDay(day.date).slice(0, 3); track event.id) { <i [style.background]="event.category.color"></i> }
+                      </span>
+                    }
+                  </button>
+                } @else {
+                  <span class="calendar-year__day calendar-year__day--outside" aria-hidden="true"></span>
+                }
+              }
+            </div>
+          </article>
+        }
+      </section>
+    } @else if (state().view === 'month') {
       <section class="calendar-month card border-0 shadow-sm" role="grid" aria-label="Calendario mensile">
         <div class="calendar-month__weekdays" role="row">
           @for (weekday of weekdays; track weekday) { <span role="columnheader">{{ weekday }}</span> }

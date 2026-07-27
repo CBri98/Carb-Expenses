@@ -13,7 +13,7 @@ import {
   ReorderCategoriesDto,
   UpdateCategoryDto,
 } from './dto/category.dto';
-import type { CategoryResponse, CategoryWithPreferences } from './category.types';
+import type { CategoryResponse, CategorySummary, CategoryWithPreferences } from './category.types';
 
 @Injectable()
 export class CategoriesService {
@@ -72,6 +72,16 @@ export class CategoriesService {
       },
     });
     return this.toResponse({ ...row, preferences: [] });
+  }
+
+  async summary(userId: string, query: CategoryQueryDto): Promise<CategorySummary> {
+    const items = await this.findAll(userId, query);
+    return {
+      total: items.length,
+      active: items.filter((item) => item.isActive).length,
+      inactive: items.filter((item) => !item.isActive).length,
+      custom: items.filter((item) => item.isCustom).length,
+    };
   }
 
   async update(userId: string, id: string, dto: UpdateCategoryDto): Promise<CategoryResponse> {

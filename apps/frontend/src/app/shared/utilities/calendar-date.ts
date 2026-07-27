@@ -10,7 +10,7 @@ import type { ExpenseStatus, PaymentMethod } from '../models/expense.models';
 const DAY_MS = 86_400_000;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const VIEWS: CalendarView[] = ['month', 'week', 'list'];
+const VIEWS: CalendarView[] = ['month', 'week', 'year', 'list'];
 const STATUSES: ExpenseStatus[] = ['COMPLETED', 'PLANNED', 'CANCELLED'];
 const PAYMENTS: PaymentMethod[] = [
   'CASH', 'DEBIT_CARD', 'CREDIT_CARD', 'BANK_TRANSFER',
@@ -53,7 +53,8 @@ export function shiftCalendarPeriod(
   const date = parseCalendarDate(value);
   const day = date.getUTCDate();
   date.setUTCDate(1);
-  date.setUTCMonth(date.getUTCMonth() + direction);
+  if (view === 'year') date.setUTCFullYear(date.getUTCFullYear() + direction);
+  else date.setUTCMonth(date.getUTCMonth() + direction);
   const finalDay = new Date(Date.UTC(
     date.getUTCFullYear(),
     date.getUTCMonth() + 1,
@@ -65,6 +66,11 @@ export function shiftCalendarPeriod(
 
 export function calendarRange(view: CalendarView, anchor: string): CalendarDateRange {
   const date = parseCalendarDate(anchor);
+  if (view === 'year') {
+    const start = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    const end = new Date(Date.UTC(date.getUTCFullYear() + 1, 0, 1));
+    return { start: isoCalendarDate(start), end: isoCalendarDate(end) };
+  }
   if (view === 'week') {
     const start = startOfWeek(date);
     return { start: isoCalendarDate(start), end: isoCalendarDate(addUtcDays(start, 7)) };
@@ -96,6 +102,7 @@ export function calendarDays(range: CalendarDateRange, anchor: string, today: st
 }
 
 export function calendarHeading(view: CalendarView, anchor: string): string {
+  if (view === 'year') return anchor.slice(0, 4);
   if (view !== 'week') {
     return capitalize(new Intl.DateTimeFormat('it-IT', {
       month: 'long',
@@ -127,10 +134,12 @@ export function longCalendarDate(value: string): string {
 export function parseCalendarState(
   params: Record<string, string | null | undefined>,
   today = todayRomeDate(),
+  defaultView: CalendarView = 'month',
 ): { state: CalendarState; valid: boolean } {
   let valid = true;
   const rawView = params['view'];
-  const view = VIEWS.includes(rawView as CalendarView) ? rawView as CalendarView : 'month';
+  const safeDefaultView = VIEWS.includes(defaultView) ? defaultView : 'month';
+  const view = VIEWS.includes(rawView as CalendarView) ? rawView as CalendarView : safeDefaultView;
   if (rawView && rawView !== view) valid = false;
 
   const rawDate = params['date'];

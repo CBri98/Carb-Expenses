@@ -13,6 +13,8 @@ const item: ExpenseListItem = {
   expenseTime: null, merchant: null, paymentMethod: 'CASH', notes: null, status: 'COMPLETED',
   category: { id: 'category-1', name: 'Casa', color: '#4F46E5', icon: 'bi-house', isActive: true },
   labels: [], createdAt: '', updatedAt: '',
+  generatedByRecurrence: false, occurrenceDate: null, recurrence: null,
+  nextReminderAt: null, activeReminderCount: 0,
 };
 
 describe('ExpenseService', () => {
@@ -52,5 +54,18 @@ describe('ExpenseService', () => {
     request.flush(new Blob(['csv'], { type: 'text/csv' }), {
       headers: { 'Content-Disposition': 'attachment; filename="spese-test.csv"' },
     });
+  });
+
+  it('richiede i contatori con gli stessi filtri ma senza paginazione', () => {
+    service.summary({ page: 3, categoryIds: ['a', 'b'], recurrenceMode: 'ONLY' }).subscribe((result) => {
+      expect(result.totalResults).toBe(4);
+    });
+    const request = http.expectOne((candidate) =>
+      candidate.url === `${environment.apiBaseUrl}/expenses/summary` &&
+      !candidate.params.has('page') &&
+      candidate.params.get('categoryIds') === 'a,b' &&
+      candidate.params.get('recurrenceMode') === 'ONLY',
+    );
+    request.flush({ data: { totalResults: 4, completed: 1, planned: 2, cancelled: 1 }, meta: {}, message: '' });
   });
 });

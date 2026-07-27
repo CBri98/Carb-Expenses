@@ -20,8 +20,14 @@ import {
 import { debounceTime } from 'rxjs';
 
 import type { Category, Label } from '../../../shared/models/catalog.models';
-import type { ExpenseQueryParams } from '../../../shared/models/expense.models';
+import type {
+  ExpenseQueryParams,
+  ExpenseRecurrenceMode,
+  ExpenseStatus,
+  PaymentMethod,
+} from '../../../shared/models/expense.models';
 import { EXPENSE_STATUSES, PAYMENT_METHODS } from '../../../shared/models/expense.models';
+import { FilterPanelComponent } from '../../../shared/components/filter-panel.component';
 
 @Component({
   selector: 'app-expense-filters',
@@ -31,6 +37,7 @@ import { EXPENSE_STATUSES, PAYMENT_METHODS } from '../../../shared/models/expens
     NgSelectComponent,
     NgOptionTemplateDirective,
     NgLabelTemplateDirective,
+    FilterPanelComponent,
   ],
   templateUrl: './expense-filters.component.html',
   styleUrl: './expense-filters.component.scss',
@@ -45,24 +52,34 @@ export class ExpenseFiltersComponent {
   readonly query = input<ExpenseQueryParams>({});
   readonly categories = input<readonly Category[]>([]);
   readonly labels = input<readonly Label[]>([]);
+  readonly defaultPageSize = input(20);
   readonly queryChange = output<ExpenseQueryParams>();
   readonly expanded = signal(this.initialExpandedState());
   readonly statuses = EXPENSE_STATUSES;
   readonly paymentMethods = PAYMENT_METHODS;
   readonly months = [
-    { value: '1', label: 'Gennaio', icon: 'bi-calendar3' },
-    { value: '2', label: 'Febbraio', icon: 'bi-calendar3' },
-    { value: '3', label: 'Marzo', icon: 'bi-calendar3' },
-    { value: '4', label: 'Aprile', icon: 'bi-calendar3' },
-    { value: '5', label: 'Maggio', icon: 'bi-calendar3' },
-    { value: '6', label: 'Giugno', icon: 'bi-calendar3' },
-    { value: '7', label: 'Luglio', icon: 'bi-calendar3' },
-    { value: '8', label: 'Agosto', icon: 'bi-calendar3' },
-    { value: '9', label: 'Settembre', icon: 'bi-calendar3' },
-    { value: '10', label: 'Ottobre', icon: 'bi-calendar3' },
-    { value: '11', label: 'Novembre', icon: 'bi-calendar3' },
-    { value: '12', label: 'Dicembre', icon: 'bi-calendar3' },
+    { value: '1', label: '01 Gennaio' },
+    { value: '2', label: '02 Febbraio' },
+    { value: '3', label: '03 Marzo' },
+    { value: '4', label: '04 Aprile' },
+    { value: '5', label: '05 Maggio' },
+    { value: '6', label: '06 Giugno' },
+    { value: '7', label: '07 Luglio' },
+    { value: '8', label: '08 Agosto' },
+    { value: '9', label: '09 Settembre' },
+    { value: '10', label: '10 Ottobre' },
+    { value: '11', label: '11 Novembre' },
+    { value: '12', label: '12 Dicembre' },
   ] as const;
+  readonly recurrenceModes: ReadonlyArray<{
+    value: ExpenseRecurrenceMode;
+    label: string;
+    icon: string;
+  }> = [
+    { value: 'ALL', label: 'Tutte le spese', icon: 'bi-collection' },
+    { value: 'EXCLUDE', label: 'Escludi ricorrenti', icon: 'bi-calendar-x' },
+    { value: 'ONLY', label: 'Solo ricorrenti', icon: 'bi-arrow-repeat' },
+  ];
   readonly sortOptions = [
     { value: 'expenseDate', label: 'Data spesa', icon: 'bi-calendar-event' },
     { value: 'amount', label: 'Importo', icon: 'bi-currency-euro' },
@@ -92,12 +109,15 @@ export class ExpenseFiltersComponent {
   readonly form = this.formBuilder.nonNullable.group({
     search: [''], dateFrom: [''], dateTo: [''],
     month: this.formBuilder.control<string | null>(null), year: [''],
-    categoryId: this.formBuilder.control<string | null>(null),
+    categoryIds: this.formBuilder.nonNullable.control<string[]>([]),
     labelIds: this.formBuilder.nonNullable.control<string[]>([]),
-    status: this.formBuilder.control<ExpenseQueryParams['status'] | null>(null),
-    paymentMethod: this.formBuilder.control<ExpenseQueryParams['paymentMethod'] | null>(null),
+    statuses: this.formBuilder.nonNullable.control<ExpenseStatus[]>([]),
+    paymentMethods: this.formBuilder.nonNullable.control<PaymentMethod[]>([]),
+    recurrenceMode: this.formBuilder.nonNullable.control<ExpenseRecurrenceMode>('ALL'),
     minAmount: [''], maxAmount: [''],
-    pageSize: ['20'], sortBy: ['expenseDate'], sortDirection: ['desc'],
+    pageSize: ['20'],
+    sortBy: this.formBuilder.control<ExpenseQueryParams['sortBy'] | null>(null),
+    sortDirection: this.formBuilder.control<ExpenseQueryParams['sortDirection'] | null>(null),
   });
 
   constructor() {
@@ -110,14 +130,18 @@ export class ExpenseFiltersComponent {
 
   reset(): void {
     this.form.reset({
-      search: '', dateFrom: '', dateTo: '', month: null, year: '', categoryId: null,
-      labelIds: [], status: null, paymentMethod: null, minAmount: '', maxAmount: '',
-      pageSize: '20', sortBy: 'expenseDate', sortDirection: 'desc',
+      search: '', dateFrom: '', dateTo: '', month: null, year: '', categoryIds: [],
+      labelIds: [], statuses: [], paymentMethods: [], recurrenceMode: 'ALL',
+      minAmount: '', maxAmount: '', pageSize: String(this.defaultPageSize()),
+      sortBy: null, sortDirection: null,
     });
   }
 
   toggleExpanded(): void {
-    const next = !this.expanded();
+    this.setExpanded(!this.expanded());
+  }
+
+  setExpanded(next: boolean): void {
     this.expanded.set(next);
     if (!isPlatformBrowser(this.platformId)) return;
     try {
@@ -145,10 +169,14 @@ export class ExpenseFiltersComponent {
         search: query.search ?? '', dateFrom: query.dateFrom ?? '', dateTo: query.dateTo ?? '',
         month: query.month === undefined ? null : String(query.month),
         year: query.year === undefined ? '' : String(query.year),
-        categoryId: query.categoryId ?? null, labelIds: query.labelIds ?? [], status: query.status ?? null,
-        paymentMethod: query.paymentMethod ?? null, minAmount: query.minAmount ?? '', maxAmount: query.maxAmount ?? '',
-        pageSize: String(query.pageSize ?? 20), sortBy: query.sortBy ?? 'expenseDate',
-        sortDirection: query.sortDirection ?? 'desc',
+        categoryIds: query.categoryIds ?? (query.categoryId ? [query.categoryId] : []),
+        labelIds: query.labelIds ?? [],
+        statuses: query.statuses ?? (query.status ? [query.status] : []),
+        paymentMethods: query.paymentMethods ?? (query.paymentMethod ? [query.paymentMethod] : []),
+        recurrenceMode: query.recurrenceMode ?? 'ALL',
+        minAmount: query.minAmount ?? '', maxAmount: query.maxAmount ?? '',
+        pageSize: String(query.pageSize ?? this.defaultPageSize()), sortBy: query.sortBy ?? null,
+        sortDirection: query.sortDirection ?? null,
       },
       { emitEvent: false },
     );
@@ -162,9 +190,12 @@ export class ExpenseFiltersComponent {
     if (query.dateTo) descriptions.push(`Al ${query.dateTo}`);
     if (query.month) descriptions.push(`Mese ${query.month}`);
     if (query.year) descriptions.push(`Anno ${query.year}`);
-    if (query.categoryId) {
-      const name = this.categories().find((category) => category.id === query.categoryId)?.name;
-      descriptions.push(`Categoria: ${name ?? query.categoryId}`);
+    const categoryIds = query.categoryIds ?? (query.categoryId ? [query.categoryId] : []);
+    if (categoryIds.length) {
+      const names = categoryIds.map(
+        (id) => this.categories().find((category) => category.id === id)?.name ?? id,
+      );
+      descriptions.push(`Categorie: ${names.join(', ')}`);
     }
     if (query.labelIds?.length) {
       const names = query.labelIds.map(
@@ -172,15 +203,22 @@ export class ExpenseFiltersComponent {
       );
       descriptions.push(`Etichette: ${names.join(', ')}`);
     }
-    if (query.status) {
-      const label = this.statuses.find((status) => status.value === query.status)?.label;
-      descriptions.push(`Stato: ${label ?? query.status}`);
+    const statuses = query.statuses ?? (query.status ? [query.status] : []);
+    if (statuses.length) {
+      const names = statuses.map(
+        (value) => this.statuses.find((status) => status.value === value)?.label ?? value,
+      );
+      descriptions.push(`Stati: ${names.join(', ')}`);
     }
-    if (query.paymentMethod) {
-      const label = this.paymentMethods.find(
-        (method) => method.value === query.paymentMethod,
-      )?.label;
-      descriptions.push(`Pagamento: ${label ?? query.paymentMethod}`);
+    const paymentMethods = query.paymentMethods ?? (query.paymentMethod ? [query.paymentMethod] : []);
+    if (paymentMethods.length) {
+      const names = paymentMethods.map(
+        (value) => this.paymentMethods.find((method) => method.value === value)?.label ?? value,
+      );
+      descriptions.push(`Pagamenti: ${names.join(', ')}`);
+    }
+    if (query.recurrenceMode && query.recurrenceMode !== 'ALL') {
+      descriptions.push(query.recurrenceMode === 'ONLY' ? 'Solo ricorrenti' : 'Ricorrenti escluse');
     }
     if (query.minAmount) descriptions.push(`Min: ${query.minAmount} €`);
     if (query.maxAmount) descriptions.push(`Max: ${query.maxAmount} €`);
@@ -208,15 +246,16 @@ export class ExpenseFiltersComponent {
       dateTo: value.dateTo || undefined,
       month: optionalInteger(value.month),
       year: optionalInteger(value.year),
-      categoryId: value.categoryId ?? undefined,
+      categoryIds: value.categoryIds.length ? value.categoryIds : undefined,
       labelIds: value.labelIds.length ? value.labelIds : undefined,
-      status: value.status ?? undefined,
-      paymentMethod: value.paymentMethod ?? undefined,
+      statuses: value.statuses.length ? value.statuses : undefined,
+      paymentMethods: value.paymentMethods.length ? value.paymentMethods : undefined,
+      recurrenceMode: value.recurrenceMode === 'ALL' ? undefined : value.recurrenceMode,
       minAmount: value.minAmount.trim().replace(',', '.') || undefined,
       maxAmount: value.maxAmount.trim().replace(',', '.') || undefined,
-      pageSize: optionalInteger(value.pageSize) ?? 20,
-      sortBy: value.sortBy as ExpenseQueryParams['sortBy'],
-      sortDirection: value.sortDirection as ExpenseQueryParams['sortDirection'],
+      pageSize: optionalInteger(value.pageSize) ?? this.defaultPageSize(),
+      sortBy: value.sortBy ?? undefined,
+      sortDirection: value.sortBy ? value.sortDirection ?? 'asc' : undefined,
     });
   }
 }

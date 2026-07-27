@@ -1,9 +1,9 @@
 <div class="d-none d-md-block table-responsive">
   <table class="table table-hover align-middle mb-0">
     <thead><tr>
-      <th><button class="sort-button" type="button" (click)="sort.emit('expenseDate')">Data <i class="bi" [class.bi-arrow-down]="sortBy() === 'expenseDate' && sortDirection() === 'desc'" [class.bi-arrow-up]="sortBy() === 'expenseDate' && sortDirection() === 'asc'"></i></button></th>
-      <th><button class="sort-button" type="button" (click)="sort.emit('description')">Descrizione <i class="bi" [class.bi-arrow-down]="sortBy() === 'description' && sortDirection() === 'desc'" [class.bi-arrow-up]="sortBy() === 'description' && sortDirection() === 'asc'"></i></button></th>
-      <th class="text-end"><button class="sort-button" type="button" (click)="sort.emit('amount')">Importo <i class="bi" [class.bi-arrow-down]="sortBy() === 'amount' && sortDirection() === 'desc'" [class.bi-arrow-up]="sortBy() === 'amount' && sortDirection() === 'asc'"></i></button></th>
+      <th [attr.aria-sort]="ariaSort('expenseDate')"><button class="sort-button" type="button" (click)="sort.emit('expenseDate')">Data <i class="bi" [class.bi-arrow-down]="sortBy() === 'expenseDate' && sortDirection() === 'desc'" [class.bi-arrow-up]="sortBy() === 'expenseDate' && sortDirection() === 'asc'" [class.bi-arrow-down-up]="sortBy() !== 'expenseDate'" [class.text-body-tertiary]="sortBy() !== 'expenseDate'" aria-hidden="true"></i></button></th>
+      <th [attr.aria-sort]="ariaSort('description')"><button class="sort-button" type="button" (click)="sort.emit('description')">Descrizione <i class="bi" [class.bi-arrow-down]="sortBy() === 'description' && sortDirection() === 'desc'" [class.bi-arrow-up]="sortBy() === 'description' && sortDirection() === 'asc'" [class.bi-arrow-down-up]="sortBy() !== 'description'" [class.text-body-tertiary]="sortBy() !== 'description'" aria-hidden="true"></i></button></th>
+      <th class="text-end" [attr.aria-sort]="ariaSort('amount')"><button class="sort-button" type="button" (click)="sort.emit('amount')">Importo <i class="bi" [class.bi-arrow-down]="sortBy() === 'amount' && sortDirection() === 'desc'" [class.bi-arrow-up]="sortBy() === 'amount' && sortDirection() === 'asc'" [class.bi-arrow-down-up]="sortBy() !== 'amount'" [class.text-body-tertiary]="sortBy() !== 'amount'" aria-hidden="true"></i></button></th>
       <th>Categoria</th><th>Etichette</th><th>Pagamento</th><th>Stato</th><th class="text-end">Azioni</th>
     </tr></thead>
     <tbody>
@@ -18,7 +18,21 @@
           (keydown.space)="activateRow(expense, $event)"
         >
           <td class="text-nowrap">{{ expense.expenseDate | italianExpenseDate }}@if (expense.expenseTime) { <div class="small text-body-secondary">{{ expense.expenseTime }}</div> }</td>
-          <td><strong>{{ expense.description }}</strong>@if (expense.merchant) { <div class="small text-body-secondary">{{ expense.merchant }}</div> }</td>
+          <td>
+            <strong>{{ expense.description }}</strong>
+            @if (expense.merchant) { <div class="small text-body-secondary">{{ expense.merchant }}</div> }
+            @if (expense.recurrence) {
+              <div class="mt-1">
+                <app-recurrence-expense-indicator [recurrenceId]="expense.recurrence.id" [recurrenceName]="expense.recurrence.name" />
+              </div>
+            }
+            @if (expense.nextReminderAt) {
+              <div class="small text-body-secondary mt-1">
+                <i class="bi bi-bell me-1" aria-hidden="true"></i>Prossimo: {{ expense.nextReminderAt | italianDateTime }}
+                @if (expense.activeReminderCount > 1) { <span> · {{ expense.activeReminderCount }} attivi</span> }
+              </div>
+            }
+          </td>
           <td class="text-end fw-semibold text-nowrap"><span class="visually-hidden">Importo </span>{{ expense.amount | euroAmount }}</td>
           <td><app-category-badge [name]="expense.category.name" [color]="expense.category.color" [icon]="expense.category.icon" /></td>
           <td><div class="d-flex flex-wrap gap-1">@for (label of expense.labels; track label.id) { <app-label-badge [name]="label.name" [color]="label.color" [icon]="label.icon" /> } @empty { <span class="text-body-secondary">—</span> }</div></td>

@@ -31,10 +31,15 @@ describe('calendar date utilities', () => {
       start: '2024-02-01',
       end: '2024-03-01',
     });
+    expect(calendarRange('year', '2024-07-20')).toEqual({
+      start: '2024-01-01',
+      end: '2025-01-01',
+    });
   });
 
   it('gestisce cambi mese, anni bisestili e date locali senza conversioni implicite', () => {
     expect(shiftCalendarPeriod('2026-03-31', 'month', -1)).toBe('2026-02-28');
+    expect(shiftCalendarPeriod('2024-02-29', 'year', 1)).toBe('2025-02-28');
     expect(addCalendarDays('2024-02-28', 1)).toBe('2024-02-29');
     expect(validCalendarDate('2026-02-30')).toBe(false);
     expect(todayRomeDate(new Date('2026-07-15T22:30:00Z'))).toBe('2026-07-16');
@@ -62,8 +67,15 @@ describe('calendar date utilities', () => {
       paymentMethod: 'CASH',
     });
 
-    const invalid = parseCalendarState({
+    const annual = parseCalendarState({
       view: 'year',
+      date: '2026-07-16',
+      status: 'PLANNED,COMPLETED',
+    });
+    expect(annual).toMatchObject({ valid: true, state: { view: 'year' } });
+
+    const invalid = parseCalendarState({
+      view: 'decade',
       date: '2026-02-30',
       status: 'UNKNOWN',
     }, '2026-07-16');

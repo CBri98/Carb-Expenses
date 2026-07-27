@@ -56,6 +56,16 @@ describe('CategoriesService', () => {
     });
   });
 
+  it('calcola i contatori sulle sole categorie visibili e filtrate', async () => {
+    prisma.category.findMany.mockResolvedValue([
+      { ...category(), preferences: [] },
+      { ...category({ id: '10000000-0000-4000-8000-000000000002', userId: 'user-1', isDefault: false, isActive: false }), preferences: [] },
+    ]);
+    await expect(service.summary('user-1', new CategoryQueryDto())).resolves.toEqual({
+      total: 2, active: 1, inactive: 1, custom: 1,
+    });
+  });
+
   it('normalizza e crea una categoria personale', async () => {
     const created = category({
       id: '10000000-0000-4000-8000-000000000002',

@@ -1,5 +1,22 @@
-import { ExpenseStatus, PaymentMethod, PrismaClient } from '@prisma/client';
+import {
+  ExpenseStatus,
+  NotificationStatus,
+  NotificationType,
+  PaymentMethod,
+  PrismaClient,
+  RecurrenceFrequency,
+  RecurrenceStatus,
+  ReminderType,
+} from '@prisma/client';
 import { argon2id, hash } from 'argon2';
+
+import {
+  localCalendarDate,
+  localDateTimeToUtc,
+  REMINDER_OFFSET_MINUTES,
+} from '../src/notifications/notification-time.utils';
+import { RecurrenceCalculatorService } from '../src/recurrences/recurrence-calculator.service';
+import { defaultPreferenceData } from '../src/settings/settings.defaults';
 
 const prisma = new PrismaClient();
 
@@ -86,6 +103,8 @@ async function seed(): Promise<void> {
   if (process.env['NODE_ENV'] === 'development') {
     const demoUser = await seedDemoUser();
     await seedDemoExpenses(demoUser.id);
+    await seedDemoNotifications(demoUser.id);
+    await seedDemoRecurrences(demoUser.id);
   }
 
   console.info(`Seed completato: ${defaultCategories.length} categorie predefinite`);
@@ -119,6 +138,13 @@ async function seedDemoUser() {
       currency: process.env['DEFAULT_CURRENCY'] ?? 'EUR',
       timezone: process.env['DEFAULT_TIMEZONE'] ?? 'Europe/Rome'
     }
+  });
+
+  const preferenceDefaults = defaultPreferenceData();
+  await prisma.userPreference.upsert({
+    where: { userId: user.id },
+    create: { ...preferenceDefaults, userId: user.id },
+    update: {},
   });
 
   console.info(`Utente demo disponibile: ${email}`);
@@ -211,6 +237,464 @@ async function seedDemoExpenses(userId: string): Promise<void> {
     });
   }
   console.info(`Spese demo disponibili: ${demoExpenses.length}`);
+}
+
+async function seedDemoNotifications(userId: string): Promise<void> {
+  const categories = await prisma.category.findMany({
+    where: { userId: null, name: { in: ['Bollette', 'Auto', 'Casa'] }, deletedAt: null },
+  });
+  const categoryByName = new Map(categories.map((category) => [category.name, category.id]));
+  const timezone = process.env['DEFAULT_TIMEZONE'] ?? 'Europe/Rome';
+  const defaultTime = process.env['DEFAULT_EXPENSE_REMINDER_TIME'] ?? '09:00';
+  const today = localCalendarDate(new Date(), timezone);
+  const definitions = [
+    {
+      id: '40000000-0000-4000-8000-000000000026',
+      description: 'Assicurazione casa tra 7 giorni',
+      amount: '245.00',
+      date: addLocalDays(today, 7),
+      category: 'Casa',
+    },
+    {
+      id: '40000000-0000-4000-8000-000000000027',
+      description: 'Bolletta internet tra 3 giorni',
+      amount: '39.90',
+      date: addLocalDays(today, 3),
+      category: 'Bollette',
+    },
+    {
+      id: '40000000-0000-4000-8000-000000000028',
+      description: 'Bollo auto previsto oggi',
+      amount: '198.40',
+      date: today,
+      category: 'Auto',
+    },
+    {
+      id: '40000000-0000-4000-8000-000000000029',
+      description: 'Bolletta acqua scaduta',
+      amount: '71.25',
+      date: addLocalDays(today, -2),
+      category: 'Bollette',
+    },
+  ] as const;
+
+  for (const definition of definitions) {
+    const categoryId = categoryByName.get(definition.category);
+    if (!categoryId) throw new Error(`Categoria demo non trovata: ${definition.category}`);
+    await prisma.expense.upsert({
+      where: { id: definition.id },
+      create: {
+        id: definition.id,
+        userId,
+        categoryId,
+        description: definition.description,
+        amount: definition.amount,
+        expenseDate: new Date(`${definition.date}T00:00:00.000Z`),
+        paymentMethod: PaymentMethod.DIRECT_DEBIT,
+        status: ExpenseStatus.PLANNED,
+        overdueNotifiedForDate:
+          definition.id.endsWith('29') ? new Date(`${definition.date}T00:00:00.000Z`) : null,
+      },
+      update: {
+        categoryId,
+        description: definition.description,
+        amount: definition.amount,
+        expenseDate: new Date(`${definition.date}T00:00:00.000Z`),
+        paymentMethod: PaymentMethod.DIRECT_DEBIT,
+        status: ExpenseStatus.PLANNED,
+        deletedAt: null,
+        overdueNotifiedForDate:
+          definition.id.endsWith('29') ? new Date(`${definition.date}T00:00:00.000Z`) : null,
+      },
+    });
+  }
+
+  const deadline = (date: string): Date => localDateTimeToUtc(date, defaultTime, timezone);
+  const reminderDefinitions = [
+    {
+      id: '50000000-0000-4000-8000-000000000001',
+      expenseId: definitions[0].id,
+      type: ReminderType.SEVEN_DAYS_BEFORE,
+      scheduledAt: offsetDate(deadline(definitions[0].date), REMINDER_OFFSET_MINUTES.SEVEN_DAYS_BEFORE),
+      processedAt: null,
+    },
+    {
+      id: '50000000-0000-4000-8000-000000000002',
+      expenseId: definitions[0].id,
+      type: ReminderType.THREE_DAYS_BEFORE,
+      scheduledAt: offsetDate(deadline(definitions[0].date), REMINDER_OFFSET_MINUTES.THREE_DAYS_BEFORE),
+      processedAt: null,
+    },
+    {
+      id: '50000000-0000-4000-8000-000000000003',
+      expenseId: definitions[1].id,
+      type: ReminderType.ONE_DAY_BEFORE,
+      scheduledAt: offsetDate(deadline(definitions[1].date), REMINDER_OFFSET_MINUTES.ONE_DAY_BEFORE),
+      processedAt: null,
+    },
+    {
+      id: '50000000-0000-4000-8000-000000000004',
+      expenseId: definitions[2].id,
+      type: ReminderType.SAME_DAY,
+      scheduledAt: deadline(definitions[2].date),
+      processedAt: new Date(),
+    },
+  ] as const;
+
+  for (const reminder of reminderDefinitions) {
+    await prisma.expenseReminder.upsert({
+      where: { id: reminder.id },
+      create: {
+        id: reminder.id,
+        userId,
+        expenseId: reminder.expenseId,
+        type: reminder.type,
+        offsetMinutes: REMINDER_OFFSET_MINUTES[reminder.type],
+        scheduledAt: reminder.scheduledAt,
+        processedAt: reminder.processedAt,
+      },
+      update: {
+        type: reminder.type,
+        offsetMinutes: REMINDER_OFFSET_MINUTES[reminder.type],
+        scheduledAt: reminder.scheduledAt,
+        processedAt: reminder.processedAt,
+        isActive: true,
+        cancelledAt: null,
+      },
+    });
+  }
+
+  const notifications = [
+    {
+      id: '60000000-0000-4000-8000-000000000001',
+      expenseId: definitions[2].id,
+      reminderId: reminderDefinitions[3].id,
+      type: NotificationType.EXPENSE_DUE_TODAY,
+      status: NotificationStatus.UNREAD,
+      title: 'Spesa prevista oggi',
+      message: `La spesa “${definitions[2].description}” è prevista per oggi.`,
+      scheduledAt: deadline(definitions[2].date),
+      deduplicationKey: `expense-due-today:${definitions[2].id}:${definitions[2].date}`,
+    },
+    {
+      id: '60000000-0000-4000-8000-000000000002',
+      expenseId: definitions[1].id,
+      reminderId: null,
+      type: NotificationType.EXPENSE_REMINDER,
+      status: NotificationStatus.READ,
+      title: 'Promemoria registrato',
+      message: `Hai configurato i promemoria per “${definitions[1].description}”.`,
+      scheduledAt: new Date(),
+      deduplicationKey: `seed-reminder-read:${definitions[1].id}`,
+    },
+    {
+      id: '60000000-0000-4000-8000-000000000003',
+      expenseId: definitions[0].id,
+      reminderId: null,
+      type: NotificationType.EXPENSE_REMINDER,
+      status: NotificationStatus.ARCHIVED,
+      title: 'Promemoria archiviato',
+      message: `Notifica dimostrativa per “${definitions[0].description}”.`,
+      scheduledAt: new Date(),
+      deduplicationKey: `seed-reminder-archived:${definitions[0].id}`,
+    },
+    {
+      id: '60000000-0000-4000-8000-000000000004',
+      expenseId: definitions[3].id,
+      reminderId: null,
+      type: NotificationType.EXPENSE_OVERDUE,
+      status: NotificationStatus.UNREAD,
+      title: 'Spesa scaduta',
+      message: `La spesa “${definitions[3].description}” risulta scaduta.`,
+      scheduledAt: deadline(definitions[3].date),
+      deduplicationKey: `expense-overdue:${definitions[3].id}:${definitions[3].date}`,
+    },
+  ] as const;
+
+  for (const notification of notifications) {
+    const readAt = notification.status === NotificationStatus.READ ? new Date() : null;
+    const archivedAt = notification.status === NotificationStatus.ARCHIVED ? new Date() : null;
+    await prisma.notification.upsert({
+      where: { id: notification.id },
+      create: { ...notification, userId, readAt, archivedAt },
+      update: { ...notification, userId, readAt, archivedAt },
+    });
+  }
+  console.info('Promemoria e notifiche demo disponibili');
+}
+
+async function seedDemoRecurrences(userId: string): Promise<void> {
+  const categories = await prisma.category.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        { userId: null, name: { in: ['Affitto', 'Abbonamenti', 'Auto', 'Casa'] } },
+        { userId, slug: 'caffe-e-bar' },
+      ],
+    },
+  });
+  const categoryByName = new Map(categories.map((category) => [category.name, category.id]));
+  const labels = await prisma.label.findMany({
+    where: { userId, slug: { in: ['spese-condivise', 'casa-nuova'] }, deletedAt: null },
+  });
+  const labelBySlug = new Map(labels.map((label) => [label.slug, label.id]));
+  const timezone = process.env['DEFAULT_TIMEZONE'] ?? 'Europe/Rome';
+  const today = localCalendarDate(new Date(), timezone);
+  const calculator = new RecurrenceCalculatorService();
+  const definitions = [
+    {
+      suffix: '01',
+      name: 'Affitto appartamento',
+      description: 'Affitto mensile',
+      amount: '850.00',
+      category: 'Affitto',
+      frequency: RecurrenceFrequency.MONTHLY,
+      interval: 1,
+      startDate: addLocalDays(today, 5),
+      status: RecurrenceStatus.ACTIVE,
+      maxOccurrences: null,
+      labels: ['spese-condivise'],
+      reminders: [ReminderType.THREE_DAYS_BEFORE, ReminderType.SAME_DAY],
+    },
+    {
+      suffix: '02',
+      name: 'Streaming famiglia',
+      description: 'Abbonamento streaming',
+      amount: '12.99',
+      category: 'Abbonamenti',
+      frequency: RecurrenceFrequency.MONTHLY,
+      interval: 1,
+      startDate: addLocalDays(today, 8),
+      status: RecurrenceStatus.ACTIVE,
+      maxOccurrences: null,
+      labels: [],
+      reminders: [ReminderType.ONE_DAY_BEFORE],
+    },
+    {
+      suffix: '03',
+      name: 'Rata auto',
+      description: 'Rata finanziamento auto',
+      amount: '315.00',
+      category: 'Auto',
+      frequency: RecurrenceFrequency.MONTHLY,
+      interval: 1,
+      startDate: addLocalDays(today, 12),
+      status: RecurrenceStatus.ACTIVE,
+      maxOccurrences: 36,
+      labels: [],
+      reminders: [ReminderType.THREE_DAYS_BEFORE],
+    },
+    {
+      suffix: '04',
+      name: 'Assicurazione casa',
+      description: 'Premio assicurazione casa',
+      amount: '245.00',
+      category: 'Casa',
+      frequency: RecurrenceFrequency.YEARLY,
+      interval: 1,
+      startDate: addLocalDays(today, 20),
+      status: RecurrenceStatus.ACTIVE,
+      maxOccurrences: null,
+      labels: ['casa-nuova'],
+      reminders: [ReminderType.SEVEN_DAYS_BEFORE],
+    },
+    {
+      suffix: '05',
+      name: 'Pulizie domestiche',
+      description: 'Servizio pulizie',
+      amount: '45.00',
+      category: 'Casa',
+      frequency: RecurrenceFrequency.WEEKLY,
+      interval: 2,
+      startDate: addLocalDays(today, 3),
+      status: RecurrenceStatus.ACTIVE,
+      maxOccurrences: null,
+      labels: [],
+      reminders: [ReminderType.ONE_DAY_BEFORE],
+    },
+    {
+      suffix: '06',
+      name: 'Consegna caffè',
+      description: 'Abbonamento caffè',
+      amount: '18.50',
+      category: 'Caffè e bar',
+      frequency: RecurrenceFrequency.MONTHLY,
+      interval: 1,
+      startDate: addLocalDays(today, 15),
+      status: RecurrenceStatus.PAUSED,
+      maxOccurrences: null,
+      labels: [],
+      reminders: [],
+    },
+    {
+      suffix: '07',
+      name: 'Corso online concluso',
+      description: 'Rata corso online',
+      amount: '60.00',
+      category: 'Abbonamenti',
+      frequency: RecurrenceFrequency.MONTHLY,
+      interval: 1,
+      startDate: addLocalDays(today, -10),
+      status: RecurrenceStatus.COMPLETED,
+      maxOccurrences: 1,
+      labels: [],
+      reminders: [],
+    },
+  ] as const;
+
+  for (const definition of definitions) {
+    const categoryId = categoryByName.get(definition.category);
+    if (!categoryId) throw new Error(`Categoria ricorrenza demo non trovata: ${definition.category}`);
+    const ruleId = `70000000-0000-4000-8000-${definition.suffix.padStart(12, '0')}`;
+    const expenseId = `80000000-0000-4000-8000-${definition.suffix.padStart(12, '0')}`;
+    const startDate = new Date(`${definition.startDate}T00:00:00.000Z`);
+    const schedule = {
+      frequency: definition.frequency,
+      interval: definition.interval,
+      startDate,
+      endDate: null,
+      maxOccurrences: definition.maxOccurrences,
+    };
+    const nextOccurrenceDate =
+      definition.status === RecurrenceStatus.COMPLETED
+        ? null
+        : calculator.next(startDate, schedule);
+    const labelIds = definition.labels
+      .map((slug) => labelBySlug.get(slug))
+      .filter((id): id is string => Boolean(id));
+
+    await prisma.recurrenceRule.upsert({
+      where: { id: ruleId },
+      create: {
+        id: ruleId,
+        userId,
+        categoryId,
+        name: definition.name,
+        description: definition.description,
+        amount: definition.amount,
+        paymentMethod: PaymentMethod.DIRECT_DEBIT,
+        frequency: definition.frequency,
+        interval: definition.interval,
+        status: definition.status,
+        startDate,
+        nextOccurrenceDate,
+        lastGeneratedDate: startDate,
+        maxOccurrences: definition.maxOccurrences,
+        generatedCount: 1,
+        expenseTime: new Date('1970-01-01T09:00:00.000Z'),
+        generateDaysAhead: 60,
+        pausedAt: definition.status === RecurrenceStatus.PAUSED ? new Date() : null,
+        completedAt: definition.status === RecurrenceStatus.COMPLETED ? new Date() : null,
+      },
+      update: {
+        categoryId,
+        name: definition.name,
+        description: definition.description,
+        amount: definition.amount,
+        paymentMethod: PaymentMethod.DIRECT_DEBIT,
+        frequency: definition.frequency,
+        interval: definition.interval,
+        status: definition.status,
+        startDate,
+        nextOccurrenceDate,
+        lastGeneratedDate: startDate,
+        maxOccurrences: definition.maxOccurrences,
+        generatedCount: 1,
+        expenseTime: new Date('1970-01-01T09:00:00.000Z'),
+        generateDaysAhead: 60,
+        pausedAt: definition.status === RecurrenceStatus.PAUSED ? new Date() : null,
+        completedAt: definition.status === RecurrenceStatus.COMPLETED ? new Date() : null,
+        cancelledAt: null,
+        deletedAt: null,
+      },
+    });
+    await prisma.recurrenceRuleLabel.deleteMany({ where: { recurrenceRuleId: ruleId } });
+    if (labelIds.length > 0) {
+      await prisma.recurrenceRuleLabel.createMany({
+        data: labelIds.map((labelId) => ({ recurrenceRuleId: ruleId, labelId })),
+      });
+    }
+    await prisma.recurrenceReminderTemplate.deleteMany({
+      where: { recurrenceRuleId: ruleId },
+    });
+    if (definition.reminders.length > 0) {
+      await prisma.recurrenceReminderTemplate.createMany({
+        data: definition.reminders.map((type) => ({
+          recurrenceRuleId: ruleId,
+          type,
+          offsetMinutes: REMINDER_OFFSET_MINUTES[type],
+          reminderTime: new Date('1970-01-01T09:00:00.000Z'),
+        })),
+      });
+    }
+    await prisma.expense.upsert({
+      where: { id: expenseId },
+      create: {
+        id: expenseId,
+        userId,
+        categoryId,
+        description: definition.description,
+        amount: definition.amount,
+        expenseDate: startDate,
+        expenseTime: new Date('1970-01-01T09:00:00.000Z'),
+        paymentMethod: PaymentMethod.DIRECT_DEBIT,
+        status: ExpenseStatus.PLANNED,
+        recurrenceRuleId: ruleId,
+        occurrenceDate: startDate,
+        generatedByRecurrence: true,
+        labels: { create: labelIds.map((labelId) => ({ labelId })) },
+      },
+      update: {
+        categoryId,
+        description: definition.description,
+        amount: definition.amount,
+        expenseDate: startDate,
+        expenseTime: new Date('1970-01-01T09:00:00.000Z'),
+        paymentMethod: PaymentMethod.DIRECT_DEBIT,
+        recurrenceRuleId: ruleId,
+        occurrenceDate: startDate,
+        generatedByRecurrence: true,
+        labels: {
+          deleteMany: {},
+          create: labelIds.map((labelId) => ({ labelId })),
+        },
+      },
+    });
+    for (const type of definition.reminders) {
+      const deadline = localDateTimeToUtc(definition.startDate, '09:00', timezone);
+      const scheduledAt = offsetDate(deadline, REMINDER_OFFSET_MINUTES[type]);
+      await prisma.expenseReminder.upsert({
+        where: {
+          expenseId_type_scheduledAt: {
+            expenseId,
+            type,
+            scheduledAt,
+          },
+        },
+        create: {
+          userId,
+          expenseId,
+          type,
+          offsetMinutes: REMINDER_OFFSET_MINUTES[type],
+          scheduledAt,
+          isActive: scheduledAt >= new Date(),
+          cancelledAt: scheduledAt < new Date() ? new Date() : null,
+        },
+        update: {},
+      });
+    }
+  }
+  console.info(`Ricorrenze demo disponibili: ${definitions.length}`);
+}
+
+function addLocalDays(date: string, days: number): string {
+  const value = new Date(`${date}T00:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function offsetDate(date: Date, minutes: number): Date {
+  return new Date(date.getTime() - minutes * 60_000);
 }
 
 seed()

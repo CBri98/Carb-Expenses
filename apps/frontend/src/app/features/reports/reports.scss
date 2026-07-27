@@ -18,9 +18,9 @@
   min-width: 0;
   padding: 1.2rem;
   background: var(--surface);
-  border: 1px solid #d9ddec;
+  border: 1px solid var(--border-color);
   border-radius: .9rem;
-  box-shadow: 0 .25rem 1rem rgb(59 65 104 / 7%);
+  box-shadow: var(--shadow-sm);
 }
 .card-heading {
   display: flex;
@@ -53,7 +53,7 @@
   border-radius: 50%;
 }
 .report-details { display: grid; gap: 0; margin: 0; }
-.report-details div { padding: .85rem 0; border-bottom: 1px solid #e5e7ef; }
+.report-details div { padding: .85rem 0; border-bottom: 1px solid var(--border-color); }
 .report-details div:last-child { border-bottom: 0; }
 .report-details dt { color: var(--text-secondary); font-size: .78rem; text-transform: uppercase; }
 .report-details dd { margin: .25rem 0 0; font-weight: 650; }
@@ -66,9 +66,9 @@
 .comparison-card {
   padding: 1rem;
   background: var(--surface);
-  border: 1px solid #d9ddec;
+  border: 1px solid var(--border-color);
   border-radius: .9rem;
-  box-shadow: 0 .2rem .8rem rgb(59 65 104 / 6%);
+  box-shadow: var(--shadow-sm);
 }
 .comparison-card__title {
   margin: 0 0 .75rem;
@@ -79,7 +79,7 @@
   text-transform: uppercase;
 }
 .comparison-card dl { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; margin: 0; }
-.comparison-card dl div { min-width: 0; padding: .65rem; background: #f5f6fb; border-radius: .6rem; }
+.comparison-card dl div { min-width: 0; padding: .65rem; background: var(--surface-soft); border-radius: .6rem; }
 .comparison-card dt { color: var(--text-secondary); font-size: .74rem; }
 .comparison-card dd { margin: .15rem 0 0; overflow-wrap: anywhere; font-size: 1.05rem; font-weight: 750; }
 .comparison-card__change {

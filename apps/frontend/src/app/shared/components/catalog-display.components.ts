@@ -29,7 +29,7 @@ export class PageHeaderComponent {
     [style.border-color]="color()"
     ><i class="bi me-1" [class]="icon()" aria-hidden="true"></i>{{ name() }}</span
   >`,
-  styles: [`.category-badge { background: #fff !important; }`],
+  styles: [`.category-badge { background: var(--surface) !important; }`],
 })
 export class CategoryBadgeComponent {
   readonly name = input.required<string>();
@@ -72,8 +72,12 @@ export class StatusBadgeComponent {
     <i class="bi bi-inbox fs-1 text-body-tertiary" aria-hidden="true"></i>
     <h2 class="h5 mt-3">{{ title() }}</h2>
     <p class="text-body-secondary">{{ message() }}</p>
-    <ng-content />
+    <div class="empty-state__actions"><ng-content /></div>
   </div>`,
+  styles: [`
+    .empty-state__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .65rem; }
+    .empty-state__actions:empty { display: none; }
+  `],
 })
 export class EmptyStateComponent {
   readonly title = input('Nessun elemento');
@@ -89,6 +93,24 @@ export class EmptyStateComponent {
   </div>`,
 })
 export class LoadingSkeletonComponent {}
+
+@Component({
+  selector: 'app-counter-card',
+  standalone: true,
+  template: `<article class="card counter-card h-100"><div class="card-body d-flex align-items-center gap-3">
+    <span class="counter-card__icon" aria-hidden="true"><i class="bi" [class]="icon()"></i></span>
+    <div><span class="small text-body-secondary">{{ label() }}</span><strong class="d-block fs-4">{{ value() }}</strong></div>
+  </div></article>`,
+  styles: [`
+    .counter-card { border: 0; box-shadow: var(--shadow-sm); }
+    .counter-card__icon { display: grid; width: 2.5rem; height: 2.5rem; flex: 0 0 auto; color: var(--primary); background: var(--primary-soft); border-radius: .7rem; place-items: center; }
+  `],
+})
+export class CounterCardComponent {
+  readonly label = input.required<string>();
+  readonly value = input.required<number | string>();
+  readonly icon = input('bi-bar-chart');
+}
 
 @Component({
   selector: 'app-search-input',

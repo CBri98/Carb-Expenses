@@ -15,6 +15,7 @@
     "build:backend": "npm run build --workspace @carbexpenses/backend",
     "test": "npm run test --workspaces --if-present",
     "test:frontend": "npm run test --workspace @carbexpenses/frontend",
+    "test:e2e:reload": "npm run test:e2e:reload --workspace @carbexpenses/frontend",
     "test:backend": "npm run test --workspace @carbexpenses/backend",
     "lint": "eslint apps --max-warnings=0",
     "typecheck": "npm run typecheck --workspaces --if-present",

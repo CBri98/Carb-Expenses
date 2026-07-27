@@ -1,11 +1,21 @@
-import type { ExpenseStatus, PaymentMethod, Prisma } from '@prisma/client';
+import type {
+  ExpenseStatus,
+  PaymentMethod,
+  Prisma,
+  RecurrenceStatus,
+} from '@prisma/client';
 
 export type ExpenseWithRelations = Prisma.ExpenseGetPayload<{
   include: {
     category: true;
     labels: { include: { label: true } };
+    recurrenceRule: { select: { id: true; name: true; status: true } };
   };
 }>;
+
+export type ExpenseWithReminderSummary = ExpenseWithRelations & {
+  reminders?: Array<{ scheduledAt: Date }>;
+};
 
 export interface ExpenseCategoryResponse {
   id: string;
@@ -33,6 +43,15 @@ export interface ExpenseResponse {
   paymentMethod: PaymentMethod;
   notes: string | null;
   status: ExpenseStatus;
+  generatedByRecurrence: boolean;
+  occurrenceDate: string | null;
+  recurrence: {
+    id: string;
+    name: string;
+    status: RecurrenceStatus;
+  } | null;
+  nextReminderAt: string | null;
+  activeReminderCount: number;
   category: ExpenseCategoryResponse;
   labels: ExpenseLabelResponse[];
   createdAt: string;
@@ -49,4 +68,11 @@ export interface ExpensePaginationMeta extends Record<string, unknown> {
 export interface ExpenseCsvResult {
   content: string;
   filename: string;
+}
+
+export interface ExpenseListSummary {
+  totalResults: number;
+  completed: number;
+  planned: number;
+  cancelled: number;
 }

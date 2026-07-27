@@ -1,16 +1,17 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Component, DestroyRef, PLATFORM_ID, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
 
 import { apiErrorMessage } from '../../../core/services/api-error';
 import { CategoryService } from '../../../core/services/category.service';
 import { ExpenseService } from '../../../core/services/expense.service';
 import { LabelService } from '../../../core/services/label.service';
-import { EmptyStateComponent, LoadingSkeletonComponent, PageHeaderComponent } from '../../../shared/components/catalog-display.components';
+import { SettingsStore } from '../../../core/services/settings.store';
+import { CounterCardComponent, EmptyStateComponent, LoadingSkeletonComponent, PageHeaderComponent } from '../../../shared/components/catalog-display.components';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog.component';
-import type { ExpenseListItem, ExpenseQueryParams, PaginationMeta } from '../../../shared/models/expense.models';
+import type { ExpenseListItem, ExpenseListSummary, ExpenseQueryParams, PaginationMeta } from '../../../shared/models/expense.models';
 import { ExpenseFiltersComponent } from '../components/expense-filters.component';
 import { ExpenseTableComponent, type ExpenseStatusAction } from '../components/expense-table.component';
 import { PaginationComponent } from '../components/pagination.component';
@@ -23,12 +24,14 @@ interface Notice { type: 'success' | 'danger'; text: string; }
   imports: [
     PageHeaderComponent, EmptyStateComponent, LoadingSkeletonComponent, ConfirmDialogComponent,
     ExpenseFiltersComponent, ExpenseTableComponent, PaginationComponent,
+    CounterCardComponent,
   ],
   templateUrl: './expenses-page.component.html',
   styleUrl: './expenses-page.component.scss',
 })
 export class ExpensesPageComponent {
   private static readonly SHOW_FUTURE_STORAGE_KEY = 'carbexpenses.expenses.showFuture.v1';
+  private static readonly FILTERS_STORAGE_KEY = 'carbexpenses.expenses.filters.v1';
 
   private readonly expensesService = inject(ExpenseService);
   private readonly categoriesService = inject(CategoryService);
@@ -37,14 +40,17 @@ export class ExpensesPageComponent {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly settings = inject(SettingsStore);
   private observedVersion = 0;
 
   readonly categories = this.categoriesService.categories;
   readonly labels = this.labelsService.labels;
+  readonly defaultPageSize = computed(() => this.settings.experience().defaultPageSize);
   readonly showFuture = signal(this.readShowFuturePreference());
   readonly expenses = signal<ExpenseListItem[]>([]);
   readonly meta = signal<PaginationMeta>({ page: 1, pageSize: 20, totalItems: 0, totalPages: 0 });
-  readonly query = signal<ExpenseQueryParams>({ page: 1, pageSize: 20, sortBy: 'expenseDate', sortDirection: 'desc' });
+  readonly summary = signal<ExpenseListSummary>({ totalResults: 0, completed: 0, planned: 0, cancelled: 0 });
+  readonly query = signal<ExpenseQueryParams>({ page: 1, pageSize: 20 });
   readonly loading = signal(true);
   readonly exporting = signal(false);
   readonly deleting = signal(false);
@@ -52,12 +58,22 @@ export class ExpensesPageComponent {
   readonly notice = signal<Notice | null>(null);
 
   constructor() {
+    this.settings.ensureLoaded();
     this.categoriesService.load({ sortBy: 'sortOrder', sortDirection: 'asc' })
       .pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.labelsService.load({ sortBy: 'sortOrder', sortDirection: 'asc' })
       .pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const query = queryFromParams(params);
+      const experience = this.settings.experience();
+      const remembered = experience.rememberExpenseFilters && params.keys.length === 0
+        ? this.readRememberedFilters()
+        : undefined;
+      const query = queryFromParams(
+        params,
+        experience.defaultPageSize,
+        remembered,
+      );
+      this.persistFilters(query);
       this.query.set(query);
       this.load(query);
     });
@@ -81,8 +97,17 @@ export class ExpensesPageComponent {
   sortBy(field: ExpenseQueryParams['sortBy']): void {
     if (!field) return;
     const current = this.query();
-    const direction = current.sortBy === field && current.sortDirection === 'asc' ? 'desc' : 'asc';
-    void this.navigate({ ...current, page: 1, sortBy: field, sortDirection: direction });
+    const next = { ...current, page: 1 };
+    if (current.sortBy !== field) {
+      next.sortBy = field;
+      next.sortDirection = 'asc';
+    } else if (current.sortDirection === 'asc') {
+      next.sortDirection = 'desc';
+    } else {
+      delete next.sortBy;
+      delete next.sortDirection;
+    }
+    void this.navigate(next);
   }
 
   newExpense(): void {
@@ -170,11 +195,19 @@ export class ExpensesPageComponent {
 
   private load(query: ExpenseQueryParams, showLoading = true): void {
     if (showLoading) this.loading.set(true);
-    this.expensesService.list(this.effectiveQuery(query)).pipe(
+    const effective = this.effectiveQuery(query);
+    forkJoin({
+      list: this.expensesService.list(effective),
+      summary: this.expensesService.summary(effective),
+    }).pipe(
       finalize(() => this.loading.set(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: (result) => { this.expenses.set(result.items); this.meta.set(result.meta); },
+      next: ({ list, summary }) => {
+        this.expenses.set(list.items);
+        this.meta.set(list.meta);
+        this.summary.set(summary);
+      },
       error: (error: unknown) => this.failure(error),
     });
   }
@@ -196,6 +229,35 @@ export class ExpensesPageComponent {
     return true;
   }
 
+  private readRememberedFilters(): ExpenseQueryParams | undefined {
+    if (!isPlatformBrowser(this.platformId)) return undefined;
+    try {
+      const raw = window.localStorage.getItem(ExpensesPageComponent.FILTERS_STORAGE_KEY);
+      if (!raw) return undefined;
+      const value = JSON.parse(raw) as unknown;
+      return typeof value === 'object' && value !== null
+        ? sanitizeRememberedQuery(value as Record<string, unknown>)
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private persistFilters(query: ExpenseQueryParams): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+    try {
+      if (!this.settings.experience().rememberExpenseFilters) {
+        window.localStorage.removeItem(ExpensesPageComponent.FILTERS_STORAGE_KEY);
+        return;
+      }
+      const filters = { ...query };
+      delete filters.page;
+      window.localStorage.setItem(ExpensesPageComponent.FILTERS_STORAGE_KEY, JSON.stringify(filters));
+    } catch {
+      // I query parameter restano la sorgente attiva se lo storage non è disponibile.
+    }
+  }
+
   private success(text: string): void {
     this.notice.set({ type: 'success', text });
   }
@@ -205,29 +267,80 @@ export class ExpensesPageComponent {
   }
 }
 
-function queryFromParams(params: ParamMap): ExpenseQueryParams {
+function queryFromParams(
+  params: ParamMap,
+  defaultPageSize = 20,
+  remembered: ExpenseQueryParams = {},
+): ExpenseQueryParams {
   const query: ExpenseQueryParams = {
+    ...remembered,
     page: positiveInt(params.get('page')) ?? 1,
-    pageSize: positiveInt(params.get('pageSize')) ?? 20,
-    sortBy: sortField(params.get('sortBy')),
-    sortDirection: params.get('sortDirection') === 'asc' ? 'asc' : 'desc',
+    pageSize: positiveInt(params.get('pageSize')) ?? remembered.pageSize ?? defaultPageSize,
   };
-  setString(query, 'search', params.get('search'));
-  setString(query, 'dateFrom', params.get('dateFrom'));
-  setString(query, 'dateTo', params.get('dateTo'));
-  setString(query, 'categoryId', params.get('categoryId'));
-  setString(query, 'minAmount', params.get('minAmount'));
-  setString(query, 'maxAmount', params.get('maxAmount'));
-  query.month = positiveInt(params.get('month'));
-  query.year = positiveInt(params.get('year'));
-  const labelIds = params.get('labelIds')?.split(',').filter(Boolean);
-  if (labelIds?.length) query.labelIds = labelIds;
-  const status = params.get('status');
-  if (status === 'COMPLETED' || status === 'PLANNED' || status === 'CANCELLED') query.status = status;
-  const payment = params.get('paymentMethod');
-  if (payment && ['CASH','DEBIT_CARD','CREDIT_CARD','BANK_TRANSFER','DIRECT_DEBIT','DIGITAL_WALLET','CHECK','OTHER'].includes(payment)) {
-    query.paymentMethod = payment as ExpenseQueryParams['paymentMethod'];
+  if (params.has('sortBy')) query.sortBy = sortField(params.get('sortBy'));
+  if (params.has('sortDirection')) {
+    query.sortDirection = params.get('sortDirection') === 'desc' ? 'desc' : 'asc';
   }
+  for (const key of ['search', 'dateFrom', 'dateTo', 'categoryId', 'minAmount', 'maxAmount'] as const) {
+    if (params.has(key)) {
+      delete query[key];
+      setString(query, key, params.get(key));
+    }
+  }
+  if (params.has('month')) { delete query.month; query.month = positiveInt(params.get('month')); }
+  if (params.has('year')) { delete query.year; query.year = positiveInt(params.get('year')); }
+  if (params.has('labelIds')) query.labelIds = params.get('labelIds')?.split(',').filter(Boolean) ?? [];
+  if (params.has('categoryIds')) {
+    delete query.categoryId;
+    query.categoryIds = csv(params.get('categoryIds'));
+  }
+  if (params.has('status')) {
+    const status = params.get('status');
+    if (status === 'COMPLETED' || status === 'PLANNED' || status === 'CANCELLED') query.status = status;
+    else delete query.status;
+  }
+  if (params.has('paymentMethod')) {
+    const payment = params.get('paymentMethod');
+    if (payment && ['CASH','DEBIT_CARD','CREDIT_CARD','BANK_TRANSFER','DIRECT_DEBIT','DIGITAL_WALLET','CHECK','OTHER'].includes(payment)) query.paymentMethod = payment as ExpenseQueryParams['paymentMethod'];
+    else delete query.paymentMethod;
+  }
+  if (params.has('statuses')) {
+    delete query.status;
+    query.statuses = csv(params.get('statuses')).filter(isExpenseStatus);
+  }
+  if (params.has('paymentMethods')) {
+    delete query.paymentMethod;
+    query.paymentMethods = csv(params.get('paymentMethods')).filter(isPaymentMethod);
+  }
+  if (params.has('recurrenceMode')) {
+    const mode = params.get('recurrenceMode');
+    if (mode === 'ALL' || mode === 'EXCLUDE' || mode === 'ONLY') query.recurrenceMode = mode;
+    else delete query.recurrenceMode;
+  }
+  return query;
+}
+
+function sanitizeRememberedQuery(value: Record<string, unknown>): ExpenseQueryParams {
+  const query: ExpenseQueryParams = {};
+  if ([10, 20, 50, 100].includes(Number(value['pageSize']))) query.pageSize = Number(value['pageSize']);
+  for (const key of ['search', 'dateFrom', 'dateTo', 'categoryId', 'minAmount', 'maxAmount'] as const) {
+    if (typeof value[key] === 'string') query[key] = value[key];
+  }
+  if (Number.isInteger(value['month']) && Number(value['month']) >= 1 && Number(value['month']) <= 12) query.month = Number(value['month']);
+  if (Number.isInteger(value['year']) && Number(value['year']) >= 2000 && Number(value['year']) <= 2100) query.year = Number(value['year']);
+  if (Array.isArray(value['labelIds'])) query.labelIds = value['labelIds'].filter((item): item is string => typeof item === 'string');
+  if (Array.isArray(value['categoryIds'])) query.categoryIds = stringArray(value['categoryIds']);
+  if (Array.isArray(value['statuses'])) query.statuses = stringArray(value['statuses']).filter(isExpenseStatus);
+  if (Array.isArray(value['paymentMethods'])) query.paymentMethods = stringArray(value['paymentMethods']).filter(isPaymentMethod);
+  const status = value['status'];
+  if (status === 'COMPLETED' || status === 'PLANNED' || status === 'CANCELLED') query.status = status;
+  const payment = value['paymentMethod'];
+  if (typeof payment === 'string' && ['CASH','DEBIT_CARD','CREDIT_CARD','BANK_TRANSFER','DIRECT_DEBIT','DIGITAL_WALLET','CHECK','OTHER'].includes(payment)) query.paymentMethod = payment as ExpenseQueryParams['paymentMethod'];
+  const recurrenceMode = value['recurrenceMode'];
+  if (recurrenceMode === 'ALL' || recurrenceMode === 'EXCLUDE' || recurrenceMode === 'ONLY') query.recurrenceMode = recurrenceMode;
+  const sort = value['sortBy'];
+  if (typeof sort === 'string' && ['expenseDate','amount','description','createdAt','updatedAt'].includes(sort)) query.sortBy = sort as ExpenseQueryParams['sortBy'];
+  if (value['sortDirection'] === 'asc' || value['sortDirection'] === 'desc') query.sortDirection = value['sortDirection'];
   return query;
 }
 
@@ -251,5 +364,21 @@ function positiveInt(value: string | null): number | undefined {
 
 function sortField(value: string | null): ExpenseQueryParams['sortBy'] {
   return value && ['expenseDate','amount','description','createdAt','updatedAt'].includes(value)
-    ? (value as ExpenseQueryParams['sortBy']) : 'expenseDate';
+    ? (value as ExpenseQueryParams['sortBy']) : undefined;
+}
+
+function csv(value: string | null): string[] {
+  return value?.split(',').map((item) => item.trim()).filter(Boolean) ?? [];
+}
+
+function stringArray(value: unknown[]): string[] {
+  return value.filter((item): item is string => typeof item === 'string');
+}
+
+function isExpenseStatus(value: string): value is NonNullable<ExpenseQueryParams['status']> {
+  return value === 'COMPLETED' || value === 'PLANNED' || value === 'CANCELLED';
+}
+
+function isPaymentMethod(value: string): value is NonNullable<ExpenseQueryParams['paymentMethod']> {
+  return ['CASH','DEBIT_CARD','CREDIT_CARD','BANK_TRANSFER','DIRECT_DEBIT','DIGITAL_WALLET','CHECK','OTHER'].includes(value);
 }

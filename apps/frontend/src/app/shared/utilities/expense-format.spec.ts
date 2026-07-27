@@ -3,6 +3,8 @@ import {
   expenseStatusLabel,
   formatEuroAmount,
   formatItalianDate,
+  formatItalianDateTime,
+  formatItalianExtendedDate,
   isFutureLocalDate,
   normalizeAmount,
   paymentMethodLabel,
@@ -16,6 +18,8 @@ describe('formattazione spese', () => {
 
   it('formatta date locali senza conversioni di fuso', () => {
     expect(formatItalianDate('2026-07-14')).toBe('14/07/2026');
+    expect(formatItalianExtendedDate('2026-07-14')).toContain('14 luglio 2026');
+    expect(formatItalianDateTime('2026-07-14T08:30:00.000Z')).toContain('10:30');
     expect(isFutureLocalDate('2026-07-15', '2026-07-14')).toBe(true);
   });
 

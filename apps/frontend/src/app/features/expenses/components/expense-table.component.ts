@@ -4,10 +4,12 @@ import { CategoryBadgeComponent, LabelBadgeComponent } from '../../../shared/com
 import {
   EuroAmountPipe,
   ExpenseStatusBadgeComponent,
+  ItalianDateTimePipe,
   ItalianExpenseDatePipe,
   PaymentMethodBadgeComponent,
 } from '../../../shared/components/expense-display.components';
 import type { ExpenseListItem, ExpenseQueryParams, ExpenseStatus } from '../../../shared/models/expense.models';
+import { RecurrenceExpenseIndicatorComponent } from '../../recurrences/recurrence-display.components';
 import { ExpenseActionsMenuComponent } from './expense-actions-menu.component';
 import { ExpenseCardComponent } from './expense-card.component';
 
@@ -26,8 +28,10 @@ export interface ExpenseStatusAction {
     PaymentMethodBadgeComponent,
     EuroAmountPipe,
     ItalianExpenseDatePipe,
+    ItalianDateTimePipe,
     ExpenseActionsMenuComponent,
     ExpenseCardComponent,
+    RecurrenceExpenseIndicatorComponent,
   ],
   templateUrl: './expense-table.component.html',
   styleUrl: './expense-table.component.scss',
@@ -50,5 +54,10 @@ export class ExpenseTableComponent {
 
   changeStatus(expense: ExpenseListItem, status: ExpenseStatus): void {
     this.statusChange.emit({ expense, status });
+  }
+
+  ariaSort(field: ExpenseQueryParams['sortBy']): 'ascending' | 'descending' | 'none' {
+    if (this.sortBy() !== field) return 'none';
+    return this.sortDirection() === 'desc' ? 'descending' : 'ascending';
   }
 }

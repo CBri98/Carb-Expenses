@@ -5,6 +5,31 @@
   <title>Carbexpenses | Gestionale nota spese</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    (() => {
+      const themes = ['LIGHT', 'DARK', 'SYSTEM'];
+      const accents = ['INDIGO', 'LAVENDER', 'SKY', 'MINT', 'CORAL', 'ROSE'];
+      let mode = 'SYSTEM';
+      let accent = 'INDIGO';
+      let compact = false;
+      try {
+        const cached = JSON.parse(localStorage.getItem('carbexpenses.preferences.v1') || 'null');
+        if (themes.includes(cached?.appearance?.themeMode)) mode = cached.appearance.themeMode;
+        if (accents.includes(cached?.appearance?.accentColor)) accent = cached.appearance.accentColor;
+        compact = cached?.experience?.compactTables === true;
+      } catch {}
+      const dark = mode === 'DARK' ||
+        (mode === 'SYSTEM' && matchMedia('(prefers-color-scheme: dark)').matches);
+      const root = document.documentElement;
+      root.dataset.theme = dark ? 'dark' : 'light';
+      root.dataset.bsTheme = dark ? 'dark' : 'light';
+      root.dataset.themeMode = mode.toLowerCase();
+      root.dataset.accent = accent.toLowerCase();
+      root.dataset.density = compact ? 'compact' : 'comfortable';
+      root.style.colorScheme = dark ? 'dark' : 'light';
+    })();
+  </script>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
 <body>

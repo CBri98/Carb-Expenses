@@ -19,6 +19,11 @@ const expense: RecentExpense = {
   createdAt: '2026-07-01T08:00:00.000Z',
   updatedAt: '2026-07-01T08:00:00.000Z',
   category: { id: 'category-1', name: 'Bollette', color: '#4F46E5', icon: 'bi-lightning', isActive: true },
+  generatedByRecurrence: false,
+  occurrenceDate: null,
+  recurrence: null,
+  nextReminderAt: null,
+  activeReminderCount: 0,
 };
 
 describe('RecentExpensesComponent', () => {

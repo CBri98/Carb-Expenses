@@ -40,12 +40,37 @@ La realizzazione procede per incrementi avviabili. Ogni fase termina con build, 
 - filtri URL, creazione, dettaglio, modifica e cambio stato riutilizzando i flussi spesa;
 - gestione delle pianificate scadute e spostamento con rollback.
 
-## Fase 8 — Avvisi e ricorrenze
+## Fase 8 — Promemoria e notifiche interne (completata)
 
-- notifiche interne e scheduler;
-- generazione idempotente delle ricorrenze.
+- promemoria multipli sulle spese pianificate;
+- notifiche interne deduplicate e scheduler NestJS;
+- pagina notifiche, campanella e conteggio non letto.
 
-## Fase 9 — Rifinitura
+## Fase 9 — Spese ricorrenti (completata)
 
-- accessibilità e responsive design;
-- copertura test, hardening finale e documentazione operativa.
+- regole giornaliere, settimanali, mensili e annuali;
+- generazione anticipata idempotente, eccezioni, pausa e terminazione;
+- pagina elenco, dettaglio e form ricorrenze.
+
+## Fase 10 — Impostazioni e personalizzazione (completata)
+
+- account, password e revoca delle altre sessioni;
+- preferenze persistenti per tema, accento, esperienza, icone e promemoria;
+- applicazione immediata delle preferenze e cache locale non sensibile.
+
+## Fase 10.5 — Rifinitura interfaccia (completata)
+
+- reload affidabile delle route protette senza redirect intermedio;
+- coerenza light/dark e accenti su layout, grafici e componenti Bootstrap;
+- filtri condivisi, responsive di dashboard, report, spese e calendario;
+- ricorrenze uniformate, catalogo di 97 icone e date estese centralizzate;
+- test unitari completi e test E2E del reload autenticato, responsive, tema e flussi Ricorrenze.
+
+## Fase 11 — Gestione centralizzata dei promemoria
+
+- evoluzione della gestione promemoria oltre i form delle singole spese.
+
+## Fase 12 — Polish, testing e release
+
+- accessibilità e responsive design finali;
+- copertura test, hardening, bundle e documentazione operativa.

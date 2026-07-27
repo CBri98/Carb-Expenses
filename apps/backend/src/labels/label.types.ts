@@ -17,3 +17,10 @@ export interface LabelResponse {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface LabelSummary {
+  total: number;
+  withCategory: number;
+  withoutCategory: number;
+  unused: number;
+}

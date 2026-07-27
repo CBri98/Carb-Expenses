@@ -9,10 +9,17 @@ import {
 
 import { CategoryService } from '../../../core/services/category.service';
 import { LabelService } from '../../../core/services/label.service';
+import { SettingsStore } from '../../../core/services/settings.store';
 import { apiErrorMessage } from '../../../core/services/api-error';
-import type { CreateExpenseRequest, ExpenseDetail } from '../../../shared/models/expense.models';
+import type {
+  CreateExpenseRequest,
+  ExpenseDetail,
+  ExpenseFormSubmission,
+} from '../../../shared/models/expense.models';
 import { EXPENSE_STATUSES, PAYMENT_METHODS } from '../../../shared/models/expense.models';
+import type { ExpenseReminder, ReminderDraft } from '../../../shared/models/notification.models';
 import { isFutureLocalDate, normalizeAmount, todayLocalDate } from '../../../shared/utilities/expense-format';
+import { ExpenseReminderFormComponent } from './expense-reminder-form.component';
 
 @Component({
   selector: 'app-expense-form',
@@ -22,6 +29,7 @@ import { isFutureLocalDate, normalizeAmount, todayLocalDate } from '../../../sha
     NgSelectComponent,
     NgOptionTemplateDirective,
     NgLabelTemplateDirective,
+    ExpenseReminderFormComponent,
   ],
   templateUrl: './expense-form.component.html',
   styleUrl: './expense-form.component.scss',
@@ -31,15 +39,17 @@ export class ExpenseFormComponent {
   private readonly categoryService = inject(CategoryService);
   private readonly labelService = inject(LabelService);
   private readonly destroyRef = inject(DestroyRef);
+  readonly settings = inject(SettingsStore);
   private statusIsManual = false;
 
   readonly expense = input<ExpenseDetail | null>(null);
+  readonly existingReminders = input<readonly ExpenseReminder[]>([]);
   readonly initialDate = input<string | null>(null);
   readonly initialTime = input<string | null>(null);
   readonly compact = input(false);
   readonly submitting = input(false);
   readonly submitLabel = input('Salva spesa');
-  readonly submitted = output<CreateExpenseRequest>();
+  readonly submitted = output<ExpenseFormSubmission>();
   readonly cancelled = output<void>();
 
   readonly categories = this.categoryService.categories;
@@ -47,7 +57,12 @@ export class ExpenseFormComponent {
   readonly catalogLoading = signal(true);
   readonly catalogError = signal<string | null>(null);
   readonly advancedOpen = signal(false);
+  readonly reminderDrafts = signal<ReminderDraft[]>([]);
+  readonly remindersValid = signal(true);
+  readonly reminderResetVersion = signal(0);
   readonly futureDate = signal(false);
+  readonly selectedCategoryId = signal<string | null>(null);
+  readonly labelCompatibilityNotice = signal<string | null>(null);
   readonly statuses = EXPENSE_STATUSES;
   readonly paymentMethods = PAYMENT_METHODS;
   readonly availableCategories = computed(() => {
@@ -56,7 +71,12 @@ export class ExpenseFormComponent {
   });
   readonly availableLabels = computed(() => {
     const currentIds = new Set(this.expense()?.labels.map((label) => label.id) ?? []);
-    return this.labels().filter((label) => label.isActive || currentIds.has(label.id));
+    const categoryId = this.selectedCategoryId();
+    return this.labels().filter(
+      (label) =>
+        (label.isActive || currentIds.has(label.id)) &&
+        (label.categoryId === null || label.categoryId === categoryId),
+    );
   });
 
   readonly form = this.formBuilder.nonNullable.group({
@@ -85,6 +105,7 @@ export class ExpenseFormComponent {
   });
 
   constructor() {
+    this.settings.ensureLoaded();
     this.categoryService
       .load({ sortBy: 'sortOrder', sortDirection: 'asc' })
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -104,10 +125,16 @@ export class ExpenseFormComponent {
     this.form.controls.expenseDate.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((value) => this.handleDate(value));
+    this.form.controls.categoryId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value) => this.handleCategory(value));
     effect(() => {
       this.initialDate();
       this.initialTime();
       this.applyExpense(this.expense());
+    });
+    effect(() => {
+      if (this.settings.loaded() && !this.expense() && this.form.pristine) this.resetForCreate();
     });
   }
 
@@ -117,18 +144,21 @@ export class ExpenseFormComponent {
       return;
     }
     const value = this.form.getRawValue();
-    if (!value.categoryId) return;
+    if (!value.categoryId || !this.remindersValid()) return;
     this.submitted.emit({
-      description: value.description.trim(),
-      amount: normalizeAmount(value.amount),
-      expenseDate: value.expenseDate,
-      expenseTime: value.expenseTime || null,
-      categoryId: value.categoryId,
-      labelIds: value.labelIds,
-      paymentMethod: value.paymentMethod,
-      merchant: value.merchant.trim() || null,
-      notes: value.notes.trim() || null,
-      status: value.status,
+      expense: {
+        description: value.description.trim(),
+        amount: normalizeAmount(value.amount),
+        expenseDate: value.expenseDate,
+        expenseTime: value.expenseTime || null,
+        categoryId: value.categoryId,
+        labelIds: value.labelIds,
+        paymentMethod: value.paymentMethod,
+        merchant: value.merchant.trim() || null,
+        notes: value.notes.trim() || null,
+        status: value.status,
+      },
+      reminders: value.status === 'PLANNED' ? this.reminderDrafts() : [],
     });
   }
 
@@ -157,12 +187,17 @@ export class ExpenseFormComponent {
       expenseTime: this.initialTime() || '',
       categoryId: null,
       labelIds: [],
-      paymentMethod: 'DEBIT_CARD',
+      paymentMethod: this.settings.experience().defaultPaymentMethod ?? 'DEBIT_CARD',
       merchant: '',
       notes: '',
-      status: 'COMPLETED',
+      status: this.settings.experience().defaultExpenseStatus,
     });
+    this.selectedCategoryId.set(null);
+    this.labelCompatibilityNotice.set(null);
     this.advancedOpen.set(false);
+    this.reminderDrafts.set([]);
+    this.reminderResetVersion.update((value) => value + 1);
+    this.remindersValid.set(true);
     this.handleDate(this.form.controls.expenseDate.value);
   }
 
@@ -187,6 +222,8 @@ export class ExpenseFormComponent {
       },
       { emitEvent: false },
     );
+    this.selectedCategoryId.set(expense.category.id);
+    this.labelCompatibilityNotice.set(null);
     this.handleDate(expense.expenseDate);
     this.advancedOpen.set(true);
   }
@@ -195,5 +232,25 @@ export class ExpenseFormComponent {
     const future = isFutureLocalDate(value);
     this.futureDate.set(future);
     if (future && !this.statusIsManual) this.form.controls.status.setValue('PLANNED');
+  }
+
+  private handleCategory(categoryId: string | null): void {
+    this.selectedCategoryId.set(categoryId);
+    const selected = this.form.controls.labelIds.value;
+    const compatible = selected.filter((id) => {
+      const label = this.labels().find((item) => item.id === id);
+      return !label || label.categoryId === null || label.categoryId === categoryId;
+    });
+    if (compatible.length === selected.length) {
+      this.labelCompatibilityNotice.set(null);
+      return;
+    }
+    this.form.controls.labelIds.setValue(compatible);
+    const removed = selected.length - compatible.length;
+    this.labelCompatibilityNotice.set(
+      removed === 1
+        ? 'È stata rimossa un’etichetta non compatibile con la nuova categoria.'
+        : `Sono state rimosse ${removed} etichette non compatibili con la nuova categoria.`,
+    );
   }
 }

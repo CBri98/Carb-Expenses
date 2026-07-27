@@ -1,4 +1,5 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -6,12 +7,14 @@ import {
   NgOptionTemplateDirective,
   NgSelectComponent,
 } from '@ng-select/ng-select';
-import { debounceTime, finalize } from 'rxjs';
+import { debounceTime, finalize, forkJoin } from 'rxjs';
 
 import { CategoryService } from '../../../core/services/category.service';
+import { SettingsStore } from '../../../core/services/settings.store';
 import { apiErrorMessage } from '../../../core/services/api-error';
 import {
   CategoryBadgeComponent,
+  CounterCardComponent,
   EmptyStateComponent,
   LoadingSkeletonComponent,
   PageHeaderComponent,
@@ -20,12 +23,14 @@ import {
 import { ColorPickerComponent } from '../../../shared/components/color-picker.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog.component';
 import { IconPickerComponent } from '../../../shared/components/icon-picker.component';
+import { FilterPanelComponent } from '../../../shared/components/filter-panel.component';
 import { EscapeCloseDirective } from '../../../shared/directives/escape-close.directive';
 import type {
   Category,
   CategoryQueryParams,
   CreateCategoryRequest,
   ReorderItem,
+  CategorySummary,
   UpdateCategoryRequest,
 } from '../../../shared/models/catalog.models';
 
@@ -51,6 +56,9 @@ interface Notice {
     IconPickerComponent,
     ConfirmDialogComponent,
     EscapeCloseDirective,
+    DragDropModule,
+    CounterCardComponent,
+    FilterPanelComponent,
   ],
   templateUrl: './categories.component.html',
   styleUrl: '../catalog-page.scss',
@@ -59,14 +67,20 @@ export class CategoriesComponent {
   private readonly categoryService = inject(CategoryService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly settings = inject(SettingsStore);
 
   readonly categories = this.categoryService.categories;
+  readonly availableIcons = computed(() => this.settings.icons().enabledCategoryIcons);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly formOpen = signal(false);
   readonly editing = signal<Category | null>(null);
   readonly deleteTarget = signal<Category | null>(null);
   readonly notice = signal<Notice | null>(null);
+  readonly reordering = signal(false);
+  readonly filtersExpanded = signal(false);
+  readonly summary = signal<CategorySummary>({ total: 0, active: 0, inactive: 0, custom: 0 });
+  private readonly filterVersion = signal(0);
   readonly typeOptions = [
     { value: 'all', label: 'Tutte', icon: 'bi-collection' },
     { value: 'default', label: 'Predefinite', icon: 'bi-shield-check' },
@@ -78,8 +92,9 @@ export class CategoriesComponent {
     { value: 'false', label: 'Disattivate', icon: 'bi-pause-circle' },
   ] as const;
   readonly canReorder = computed(() => {
+    this.filterVersion();
     const filters = this.filters.getRawValue();
-    return !filters.search.trim() && filters.type === 'all' && filters.active === 'all';
+    return !this.reordering() && !filters.search.trim() && filters.type === 'all' && filters.active === 'all';
   });
 
   readonly filters = this.formBuilder.nonNullable.group({
@@ -98,10 +113,25 @@ export class CategoriesComponent {
   });
 
   constructor() {
+    this.settings.ensureLoaded();
     this.filters.valueChanges
       .pipe(debounceTime(250), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.load());
+      .subscribe(() => { this.filterVersion.update((value) => value + 1); this.load(); });
     this.load();
+  }
+
+  activeFilterCount(): number {
+    const value = this.filters.getRawValue();
+    return Number(value.type !== 'all') + Number(value.active !== 'all');
+  }
+
+  filterSummary(): string {
+    const value = this.filters.getRawValue();
+    const parts = [
+      value.type !== 'all' ? this.typeOptions.find((item) => item.value === value.type)?.label : null,
+      value.active !== 'all' ? this.activeOptions.find((item) => item.value === value.active)?.label : null,
+    ].filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'Nessun filtro strutturato applicato';
   }
 
   openCreate(): void {
@@ -111,7 +141,7 @@ export class CategoriesComponent {
       name: '',
       description: '',
       color: '#2563EB',
-      icon: 'bi-tag',
+      icon: this.availableIcons()[0] ?? 'bi-house',
       sortOrder: nextOrder,
       isActive: true,
     });
@@ -194,13 +224,24 @@ export class CategoriesComponent {
     const ordered = [...this.categories()];
     if (target < 0 || target >= ordered.length) return;
     [ordered[index], ordered[target]] = [ordered[target]!, ordered[index]!];
+    this.persistOrder(ordered);
+  }
+
+  drop(event: CdkDragDrop<Category[]>): void {
+    if (!this.canReorder() || event.previousIndex === event.currentIndex) return;
+    const ordered = [...this.categories()];
+    moveItemInArray(ordered, event.previousIndex, event.currentIndex);
+    this.persistOrder(ordered);
+  }
+
+  private persistOrder(ordered: readonly Category[]): void {
     const items: ReorderItem[] = ordered.map((category, itemIndex) => ({
-      id: category.id,
-      sortOrder: itemIndex + 1,
+      id: category.id, sortOrder: itemIndex + 1,
     }));
+    this.reordering.set(true);
     this.categoryService
       .reorder(items)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(finalize(() => this.reordering.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.showSuccess('Ordine delle categorie aggiornato.'),
         error: (error: unknown) =>
@@ -245,13 +286,17 @@ export class CategoriesComponent {
 
   private load(showLoading = true): void {
     if (showLoading) this.loading.set(true);
-    this.categoryService
-      .load(this.query())
+    const query = this.query();
+    forkJoin({
+      items: this.categoryService.load(query),
+      summary: this.categoryService.summary(query),
+    })
       .pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
+        next: ({ summary }) => this.summary.set(summary),
         error: (error: unknown) =>
           this.notice.set({ type: 'danger', text: apiErrorMessage(error) }),
       });

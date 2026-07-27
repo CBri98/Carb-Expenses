@@ -1,0 +1,19 @@
+.detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 0; }
+.detail-grid div { min-width: 0; }
+.detail-grid dt { color: var(--text-secondary); font-size: .78rem; text-transform: uppercase; }
+.detail-grid dd { margin: .2rem 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.detail-summary { background: linear-gradient(135deg, var(--surface), var(--primary-selected-bg)); }
+.category-badge { color: var(--text-primary); background: var(--surface-soft); border: 1px solid var(--border-color); }
+.detail-tabs { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .2rem; border-bottom: 1px solid var(--border-color); }
+.detail-tab { flex: 0 0 auto; padding: .75rem .9rem; color: var(--text-secondary); background: transparent; border: 0; border-bottom: 2px solid transparent; }
+.detail-tab.active { color: var(--primary-selected-color); background: var(--primary-selected-bg); border-bottom-color: var(--primary); }
+.detail-tab .badge { color: inherit; background: rgb(var(--primary-rgb) / 12%); }
+.notes-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.card-header { padding: 1rem 1.25rem; background: var(--surface); border-color: var(--border-color); }
+.clickable-expense { cursor: pointer; }
+.clickable-expense:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: -3px; }
+.reminder-list { display: grid; gap: .75rem; padding: 0; list-style: none; }
+.reminder-list li { display: flex; gap: .75rem; align-items: center; padding: .85rem; background: var(--surface-soft); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+.reminder-list li > .bi { color: var(--primary); font-size: 1.25rem; }
+.reminder-list span { display: block; color: var(--text-secondary); font-size: .85rem; }
+@media (max-width: 575.98px) { .detail-grid { grid-template-columns: 1fr; } }

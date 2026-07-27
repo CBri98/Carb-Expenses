@@ -6,11 +6,12 @@ import {
 } from '../../shared/components/expense-display.components';
 import type { CalendarExpenseEvent } from '../../shared/models/calendar.models';
 import type { ExpenseStatus } from '../../shared/models/expense.models';
+import { RecurrenceExpenseIndicatorComponent } from '../recurrences/recurrence-display.components';
 
 @Component({
   selector: 'app-calendar-expense-event',
   standalone: true,
-  imports: [EuroAmountPipe, ExpenseStatusBadgeComponent],
+  imports: [EuroAmountPipe, ExpenseStatusBadgeComponent, RecurrenceExpenseIndicatorComponent],
   template: `
     <article
       class="calendar-event"
@@ -41,6 +42,9 @@ import type { ExpenseStatus } from '../../shared/models/expense.models';
 
       <div class="calendar-event__meta">
         <app-expense-status-badge [status]="event().status" />
+        @if (event().recurrence; as recurrence) {
+          <app-recurrence-expense-indicator [recurrenceId]="recurrence.id" [recurrenceName]="recurrence.name" />
+        }
         @if (event().isOverdue) {
           <span class="badge text-bg-danger">
             <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>Scaduta
@@ -84,10 +88,10 @@ import type { ExpenseStatus } from '../../shared/models/expense.models';
       position: relative;
       min-width: 0;
       padding: .55rem;
-      border: 1px solid color-mix(in srgb, var(--category-color) 44%, #fff);
+      border: 1px solid color-mix(in srgb, var(--category-color) 44%, var(--surface));
       border-left: .28rem solid var(--category-color);
       border-radius: .65rem;
-      background: color-mix(in srgb, var(--category-color) 12%, #fff);
+      background: color-mix(in srgb, var(--category-color) 12%, var(--surface));
       box-shadow: 0 .1rem .35rem rgba(57, 69, 93, .08);
     }
     .calendar-event[draggable='true'] { cursor: grab; }
@@ -106,13 +110,13 @@ import type { ExpenseStatus } from '../../shared/models/expense.models';
       border: 0;
       background: transparent;
     }
-    .calendar-event__main:focus-visible { outline: 3px solid rgba(73, 98, 150, .35); outline-offset: 2px; border-radius: .25rem; }
-    .calendar-event__time, .calendar-event__category { overflow: hidden; color: #657089; font-size: .73rem; text-overflow: ellipsis; white-space: nowrap; }
+    .calendar-event__main:focus-visible { outline: 3px solid var(--primary-focus-ring); outline-offset: 2px; border-radius: .25rem; }
+    .calendar-event__time, .calendar-event__category { overflow: hidden; color: var(--text-secondary); font-size: .73rem; text-overflow: ellipsis; white-space: nowrap; }
     .calendar-event__title { overflow: hidden; font-size: .88rem; text-overflow: ellipsis; white-space: nowrap; }
     .calendar-event__amount { font-size: .82rem; font-weight: 700; white-space: nowrap; }
     .calendar-event__meta, .calendar-event__actions { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .4rem; }
     .calendar-event__actions .btn { padding: .15rem .38rem; border: 1px solid rgba(83, 94, 119, .16); }
-    .calendar-event__drag-help { margin: .35rem 0 0; color: #657089; font-size: .68rem; line-height: 1.25; }
+    .calendar-event__drag-help { margin: .35rem 0 0; color: var(--text-secondary); font-size: .68rem; line-height: 1.25; }
     @media (max-width: 991.98px) { .calendar-event__drag-help { display: none; } }
   `],
 })

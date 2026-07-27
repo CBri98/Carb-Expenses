@@ -14,6 +14,7 @@ import {
 } from '@angular/core';
 import { provideClientHydration } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
 import { AuthService } from './core/auth/auth.service';
 import { authRefreshInterceptor } from './core/auth/interceptors/auth-refresh.interceptor';
@@ -30,6 +31,7 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([authTokenInterceptor, authRefreshInterceptor])
     ),
     provideRouter(routes),
+    provideCharts(withDefaultRegisterables()),
     provideClientHydration(),
     provideAppInitializer(() => inject(AuthService).restoreSession()),
     { provide: LOCALE_ID, useValue: 'it-IT' }

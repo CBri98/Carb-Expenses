@@ -3,7 +3,7 @@ import { CategoriesService } from '../categories/categories.service';
 import { catalogSlug, normalizeCatalogName, optionalText } from '../common/utils/catalog.utils';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLabelDto, LabelQueryDto, ReorderLabelsDto, UpdateLabelDto } from './dto/label.dto';
-import type { LabelResponse, LabelWithCategory } from './label.types';
+import type { LabelResponse, LabelSummary, LabelWithCategory } from './label.types';
 
 @Injectable()
 export class LabelsService {
@@ -34,6 +34,28 @@ export class LabelsService {
 
   async findOne(userId: string, id: string): Promise<LabelResponse> {
     return this.toResponse(await this.findOwned(userId, id));
+  }
+
+  async summary(userId: string, query: LabelQueryDto): Promise<LabelSummary> {
+    const items = await this.findAll(userId, query);
+    if (items.length === 0) {
+      return { total: 0, withCategory: 0, withoutCategory: 0, unused: 0 };
+    }
+    const used = await this.prisma.expenseLabel.groupBy({
+      by: ['labelId'],
+      where: {
+        labelId: { in: items.map((item) => item.id) },
+        expense: { userId, deletedAt: null },
+      },
+      _count: { _all: true },
+    });
+    const usedIds = new Set(used.map((item) => item.labelId));
+    return {
+      total: items.length,
+      withCategory: items.filter((item) => item.categoryId !== null).length,
+      withoutCategory: items.filter((item) => item.categoryId === null).length,
+      unused: items.filter((item) => !usedIds.has(item.id)).length,
+    };
   }
 
   async create(userId: string, dto: CreateLabelDto): Promise<LabelResponse> {

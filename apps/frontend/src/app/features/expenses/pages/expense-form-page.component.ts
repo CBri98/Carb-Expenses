@@ -1,12 +1,14 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin, map, switchMap } from 'rxjs';
 
 import { apiErrorMessage } from '../../../core/services/api-error';
 import { ExpenseService } from '../../../core/services/expense.service';
+import { ExpenseReminderService } from '../../../core/services/expense-reminder.service';
 import { LoadingSkeletonComponent, PageHeaderComponent } from '../../../shared/components/catalog-display.components';
-import type { CreateExpenseRequest, ExpenseDetail } from '../../../shared/models/expense.models';
+import type { ExpenseDetail, ExpenseFormSubmission } from '../../../shared/models/expense.models';
+import type { ExpenseReminder } from '../../../shared/models/notification.models';
 import { ExpenseFormComponent } from '../components/expense-form.component';
 
 @Component({
@@ -20,7 +22,7 @@ import { ExpenseFormComponent } from '../components/expense-form.component';
       @if (error()) { <div class="alert alert-danger" role="alert">{{ error() }}</div> }
       <article class="card border-0 shadow-sm"><div class="card-body p-3 p-lg-4">
         @if (loading()) { <app-loading-skeleton /> } @else {
-          <app-expense-form [expense]="expense()" [submitting]="saving()" [submitLabel]="expenseId ? 'Salva modifiche' : 'Crea spesa'" (submitted)="save($event)" (cancelled)="cancel()" />
+          <app-expense-form [expense]="expense()" [existingReminders]="reminders()" [submitting]="saving()" [submitLabel]="expenseId ? 'Salva modifiche' : 'Crea spesa'" (submitted)="save($event)" (cancelled)="cancel()" />
         }
       </div></article>
     </section>
@@ -28,36 +30,49 @@ import { ExpenseFormComponent } from '../components/expense-form.component';
 })
 export class ExpenseFormPageComponent {
   private readonly expenses = inject(ExpenseService);
+  private readonly expenseReminders = inject(ExpenseReminderService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly expenseId = this.route.snapshot.paramMap.get('id');
   readonly expense = signal<ExpenseDetail | null>(null);
+  readonly reminders = signal<ExpenseReminder[]>([]);
   readonly loading = signal(Boolean(this.expenseId));
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
 
   constructor() {
     if (this.expenseId) {
-      this.expenses.get(this.expenseId).pipe(
+      forkJoin({
+        expense: this.expenses.get(this.expenseId),
+        reminders: this.expenseReminders.list(this.expenseId),
+      }).pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
       ).subscribe({
-        next: (expense) => this.expense.set(expense),
+        next: ({ expense, reminders }) => {
+          this.expense.set(expense);
+          this.reminders.set(reminders);
+        },
         error: (error: unknown) => this.error.set(apiErrorMessage(error)),
       });
     }
   }
 
-  save(payload: CreateExpenseRequest): void {
+  save(submission: ExpenseFormSubmission): void {
     if (this.saving()) return;
     this.saving.set(true);
     this.error.set(null);
     const request = this.expenseId
-      ? this.expenses.update(this.expenseId, payload)
-      : this.expenses.create(payload);
+      ? this.expenses.update(this.expenseId, submission.expense)
+      : this.expenses.create(submission.expense);
     request.pipe(
+      switchMap((expense) =>
+        this.expenseReminders
+          .sync(expense.id, this.reminders(), submission.reminders)
+          .pipe(map(() => expense)),
+      ),
       finalize(() => this.saving.set(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({

@@ -11,12 +11,12 @@ describe('ExpenseFiltersComponent', () => {
     });
     fixture.detectChanges();
     expect(fixture.componentInstance.form.getRawValue()).toMatchObject({
-      search: 'pane', month: '7', year: '2026', status: 'COMPLETED', pageSize: '50',
+      search: 'pane', month: '7', year: '2026', statuses: ['COMPLETED'], pageSize: '50',
     });
 
     fixture.componentInstance.reset();
     expect(fixture.componentInstance.form.getRawValue()).toMatchObject({
-      search: '', month: null, year: '', status: null, pageSize: '20',
+      search: '', month: null, year: '', statuses: [], pageSize: '20', recurrenceMode: 'ALL',
     });
   });
 
@@ -49,9 +49,33 @@ describe('ExpenseFiltersComponent', () => {
     expect(fixture.componentInstance.activeFilterCount()).toBe(2);
     expect(fixture.componentInstance.activeFilterSummary()).toContain('Ricerca: benzina');
     expect(fixture.nativeElement.querySelector('.filters__summary')?.textContent).toContain(
-      'Stato: Completata',
+      'Stati: Completata',
     );
     expect(fixture.nativeElement.querySelector('#expense-filters-panel')).toBeNull();
+  });
+
+  it('emette filtri multipli e modalità ricorrenza', async () => {
+    vi.useFakeTimers();
+    await TestBed.configureTestingModule({ imports: [ExpenseFiltersComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(ExpenseFiltersComponent);
+    const emitted = vi.fn();
+    fixture.componentInstance.queryChange.subscribe(emitted);
+    fixture.detectChanges();
+    emitted.mockClear();
+    fixture.componentInstance.form.patchValue({
+      categoryIds: ['category-1', 'category-2'],
+      statuses: ['PLANNED', 'COMPLETED'],
+      paymentMethods: ['CASH', 'DEBIT_CARD'],
+      recurrenceMode: 'ONLY',
+    });
+    await vi.advanceTimersByTimeAsync(350);
+    expect(emitted).toHaveBeenCalledWith(expect.objectContaining({
+      categoryIds: ['category-1', 'category-2'],
+      statuses: ['PLANNED', 'COMPLETED'],
+      paymentMethods: ['CASH', 'DEBIT_CARD'],
+      recurrenceMode: 'ONLY',
+    }));
+    vi.useRealTimers();
   });
 
   it('salva e ripristina la preferenza di apertura del pannello', async () => {

@@ -41,7 +41,7 @@ async function bootstrap(): Promise<void> {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Expense Manager API')
     .setDescription('API REST del gestionale nota spese')
-    .setVersion('7.0')
+    .setVersion('10.0')
     .addBearerAuth()
     .build();
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);

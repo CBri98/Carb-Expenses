@@ -82,11 +82,11 @@
       </div>
       <div class="col-12 col-sm-6 col-xl-4">
         <app-stat-card title="Categoria principale" [value]="reportData.topCategory?.name ?? 'Nessuna'"
-          icon="bi-pie-chart" [detail]="reportData.topCategory ? euro(reportData.topCategory.total) + ' · ' + reportData.topCategory.percentage + '%' : ''" />
+          icon="bi-pie-chart" [detail]="reportData.topCategory ? euro(reportData.topCategory.total) + ' · ' + reportData.topCategory.percentage + '%' : ''" [interactive]="reportData.topCategory !== null" (activated)="openTopCategory()" />
       </div>
       <div class="col-12 col-sm-6 col-xl-4">
         <app-stat-card title="Spesa più alta" [value]="reportData.highestExpense ? euro(reportData.highestExpense.amount) : '—'"
-          icon="bi-arrow-up-circle" [detail]="reportData.highestExpense?.description ?? 'Nessuna spesa completata'" />
+          icon="bi-arrow-up-circle" [detail]="reportData.highestExpense?.description ?? 'Nessuna spesa completata'" [interactive]="reportData.highestExpense !== null" (activated)="openHighestExpense()" />
       </div>
     </div>
   </section>
@@ -95,7 +95,7 @@
     <section class="col-12 col-xl-7" aria-labelledby="daily-trend-title">
       <div class="report-card h-100">
         <div class="card-heading">
-          <div><h2 id="daily-trend-title" class="h5">Andamento giornaliero</h2><p>Spese completate e pianificate per giorno</p></div>
+          <div><h2 id="daily-trend-title" class="h5">Andamento giornaliero</h2><p>{{ dailyDescription() }}</p></div>
         </div>
         <app-dashboard-chart
           type="line"
@@ -106,9 +106,9 @@
           [secondaryCounts]="dailyPlannedCounts()"
           datasetLabel="Completate"
           secondaryDatasetLabel="Pianificate"
-          secondaryColor="#d97706"
           [attr.aria-describedby]="'daily-trend-summary'"
           [ariaLabel]="'Andamento giornaliero di ' + reportData.period.label + ': serie completate e pianificate'"
+          (pointSelected)="openDailyPoint($event)"
         />
         <p id="daily-trend-summary" class="small text-body-secondary">
           Il totale completato del mese è {{ reportData.summary.completedTotal | euroAmount }};
@@ -132,7 +132,7 @@
 
     <section class="col-12 col-xl-5" aria-labelledby="category-title">
       <div class="report-card h-100">
-        <div class="card-heading"><div><h2 id="category-title" class="h5">Distribuzione per categoria</h2><p>Solo spese completate</p></div></div>
+        <div class="card-heading"><div><h2 id="category-title" class="h5">Distribuzione per categoria</h2><p>{{ categoryDescription() }}</p></div></div>
         @if (reportData.categoryDistribution.length) {
           <app-dashboard-chart
             type="doughnut"
@@ -142,6 +142,7 @@
             [colors]="categoryColors()"
             datasetLabel="Totale"
             [ariaLabel]="'Distribuzione per categoria di ' + reportData.period.label"
+            (pointSelected)="openCategoryPoint($event)"
           />
           <ul class="category-list" aria-label="Riepilogo accessibile delle categorie">
             @for (category of reportData.categoryDistribution; track category.categoryId) {
@@ -164,7 +165,7 @@
     <section class="col-12 col-xl-7" aria-labelledby="payment-title">
       <div class="report-card h-100">
         <div class="card-heading"><div><h2 id="payment-title" class="h5">Metodi di pagamento</h2><p>Importi, transazioni e incidenza</p></div></div>
-        <app-payment-method-breakdown [items]="reportData.paymentMethodBreakdown" />
+        <app-payment-method-breakdown [items]="reportData.paymentMethodBreakdown" (selected)="openPaymentMethod($event)" />
       </div>
     </section>
     <section class="col-12 col-xl-5" aria-labelledby="highlights-title">

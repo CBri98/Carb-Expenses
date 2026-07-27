@@ -22,6 +22,8 @@ const event: CalendarExpenseEvent = {
   category: { id: 'category-1', name: 'Affitto', color: '#9BAFD6', icon: 'bi-house' },
   labels: [],
   paymentMethod: 'BANK_TRANSFER',
+  generatedByRecurrence: false,
+  recurrence: null,
 };
 
 describe('CalendarService', () => {

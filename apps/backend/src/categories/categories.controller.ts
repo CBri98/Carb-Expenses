@@ -43,6 +43,12 @@ export class CategoriesController {
     return this.categories.findAll(user.id, query);
   }
 
+  @Get('summary')
+  @ApiOperation({ summary: 'Restituisce i contatori delle categorie filtrate' })
+  summary(@CurrentUser() user: PublicUser, @Query() query: CategoryQueryDto) {
+    return this.categories.summary(user.id, query);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Crea una categoria personale' })
   @ApiCreatedResponse({ description: 'Categoria creata' })

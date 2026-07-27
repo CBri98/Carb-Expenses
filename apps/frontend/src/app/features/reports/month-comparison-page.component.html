@@ -84,7 +84,6 @@
           [secondaryValues]="totalBValues()"
           [datasetLabel]="comparisonData.periodA.shortLabel"
           [secondaryDatasetLabel]="comparisonData.periodB.shortLabel"
-          secondaryColor="#d97706"
           ariaLabel="Confronto dei totali completati e pianificati dei due mesi"
         />
         <table class="table table-sm mt-3">
@@ -109,7 +108,6 @@
             [secondaryCounts]="categoryBCounts()"
             [datasetLabel]="comparisonData.periodA.shortLabel"
             [secondaryDatasetLabel]="comparisonData.periodB.shortLabel"
-            secondaryColor="#d97706"
             ariaLabel="Confronto degli importi per categoria tra i due mesi"
           />
         } @else {
@@ -130,7 +128,6 @@
       [secondaryCounts]="dailyBCounts()"
       [datasetLabel]="comparisonData.periodA.shortLabel"
       [secondaryDatasetLabel]="comparisonData.periodB.shortLabel"
-      secondaryColor="#d97706"
       ariaLabel="Confronto giornaliero delle spese completate; i giorni inesistenti sono valori nulli"
     />
     <details>

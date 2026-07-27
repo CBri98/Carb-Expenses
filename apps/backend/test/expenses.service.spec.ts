@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { dateOnly, romeCalendarDate } from '../src/dashboard/dashboard.utils';
 import { ExpenseQueryDto } from '../src/expenses/dto/expense.dto';
 import { ExpensesService } from '../src/expenses/expenses.service';
-import type { ExpenseWithRelations } from '../src/expenses/expenses.types';
+import type { ExpenseWithReminderSummary } from '../src/expenses/expenses.types';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 const category = {
@@ -19,7 +19,9 @@ const label = {
   sortOrder: 1, isActive: true, createdAt: new Date(), updatedAt: new Date(), deletedAt: null,
 };
 
-function expense(overrides: Partial<ExpenseWithRelations> = {}): ExpenseWithRelations {
+function expense(
+  overrides: Partial<ExpenseWithReminderSummary> = {},
+): ExpenseWithReminderSummary {
   return {
     id: '30000000-0000-4000-8000-000000000001', userId: 'user-1', categoryId: category.id,
     description: 'Spesa test', amount: new Prisma.Decimal('42.50'),
@@ -27,6 +29,9 @@ function expense(overrides: Partial<ExpenseWithRelations> = {}): ExpenseWithRela
     merchant: 'Negozio', paymentMethod: PaymentMethod.DEBIT_CARD, notes: null,
     status: ExpenseStatus.COMPLETED, createdAt: new Date('2026-07-14T08:00:00.000Z'),
     updatedAt: new Date('2026-07-14T08:00:00.000Z'), deletedAt: null,
+    overdueNotifiedForDate: null,
+    recurrenceRuleId: null, occurrenceDate: null, generatedByRecurrence: false,
+    recurrenceRule: null,
     category, labels: [{ expenseId: '30000000-0000-4000-8000-000000000001', labelId: label.id, label }],
     ...overrides,
   };
@@ -40,7 +45,7 @@ describe('ExpensesService', () => {
     prisma = prismaMock();
     service = new ExpensesService(prisma as unknown as PrismaService);
     prisma.category.findFirst.mockResolvedValue({ ...category, preferences: [] });
-    prisma.label.findMany.mockResolvedValue([{ id: label.id, isActive: true }]);
+    prisma.label.findMany.mockResolvedValue([{ id: label.id, isActive: true, categoryId: null }]);
   });
 
   it('crea una spesa valida con importo Decimal e relazioni', async () => {
@@ -86,6 +91,14 @@ describe('ExpensesService', () => {
     })).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('rifiuta etichette associate a una categoria diversa', async () => {
+    prisma.label.findMany.mockResolvedValue([{ id: label.id, isActive: true, categoryId: '10000000-0000-4000-8000-000000000099' }]);
+    await expect(service.create('user-1', {
+      description: 'Test', amount: '10.00', expenseDate: '2026-07-14', categoryId: category.id,
+      labelIds: [label.id], paymentMethod: PaymentMethod.CASH, status: ExpenseStatus.COMPLETED,
+    })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('applica paginazione, ricerca, filtri e ordinamento server-side', async () => {
     prisma.expense.count.mockResolvedValue(43);
     prisma.expense.findMany.mockResolvedValue([expense()]);
@@ -105,6 +118,53 @@ describe('ExpensesService', () => {
       orderBy: expect.arrayContaining([{ amount: 'asc' }]),
     }));
     expect(result.meta).toMatchObject({ page: 2, totalItems: 43, totalPages: 3 });
+  });
+
+  it('applica filtri multipli e modalità ricorrenza senza rompere quelli singoli', async () => {
+    prisma.expense.count.mockResolvedValue(1);
+    prisma.expense.findMany.mockResolvedValue([expense({
+      reminders: [{ scheduledAt: new Date('2026-07-13T09:00:00.000Z') }],
+    })]);
+    const query = Object.assign(new ExpenseQueryDto(), {
+      categoryIds: [category.id],
+      statuses: [ExpenseStatus.COMPLETED, ExpenseStatus.PLANNED],
+      paymentMethods: [PaymentMethod.CASH, PaymentMethod.DEBIT_CARD],
+      recurrenceMode: 'ONLY' as const,
+    });
+
+    const result = await service.findAll('user-1', query);
+
+    expect(prisma.expense.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        categoryId: { in: [category.id] },
+        status: { in: [ExpenseStatus.COMPLETED, ExpenseStatus.PLANNED] },
+        paymentMethod: { in: [PaymentMethod.CASH, PaymentMethod.DEBIT_CARD] },
+        recurrenceRuleId: { not: null },
+      }),
+      include: expect.objectContaining({ reminders: expect.any(Object) }),
+    }));
+    expect(result.data[0]).toMatchObject({
+      nextReminderAt: '2026-07-13T09:00:00.000Z',
+      activeReminderCount: 1,
+    });
+  });
+
+  it('calcola i contatori sugli stessi filtri e sull’utente corrente', async () => {
+    prisma.expense.count
+      .mockResolvedValueOnce(4)
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1);
+    const result = await service.summary('user-1', Object.assign(new ExpenseQueryDto(), {
+      search: 'casa', recurrenceMode: 'EXCLUDE' as const,
+    }));
+    expect(result).toEqual({ totalResults: 4, completed: 2, planned: 1, cancelled: 1 });
+    expect(prisma.expense.count).toHaveBeenNthCalledWith(1, {
+      where: expect.objectContaining({ userId: 'user-1', recurrenceRuleId: null }),
+    });
+    expect(prisma.expense.count).toHaveBeenNthCalledWith(2, {
+      where: { AND: [expect.objectContaining({ userId: 'user-1' }), { status: ExpenseStatus.COMPLETED }] },
+    });
   });
 
   it('costruisce correttamente il filtro mensile senza caricare tutto', async () => {

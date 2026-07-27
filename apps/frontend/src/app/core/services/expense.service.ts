@@ -10,6 +10,7 @@ import type {
   ExpenseDetail,
   ExpenseExportResult,
   ExpenseListItem,
+  ExpenseListSummary,
   ExpenseQueryParams,
   ExpenseStatus,
   PaginatedExpenseResponse,
@@ -29,6 +30,17 @@ export class ExpenseService {
         params: expenseParams(query),
       })
       .pipe(map((response) => ({ items: response.data, meta: paginationMeta(response.meta) })));
+  }
+
+  summary(query: ExpenseQueryParams = {}): Observable<ExpenseListSummary> {
+    const filters = { ...query };
+    delete filters.page;
+    delete filters.pageSize;
+    return this.http
+      .get<ApiEnvelope<ExpenseListSummary>>(`${environment.apiBaseUrl}/expenses/summary`, {
+        params: expenseParams(filters),
+      })
+      .pipe(map((response) => response.data));
   }
 
   get(id: string): Observable<ExpenseDetail> {

@@ -15,6 +15,12 @@ export interface DashboardPlannedExpense {
   expenseDate: string;
   daysUntilDue: number;
   category: DashboardCategory;
+  generatedByRecurrence: boolean;
+  recurrence: {
+    id: string;
+    name: string;
+    status: import('./recurrence.models').RecurrenceStatus;
+  } | null;
 }
 export type DashboardChangeDirection = 'INCREASE' | 'DECREASE' | 'UNCHANGED' | 'NOT_COMPARABLE';
 export interface DashboardSummary {

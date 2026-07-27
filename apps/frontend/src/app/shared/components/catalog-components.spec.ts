@@ -5,8 +5,16 @@ import { describe, expect, it, vi } from 'vitest';
 import { CategoryBadgeComponent, LabelBadgeComponent } from './catalog-display.components';
 import { ColorPickerComponent } from './color-picker.component';
 import { IconPickerComponent } from './icon-picker.component';
+import { ICON_CATALOG, ICON_GROUPS } from '../models/icon-catalog';
 
 describe('Componenti condivisi catalogo', () => {
+  it('espone un catalogo curato, ampio, raggruppato e senza duplicati', () => {
+    expect(ICON_CATALOG.length).toBeGreaterThanOrEqual(60);
+    expect(ICON_CATALOG.length).toBeLessThanOrEqual(120);
+    expect(new Set(ICON_CATALOG.map((item) => item.key)).size).toBe(ICON_CATALOG.length);
+    expect(ICON_GROUPS).toEqual(expect.arrayContaining(['Casa', 'Alimentazione', 'Trasporti', 'Salute', 'Finanza', 'Animali', 'Famiglia']));
+  });
+
   it('mostra nome e icona nel badge categoria', async () => {
     await TestBed.configureTestingModule({ imports: [CategoryBadgeComponent] }).compileComponents();
     const fixture = TestBed.createComponent(CategoryBadgeComponent);
@@ -45,6 +53,23 @@ describe('Componenti condivisi catalogo', () => {
     button?.click();
 
     expect(selected()).toBe('bi-house');
+  });
+
+  it('mantiene disponibile l’icona corrente nascosta e supporta la selezione multipla', async () => {
+    await TestBed.configureTestingModule({ imports: [IconPickerComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(IconPickerComponent);
+    fixture.componentRef.setInput('value', 'bi-airplane');
+    fixture.componentRef.setInput('availableIcons', ['bi-house', 'bi-tag']);
+    fixture.componentRef.setInput('multiple', true);
+    fixture.componentRef.setInput('selectedIcons', ['bi-house']);
+    const changed = vi.fn();
+    fixture.componentInstance.selectionChange.subscribe(changed);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('icona attuale è nascosta');
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
+      'button[aria-label="Seleziona bi-tag"]',
+    )?.click();
+    expect(changed).toHaveBeenCalledWith(['bi-house', 'bi-tag']);
   });
 
   it('sincronizza il valore testuale del colore', async () => {

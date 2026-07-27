@@ -5,6 +5,7 @@ import {
   RouterStateSnapshot,
   UrlTree
 } from '@angular/router';
+import { firstValueFrom, isObservable, type Observable } from 'rxjs';
 
 import type { AuthResponse } from '../auth.models';
 import { AuthStateService } from '../auth-state.service';
@@ -30,20 +31,46 @@ describe('Auth guards', () => {
     TestBed.configureTestingModule({ providers: [provideRouter([])] });
   });
 
-  it('reindirizza il guest che apre una rotta protetta', () => {
+  it('attende l’inizializzazione prima di reindirizzare il guest', async () => {
+    const authState = TestBed.inject(AuthStateService);
     const result = TestBed.runInInjectionContext(() =>
       authGuard(
         {} as ActivatedRouteSnapshot,
-        { url: '/dashboard' } as RouterStateSnapshot
+        { url: '/calendar?view=week&date=2026-07-18' } as RouterStateSnapshot
       )
     );
 
-    expect(result).toBeInstanceOf(UrlTree);
-    expect((result as UrlTree).toString()).toContain('/auth/login');
+    expect(isObservable(result)).toBe(true);
+    authState.markInitialized();
+    const decision = await firstValueFrom(result as Observable<boolean | UrlTree>);
+
+    expect(decision).toBeInstanceOf(UrlTree);
+    expect((decision as UrlTree).toString()).toContain(
+      'returnUrl=%2Fcalendar%3Fview%3Dweek%26date%3D2026-07-18'
+    );
+  });
+
+  it('mantiene la route richiesta quando il refresh completa la sessione', async () => {
+    const authState = TestBed.inject(AuthStateService);
+    const protectedResult = TestBed.runInInjectionContext(() =>
+      authGuard(
+        {} as ActivatedRouteSnapshot,
+        { url: '/calendar?view=week&date=2026-07-18' } as RouterStateSnapshot
+      )
+    );
+
+    expect(isObservable(protectedResult)).toBe(true);
+    authState.setSession(session);
+    authState.markInitialized();
+    await expect(
+      firstValueFrom(protectedResult as Observable<boolean | UrlTree>)
+    ).resolves.toBe(true);
   });
 
   it('consente la dashboard all’utente autenticato e blocca le pagine guest', () => {
-    TestBed.inject(AuthStateService).setSession(session);
+    const authState = TestBed.inject(AuthStateService);
+    authState.setSession(session);
+    authState.markInitialized();
     const protectedResult = TestBed.runInInjectionContext(() =>
       authGuard({} as ActivatedRouteSnapshot, { url: '/dashboard' } as RouterStateSnapshot)
     );

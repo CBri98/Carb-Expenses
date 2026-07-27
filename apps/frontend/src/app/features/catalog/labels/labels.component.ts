@@ -1,4 +1,5 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -6,13 +7,15 @@ import {
   NgOptionTemplateDirective,
   NgSelectComponent,
 } from '@ng-select/ng-select';
-import { debounceTime, finalize } from 'rxjs';
+import { debounceTime, finalize, forkJoin } from 'rxjs';
 
 import { apiErrorMessage } from '../../../core/services/api-error';
 import { CategoryService } from '../../../core/services/category.service';
 import { LabelService } from '../../../core/services/label.service';
+import { SettingsStore } from '../../../core/services/settings.store';
 import {
   CategoryBadgeComponent,
+  CounterCardComponent,
   EmptyStateComponent,
   LabelBadgeComponent,
   LoadingSkeletonComponent,
@@ -22,11 +25,13 @@ import {
 import { ColorPickerComponent } from '../../../shared/components/color-picker.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog.component';
 import { IconPickerComponent } from '../../../shared/components/icon-picker.component';
+import { FilterPanelComponent } from '../../../shared/components/filter-panel.component';
 import { EscapeCloseDirective } from '../../../shared/directives/escape-close.directive';
 import type {
   CreateLabelRequest,
   Label,
   LabelQueryParams,
+  LabelSummary,
   ReorderItem,
   UpdateLabelRequest,
 } from '../../../shared/models/catalog.models';
@@ -54,6 +59,9 @@ interface Notice {
     IconPickerComponent,
     ConfirmDialogComponent,
     EscapeCloseDirective,
+    DragDropModule,
+    CounterCardComponent,
+    FilterPanelComponent,
   ],
   templateUrl: './labels.component.html',
   styleUrl: '../catalog-page.scss',
@@ -63,23 +71,30 @@ export class LabelsComponent {
   private readonly labelService = inject(LabelService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly settings = inject(SettingsStore);
 
   readonly categories = this.categoryService.categories;
   readonly labels = this.labelService.labels;
+  readonly availableIcons = computed(() => this.settings.icons().enabledLabelIcons);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly formOpen = signal(false);
   readonly editing = signal<Label | null>(null);
   readonly deleteTarget = signal<Label | null>(null);
   readonly notice = signal<Notice | null>(null);
+  readonly reordering = signal(false);
+  readonly filtersExpanded = signal(false);
+  readonly summary = signal<LabelSummary>({ total: 0, withCategory: 0, withoutCategory: 0, unused: 0 });
+  private readonly filterVersion = signal(0);
   readonly activeOptions = [
     { value: 'all', label: 'Tutti', icon: 'bi-circle-half' },
     { value: 'true', label: 'Attive', icon: 'bi-check-circle' },
     { value: 'false', label: 'Disattivate', icon: 'bi-pause-circle' },
   ] as const;
   readonly canReorder = computed(() => {
+    this.filterVersion();
     const filters = this.filters.getRawValue();
-    return !filters.search.trim() && !filters.categoryId && filters.active === 'all';
+    return !this.reordering() && !filters.search.trim() && !filters.categoryId && filters.active === 'all';
   });
 
   readonly filters = this.formBuilder.nonNullable.group({
@@ -99,11 +114,26 @@ export class LabelsComponent {
   });
 
   constructor() {
+    this.settings.ensureLoaded();
     this.filters.valueChanges
       .pipe(debounceTime(250), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.loadLabels());
+      .subscribe(() => { this.filterVersion.update((value) => value + 1); this.loadLabels(); });
     this.loadCategories();
     this.loadLabels();
+  }
+
+  activeFilterCount(): number {
+    const value = this.filters.getRawValue();
+    return Number(Boolean(value.categoryId)) + Number(value.active !== 'all');
+  }
+
+  filterSummary(): string {
+    const value = this.filters.getRawValue();
+    const parts = [
+      value.categoryId ? this.categories().find((item) => item.id === value.categoryId)?.name : null,
+      value.active !== 'all' ? this.activeOptions.find((item) => item.value === value.active)?.label : null,
+    ].filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'Nessun filtro strutturato applicato';
   }
 
   openCreate(): void {
@@ -198,13 +228,24 @@ export class LabelsComponent {
     const ordered = [...this.labels()];
     if (target < 0 || target >= ordered.length) return;
     [ordered[index], ordered[target]] = [ordered[target]!, ordered[index]!];
+    this.persistOrder(ordered);
+  }
+
+  drop(event: CdkDragDrop<Label[]>): void {
+    if (!this.canReorder() || event.previousIndex === event.currentIndex) return;
+    const ordered = [...this.labels()];
+    moveItemInArray(ordered, event.previousIndex, event.currentIndex);
+    this.persistOrder(ordered);
+  }
+
+  private persistOrder(ordered: readonly Label[]): void {
     const items: ReorderItem[] = ordered.map((label, itemIndex) => ({
-      id: label.id,
-      sortOrder: itemIndex + 1,
+      id: label.id, sortOrder: itemIndex + 1,
     }));
+    this.reordering.set(true);
     this.labelService
       .reorder(items)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(finalize(() => this.reordering.set(false)), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.showSuccess('Ordine delle etichette aggiornato.'),
         error: (error: unknown) =>
@@ -259,13 +300,17 @@ export class LabelsComponent {
 
   private loadLabels(showLoading = true): void {
     if (showLoading) this.loading.set(true);
-    this.labelService
-      .load(this.query())
+    const query = this.query();
+    forkJoin({
+      items: this.labelService.load(query),
+      summary: this.labelService.summary(query),
+    })
       .pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
+        next: ({ summary }) => this.summary.set(summary),
         error: (error: unknown) =>
           this.notice.set({ type: 'danger', text: apiErrorMessage(error) }),
       });

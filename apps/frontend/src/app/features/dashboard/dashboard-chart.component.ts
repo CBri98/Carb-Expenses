@@ -2,53 +2,44 @@ import { isPlatformBrowser } from '@angular/common';
 import {
   AfterViewInit,
   Component,
-  ElementRef,
+  EventEmitter,
   inject,
   Input,
   OnChanges,
   OnDestroy,
+  Output,
   PLATFORM_ID,
   ViewChild,
 } from '@angular/core';
-import {
-  ArcElement,
-  BarController,
-  BarElement,
-  CategoryScale,
-  Chart,
-  type ChartConfiguration,
-  type ChartType,
-  DoughnutController,
-  Filler,
-  Legend,
-  LinearScale,
-  LineController,
-  LineElement,
-  PointElement,
-  Tooltip,
+import type {
+  ChartConfiguration,
+  ChartEvent,
+  ChartType,
 } from 'chart.js';
-
-Chart.register(
-  ArcElement,
-  BarController,
-  BarElement,
-  CategoryScale,
-  DoughnutController,
-  Filler,
-  Legend,
-  LinearScale,
-  LineController,
-  LineElement,
-  PointElement,
-  Tooltip,
-);
+import { BaseChartDirective } from 'ng2-charts';
 
 type ChartValue = number | null;
+
+export interface DashboardChartSelection {
+  index: number;
+  datasetIndex: number;
+  label: string;
+  value: ChartValue;
+}
 
 @Component({
   selector: 'app-dashboard-chart',
   standalone: true,
-  template: `<div class="chart-canvas"><canvas #canvas role="img" [attr.aria-label]="ariaLabel"></canvas></div>`,
+  imports: [BaseChartDirective],
+  template: `<div class="chart-canvas"><canvas
+    baseChart
+    role="img"
+    [attr.aria-label]="ariaLabel"
+    [type]="type"
+    [data]="chartData"
+    [options]="chartOptions"
+    (chartClick)="chartClicked($event.event, $event.active)"
+  ></canvas></div>`,
   styles: [`
     :host { display: block; min-width: 0; }
     .chart-canvas { position: relative; width: 100%; height: 19rem; }
@@ -61,51 +52,92 @@ export class DashboardChartComponent implements AfterViewInit, OnChanges, OnDest
   @Input({ required: true }) labels: readonly string[] = [];
   @Input({ required: true }) values: readonly ChartValue[] = [];
   @Input() counts: readonly number[] = [];
-  @Input() colors: readonly string[] = ['#4f46e5'];
+  @Input() colors: readonly string[] = [];
   @Input() datasetLabel = 'Spese';
   @Input() secondaryValues: readonly ChartValue[] = [];
   @Input() secondaryCounts: readonly number[] = [];
   @Input() secondaryDatasetLabel = '';
-  @Input() secondaryColor = '#d97706';
+  @Input() secondaryColor = '';
   @Input() horizontal = false;
   @Input() ariaLabel = 'Grafico delle spese';
+  @Output() readonly pointSelected = new EventEmitter<DashboardChartSelection>();
 
-  @ViewChild('canvas') private canvas?: ElementRef<HTMLCanvasElement>;
-  private chart?: Chart<ChartType, ChartValue[], string>;
+  @ViewChild(BaseChartDirective) private chart?: BaseChartDirective;
+  chartData: ChartConfiguration<ChartType, ChartValue[], string>['data'] = {
+    labels: [],
+    datasets: [],
+  };
+  chartOptions: ChartConfiguration<ChartType, ChartValue[], string>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+  };
+
+  private themeObserver?: MutationObserver;
   private readonly platformId = inject(PLATFORM_ID);
 
-  ngAfterViewInit(): void { this.render(); }
-  ngOnChanges(): void {
-    if (this.canvas) this.render();
+  ngAfterViewInit(): void {
+    this.configure();
+    if (isPlatformBrowser(this.platformId) && typeof MutationObserver !== 'undefined') {
+      this.themeObserver = new MutationObserver(() => this.configure());
+      this.themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme', 'data-accent'],
+      });
+    }
   }
-  ngOnDestroy(): void { this.chart?.destroy(); }
 
-  private render(): void {
+  ngOnChanges(): void {
+    this.configure();
+  }
+
+  ngOnDestroy(): void {
+    this.themeObserver?.disconnect();
+  }
+
+  chartClicked(_event?: ChartEvent, active: object[] = []): void {
+    const selected = active[0];
+    if (!isSelectedElement(selected)) return;
+    this.pointSelected.emit({
+      index: selected.index,
+      datasetIndex: selected.datasetIndex,
+      label: this.labels[selected.index] ?? '',
+      value: selected.datasetIndex === 0
+        ? this.values[selected.index] ?? null
+        : this.secondaryValues[selected.index] ?? null,
+    });
+  }
+
+  private configure(): void {
     if (!isPlatformBrowser(this.platformId)) return;
-    const context = this.canvas?.nativeElement.getContext('2d');
-    if (!context) return;
-    this.chart?.destroy();
+    const styles = getComputedStyle(document.documentElement);
+    const textColor = styles.getPropertyValue('--text-secondary').trim() || '#727789';
+    const gridColor = styles.getPropertyValue('--border-color').trim() || '#e1e4ee';
+    const surfaceColor = styles.getPropertyValue('--surface').trim() || '#ffffff';
+    const primaryRgb = styles.getPropertyValue('--primary-rgb').trim() || '85, 92, 168';
+    const themePrimary = styles.getPropertyValue('--primary-strong').trim() || '#555ca8';
+    const themeSecondary = styles.getPropertyValue('--chart-secondary').trim() || '#a66f2c';
+    const primaryColor = this.colors[0] ?? themePrimary;
+    const chartColors = this.colors.length > 0 ? [...this.colors] : [primaryColor];
+    const secondaryColor = this.secondaryColor || themeSecondary;
 
-    const primaryColor = this.colors[0] ?? '#4f46e5';
     const datasets = [{
       label: this.datasetLabel,
       data: [...this.values],
       backgroundColor:
-        this.type === 'doughnut' ? [...this.colors] : colorWithAlpha(primaryColor),
-      borderColor: this.type === 'doughnut' ? '#ffffff' : primaryColor,
+        this.type === 'doughnut' ? chartColors : colorWithAlpha(primaryColor, primaryRgb),
+      borderColor: this.type === 'doughnut' ? surfaceColor : primaryColor,
       borderWidth: 2,
       fill: this.type === 'line',
       tension: 0.25,
       pointRadius: this.type === 'line' ? 2 : 0,
       spanGaps: false,
     }];
-
     if (this.type !== 'doughnut' && this.secondaryValues.length > 0) {
       datasets.push({
         label: this.secondaryDatasetLabel || 'Confronto',
         data: [...this.secondaryValues],
-        backgroundColor: colorWithAlpha(this.secondaryColor),
-        borderColor: this.secondaryColor,
+        backgroundColor: colorWithAlpha(secondaryColor, primaryRgb),
+        borderColor: secondaryColor,
         borderWidth: 2,
         fill: false,
         tension: 0.25,
@@ -116,11 +148,12 @@ export class DashboardChartComponent implements AfterViewInit, OnChanges, OnDest
 
     const numericScale = {
       beginAtZero: true,
-      ticks: { callback: (value: string | number) => formatEuro(Number(value)) },
+      grid: { color: gridColor },
+      ticks: { color: textColor, callback: (value: string | number) => formatEuro(Number(value)) },
     };
     const categoryScale = {
       grid: { display: false },
-      ticks: { autoSkip: true, maxTicksLimit: 12 },
+      ticks: { color: textColor, autoSkip: true, maxTicksLimit: 12 },
     };
     const configuration: ChartConfiguration<ChartType, ChartValue[], string> = {
       type: this.type,
@@ -130,16 +163,25 @@ export class DashboardChartComponent implements AfterViewInit, OnChanges, OnDest
         maintainAspectRatio: false,
         animation: false,
         indexAxis: this.horizontal ? 'y' : 'x',
+        onHover: (event, elements) => {
+          const canvas = event.native?.target;
+          if (canvas instanceof HTMLCanvasElement) {
+            canvas.style.cursor = elements.length ? 'pointer' : 'default';
+          }
+        },
         plugins: {
           legend: {
             display: this.type === 'doughnut' || this.secondaryValues.length > 0,
             position: 'bottom',
+            labels: { color: textColor },
           },
           tooltip: {
             callbacks: {
               label: (item) => {
                 const label = item.dataset.label || item.label || this.datasetLabel;
-                return item.raw === null ? `${label}: giorno non presente` : `${label}: ${formatEuro(Number(item.raw))}`;
+                return item.raw === null
+                  ? `${label}: giorno non presente`
+                  : `${label}: ${formatEuro(Number(item.raw))}`;
               },
               afterLabel: (item) => {
                 const source = item.datasetIndex === 0 ? this.counts : this.secondaryCounts;
@@ -156,13 +198,26 @@ export class DashboardChartComponent implements AfterViewInit, OnChanges, OnDest
             : { x: categoryScale, y: numericScale },
       },
     };
-    this.chart = new Chart(context, configuration);
+    this.chartData = configuration.data;
+    this.chartOptions = configuration.options;
+    this.chart?.update();
   }
 }
 
-function colorWithAlpha(color: string): string {
+function isSelectedElement(value: object | undefined): value is object & {
+  index: number;
+  datasetIndex: number;
+} {
+  return Boolean(
+    value &&
+    'index' in value && typeof value.index === 'number' &&
+    'datasetIndex' in value && typeof value.datasetIndex === 'number',
+  );
+}
+
+function colorWithAlpha(color: string, fallbackRgb: string): string {
   if (/^#[0-9a-f]{6}$/i.test(color)) return `${color}33`;
-  return 'rgba(79, 70, 229, 0.2)';
+  return `rgba(${fallbackRgb}, 0.2)`;
 }
 
 function formatEuro(value: number): string {

@@ -158,6 +158,49 @@ export class AuthService {
     });
   }
 
+  verifyPassword(user: Pick<User, 'passwordHash'>, password: string): Promise<boolean> {
+    return safeVerify(user.passwordHash, password);
+  }
+
+  hashPassword(password: string): Promise<string> {
+    return hash(password, ARGON_OPTIONS);
+  }
+
+  async revokeOtherSessions(
+    userId: string,
+    refreshToken: string | undefined,
+  ): Promise<{ revokedCount: number; currentSessionRetained: boolean }> {
+    let currentTokenId: string | null = null;
+    if (refreshToken) {
+      try {
+        const payload = await this.verifyRefreshToken(refreshToken);
+        if (payload.sub === userId) currentTokenId = payload.jti;
+      } catch {
+        currentTokenId = null;
+      }
+    }
+    const result = await this.prisma.refreshToken.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+        ...(currentTokenId ? { id: { not: currentTokenId } } : {}),
+      },
+      data: { revokedAt: new Date() },
+    });
+    return {
+      revokedCount: result.count,
+      currentSessionRetained: currentTokenId !== null,
+    };
+  }
+
+  async revokeAllSessions(userId: string): Promise<number> {
+    const result = await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return result.count;
+  }
+
   private async createSession(user: User): Promise<AuthSession> {
     const tokens = await this.buildTokenPair(user);
 

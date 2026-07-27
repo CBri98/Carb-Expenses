@@ -1,0 +1,25 @@
+.settings-heading {
+  display: flex;
+  gap: 1rem;
+  align-items: end;
+  justify-content: space-between;
+}
+.eyebrow { color: var(--primary-strong); font-size: .72rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.settings-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+.settings-nav { flex-direction: column; gap: .35rem; padding: .65rem; background: var(--surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+.settings-nav a { display: flex; gap: .75rem; align-items: center; min-height: 2.75rem; padding: .65rem .8rem; color: var(--text-secondary); text-decoration: none; border-radius: .65rem; }
+.settings-nav a:hover, .settings-nav a.active { color: var(--primary-selected-color); background: var(--primary-selected-bg); box-shadow: inset 0 0 0 1px var(--primary-selected-border); }
+.settings-nav a.active i { color: inherit; }
+.settings-content { min-width: 0; }
+.settings-card { overflow: hidden; }
+.settings-card + .settings-card { margin-top: 1rem; }
+.settings-card__header { padding: 1.1rem 1.25rem; background: var(--surface-soft); border-bottom: 1px solid var(--border-color); }
+.settings-card__body { padding: 1.25rem; }
+.settings-actions { display: flex; gap: .75rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+.choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .75rem; }
+.choice-button { min-height: 5.25rem; padding: .8rem; color: var(--text-primary); text-align: left; background: var(--form-surface); border: 1px solid var(--border-strong); border-radius: .75rem; }
+.choice-button.active { color: var(--primary-selected-color); background: var(--primary-selected-bg); border-color: var(--primary-selected-border); box-shadow: 0 0 0 2px var(--primary-focus-ring); }
+.choice-button:focus-visible { outline-color: var(--primary-focus-ring); }
+.accent-dot { display: block; width: 1.65rem; height: 1.65rem; margin-bottom: .45rem; border: 2px solid var(--surface); border-radius: 50%; box-shadow: 0 0 0 1px var(--border-strong); }
+@media (min-width: 768px) { .settings-layout { grid-template-columns: 13rem minmax(0, 1fr); align-items: start; } .settings-nav { position: sticky; top: 5.5rem; } }
+@media (max-width: 575.98px) { .settings-heading { align-items: stretch; flex-direction: column; } .settings-heading .btn { width: 100%; } .settings-actions { flex-direction: column; } .settings-actions .btn { width: 100%; } }

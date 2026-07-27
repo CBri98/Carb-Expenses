@@ -28,6 +28,7 @@ COPY --from=build /workspace/apps/backend/package.json apps/backend/package.json
 COPY --from=build /workspace/apps/backend/prisma.config.ts apps/backend/prisma.config.ts
 COPY --from=build /workspace/apps/backend/dist apps/backend/dist
 COPY --from=build /workspace/apps/backend/prisma apps/backend/prisma
+COPY --from=build /workspace/apps/backend/src apps/backend/src
 COPY --chmod=755 apps/backend/docker-entrypoint.sh apps/backend/docker-entrypoint.sh
 
 EXPOSE 3000

@@ -2,7 +2,7 @@
 
 Gestionale per la registrazione, pianificazione e analisi delle spese personali.
 
-Sono complete le Fasi 1–7: setup Docker, autenticazione, categorie ed etichette, gestione spese, dashboard, report mensili e calendario gestionale. Notifiche e ricorrenze appartengono alle fasi successive e non sono ancora implementate.
+Sono complete le Fasi 1–10 e la rifinitura 10.5: setup Docker, autenticazione, categorie ed etichette, gestione spese, dashboard, report mensili, calendario gestionale, promemoria, notifiche interne, spese ricorrenti, preferenze utente e consolidamento dell’interfaccia.
 
 ## Requisiti
 
@@ -31,7 +31,7 @@ Il backend attende MariaDB, applica le migrazioni Prisma, esegue il seed idempot
 - Swagger: <http://localhost:3000/api/docs>
 - MariaDB: `localhost:3306`
 
-In `development` il seed crea l’utente configurato da `DEMO_USER_EMAIL` e `DEMO_USER_PASSWORD`, quattro etichette e venticinque spese dimostrative distribuite su più mesi. In produzione non crea dati demo.
+In `development` il seed crea l’utente configurato da `DEMO_USER_EMAIL` e `DEMO_USER_PASSWORD`, quattro etichette, venticinque spese dimostrative distribuite su più mesi e sette regole ricorrenti rappresentative. In produzione non crea dati demo.
 
 ## Funzionalità disponibili
 
@@ -41,10 +41,13 @@ Le sezioni protette principali sono:
 
 - <http://localhost:4200/expenses>
 - <http://localhost:4200/calendar>
+- <http://localhost:4200/recurrences>
+- <http://localhost:4200/notifications>
 - <http://localhost:4200/reports/monthly>
 - <http://localhost:4200/reports/compare>
 - <http://localhost:4200/settings/categories>
 - <http://localhost:4200/settings/labels>
+- <http://localhost:4200/settings>
 
 La pagina Spese offre ricerca, filtri combinabili, ordinamento e paginazione server-side, visualizzazione desktop/mobile, dettaglio, creazione, modifica, duplicazione, cambio stato, soft delete con conferma ed export CSV. Il pulsante globale “Nuova spesa” apre lo stesso form condiviso in modalità rapida.
 
@@ -96,11 +99,14 @@ npm run typecheck:backend
 npm run typecheck:frontend
 npm run test:backend
 npm run test:frontend
+npm run test:e2e:reload
 npm run build:backend
 npm run build:frontend
 npm run --workspace @carbexpenses/backend prisma:validate
 docker compose config
 ```
+
+Il test E2E `test:e2e:reload` richiede frontend e backend locali attivi, il seed development e Chrome/Chromium. Verifica che il reload diretto di una route autenticata conservi percorso e query string senza redirect intermedio al login. È possibile configurarlo con `E2E_FRONTEND_URL`, `E2E_API_URL`, `E2E_EMAIL`, `E2E_PASSWORD` e `CHROME_PATH`.
 
 Per arrestare i container mantenendo i dati usare `docker compose down`. L’opzione `--volumes` elimina anche il database persistente e va usata consapevolmente.
 
@@ -118,6 +124,118 @@ carbexpenses/
 ```
 
 La roadmap è descritta in [docs/technical-roadmap.md](docs/technical-roadmap.md).
+
+## Fase 8 — Promemoria e notifiche interne
+
+Le spese `PLANNED` possono avere più promemoria: il giorno stesso, 1, 3 o 7 giorni prima, oppure una data e ora personalizzata. I preset vengono calcolati dalla data/ora locale della spesa; se l'ora manca viene usato `DEFAULT_EXPENSE_REMINDER_TIME`. I timestamp sono persistiti in UTC e la conversione usa il fuso dell'utente, predefinito a `Europe/Rome`, incluse ora legale e ora solare.
+
+Il backend esegue `NotificationSchedulerService` con `@nestjs/schedule`. La frequenza predefinita è una volta al minuto ed è configurabile tramite `NOTIFICATION_SCHEDULER_CRON` con intervalli da 1 a 59 minuti. Lo scheduler seleziona soltanto promemoria attivi, non processati e già dovuti, oltre alle spese pianificate previste oggi o divenute scadute. Una spesa scaduta resta `PLANNED`: non viene cambiato automaticamente alcuno stato.
+
+L'idempotenza è garantita da una `deduplicationKey` univoca sul database e da acquisizioni atomiche in transazione. Le chiavi includono promemoria e timestamp oppure spesa e data di scadenza. Un promemoria `SAME_DAY` e la notifica automatica del giorno stesso condividono la stessa chiave, quindi non producono un doppio avviso. Le notifiche vengono archiviate con soft state e non eliminate fisicamente.
+
+Quando cambia data o ora della spesa, i preset attivi non processati vengono ricalcolati. I custom non vengono spostati: il backend rifiuta il cambio se la nuova scadenza li renderebbe successivi alla spesa. Passando a `COMPLETED` o `CANCELLED`, o eliminando logicamente la spesa, i promemoria futuri vengono disattivati. Tornando a `PLANNED` restano disattivati finché l'utente non li riattiva o ricrea esplicitamente.
+
+Endpoint notifiche autenticati:
+
+```text
+GET    /api/v1/notifications
+GET    /api/v1/notifications/unread-count
+GET    /api/v1/notifications/:id
+PATCH  /api/v1/notifications/:id/read
+PATCH  /api/v1/notifications/:id/unread
+PATCH  /api/v1/notifications/:id/archive
+PATCH  /api/v1/notifications/read-all
+```
+
+Endpoint promemoria autenticati:
+
+```text
+GET    /api/v1/expenses/:expenseId/reminders
+POST   /api/v1/expenses/:expenseId/reminders
+PATCH  /api/v1/expenses/:expenseId/reminders/:reminderId
+DELETE /api/v1/expenses/:expenseId/reminders/:reminderId
+```
+
+La pagina protetta <http://localhost:4200/notifications> offre filtri sincronizzati nei query parameter, paginazione server-side, letto/non letto e archiviazione. La topbar carica cinque notifiche recenti e aggiorna il conteggio non letto con una query `COUNT` all'avvio, al ritorno del focus, dopo azioni locali e tramite polling ogni `NOTIFICATION_POLL_INTERVAL_MS` (60–120 secondi, default 60.000). Il polling si interrompe quando il layout autenticato viene distrutto.
+
+Variabili della fase:
+
+```env
+DEFAULT_EXPENSE_REMINDER_TIME=09:00
+NOTIFICATION_SCHEDULER_CRON=*/1 * * * *
+NOTIFICATION_POLL_INTERVAL_MS=60000
+```
+
+Questa fase implementa esclusivamente notifiche interne. Non include email, push, WebSocket, Redis o code esterne. Le spese vengono generate soltanto dal modulo ricorrenze descritto di seguito.
+
+## Fase 9 — Spese ricorrenti
+
+La sezione protetta <http://localhost:4200/recurrences> gestisce regole giornaliere, settimanali, mensili e annuali con intervallo, data iniziale, data finale opzionale, massimo numero di occorrenze e orizzonte di generazione. Il giorno 31 viene adattato all'ultimo giorno disponibile senza perdere l'ancora originaria; una ricorrenza annuale del 29 febbraio usa il 28 negli anni non bisestili.
+
+Le occorrenze sono normali spese `PLANNED`: usano lo stesso CRUD, compaiono in calendario, dashboard e report, e ricevono copie indipendenti dei template promemoria. Le spese completate, annullate, modificate manualmente o eliminate non vengono sovrascritte; una riga eliminata logicamente mantiene il vincolo regola/data e non viene rigenerata.
+
+Lo scheduler `RecurrenceSchedulerService` genera in anticipo entro l'orizzonte della regola. Un claim ottimistico sulla versione della regola e il vincolo univoco database `(recurrenceRuleId, occurrenceDate)` rendono sicuri retry e concorrenza. La pausa interrompe nuove generazioni; la ripresa parte dalla prima data valida non precedente a oggi e non recupera arretrati. La terminazione può mantenere oppure annullare soltanto le future spese `PLANNED`.
+
+Endpoint autenticati principali:
+
+```text
+GET    /api/v1/recurrences
+POST   /api/v1/recurrences
+POST   /api/v1/recurrences/preview
+GET    /api/v1/recurrences/summary
+GET    /api/v1/recurrences/:id
+PATCH  /api/v1/recurrences/:id
+DELETE /api/v1/recurrences/:id
+GET    /api/v1/recurrences/:id/preview
+GET    /api/v1/recurrences/:id/expenses
+POST   /api/v1/recurrences/:id/exceptions
+PATCH  /api/v1/recurrences/:id/pause
+PATCH  /api/v1/recurrences/:id/resume
+PATCH  /api/v1/recurrences/:id/cancel
+```
+
+Variabili della fase:
+
+```env
+RECURRENCE_SCHEDULER_CRON=0 * * * *
+DEFAULT_RECURRENCE_GENERATION_DAYS_AHEAD=30
+MAX_RECURRENCE_GENERATION_DAYS_AHEAD=365
+MAX_RECURRENCE_OCCURRENCES_PER_RUN=500
+```
+
+Non sono inclusi Redis, code esterne, pagamenti, sincronizzazioni esterne, email o push.
+
+## Fase 10 — Impostazioni e preferenze
+
+La sezione protetta <http://localhost:4200/settings> comprende Account, Aspetto, Esperienza, Icone e Promemoria. Le preferenze sono isolate per utente in una relazione Prisma uno-a-uno e sincronizzate con il server; la cache locale contiene soltanto dati non sensibili e permette di applicare tema, colore e densità prima del bootstrap Angular.
+
+Sono disponibili tema chiaro, scuro o di sistema e sei preset di colore controllati. Non vengono accettati colori, CSS, HTML, classi o nomi di icona arbitrari. Le preferenze di esperienza governano sidebar iniziale, densità tabelle, page size, filtri spese, valori iniziali del form, periodo dashboard e vista calendario. La sezione Promemoria configura soltanto i preset proposti nei nuovi form e le notifiche automatiche del giorno/scaduto; non introduce la pagina globale di gestione promemoria.
+
+Il catalogo icone condiviso può essere ristretto separatamente per categorie ed etichette. Un’icona già usata continua a essere resa e resta disponibile durante la modifica del record, anche se è stata nascosta dai nuovi selettori.
+
+Endpoint autenticati:
+
+```text
+GET    /api/v1/settings
+PATCH  /api/v1/settings/account
+PATCH  /api/v1/settings/account/password
+POST   /api/v1/settings/account/revoke-other-sessions
+PATCH  /api/v1/settings/appearance
+PATCH  /api/v1/settings/experience
+PATCH  /api/v1/settings/icons
+PATCH  /api/v1/settings/notifications
+POST   /api/v1/settings/preferences/reset
+```
+
+Il cambio email richiede la password corrente; il cambio password revoca tutte le sessioni. La revoca selettiva mantiene la sessione corrente identificata dal refresh cookie `HttpOnly`. Il ripristino modifica esclusivamente le preferenze e non tocca account, spese, categorie, etichette, ricorrenze o notifiche.
+
+## Fase 10.5 — Rifinitura interfaccia
+
+Il bootstrap delle guard attende il ripristino della sessione: il reload diretto di una route protetta conserva percorso e query string senza un redirect intermedio al login. Tema, accento e densità vengono applicati prima del bootstrap Angular dalla sola cache non sensibile e poi sincronizzati con le preferenze autorevoli del server.
+
+Layout, grafici Chart.js, pannelli filtro e componenti Bootstrap sono coerenti in light e dark mode. Dashboard, report, spese, calendario e impostazioni hanno controlli adattivi per desktop, tablet e mobile. Il pannello filtri condiviso centralizza conteggio, riepilogo, reset e attributi ARIA.
+
+La specifica è in [docs/PHASE_10_5_UI_REFINEMENT.md](docs/PHASE_10_5_UI_REFINEMENT.md); il resoconto delle verifiche finali è in [docs/PHASE_10_5_COMPLETION_2026-07-27.md](docs/PHASE_10_5_COMPLETION_2026-07-27.md).
 
 
 ## Fase 5 — Dashboard

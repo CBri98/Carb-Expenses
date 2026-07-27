@@ -1,0 +1,99 @@
+<div class="container-fluid px-0">
+  <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item"><a routerLink="/recurrences">Spese ricorrenti</a></li><li class="breadcrumb-item active">Dettaglio</li></ol></nav>
+  @if (loading()) {
+    <div class="card border-0 shadow-sm"><div class="card-body"><app-loading-skeleton /></div></div>
+  } @else if (rule(); as item) {
+    <app-page-header [title]="item.name" [subtitle]="item.notes || 'Dettaglio e pianificazione della ricorrenza'">
+      <div class="d-flex flex-wrap gap-2">
+        @if (item.status !== 'CANCELLED') { <a class="btn btn-outline-primary" [routerLink]="['/recurrences', item.id, 'edit']"><i class="bi bi-pencil me-2" aria-hidden="true"></i>Modifica</a> }
+        @if (item.status === 'ACTIVE') { <button class="btn btn-outline-warning" type="button" (click)="pause()" [disabled]="busy()"><i class="bi bi-pause-circle me-2" aria-hidden="true"></i>Sospendi</button> }
+        @if (item.status === 'PAUSED') { <button class="btn btn-outline-success" type="button" (click)="resume()" [disabled]="busy()"><i class="bi bi-play-circle me-2" aria-hidden="true"></i>Riprendi</button> }
+        @if (item.status === 'ACTIVE' || item.status === 'PAUSED') { <button class="btn btn-outline-danger" type="button" (click)="openCancel()" [disabled]="busy()"><i class="bi bi-stop-circle me-2" aria-hidden="true"></i>Termina</button> }
+        @if (item.generatedCount === 0) { <button class="btn btn-outline-danger" type="button" (click)="remove()" [disabled]="busy()"><i class="bi bi-trash me-2" aria-hidden="true"></i>Elimina</button> }
+      </div>
+    </app-page-header>
+    @if (notice()) { <div class="alert alert-success" role="status">{{ notice() }}</div> }
+    @if (error()) { <div class="alert alert-danger" role="alert">{{ error() }}</div> }
+
+    <div class="detail-summary card border-0 shadow-sm mb-3"><div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div><span class="text-body-secondary small">Importo pianificato</span><strong class="d-block fs-3">{{ item.amount | euroAmount }}</strong></div>
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <app-recurrence-status-badge [status]="item.status" />
+        <span class="badge category-badge"><i class="bi me-1" [class]="item.category.icon" [style.color]="item.category.color" aria-hidden="true"></i>{{ item.category.name }}</span>
+      </div>
+    </div></div>
+
+    <nav class="detail-tabs mb-3" role="tablist" aria-label="Sezioni della ricorrenza">
+      <button id="recurrence-tab-general" class="detail-tab" type="button" role="tab" aria-controls="recurrence-panel-general" [attr.aria-selected]="activeTab() === 'general'" [class.active]="activeTab() === 'general'" (click)="selectTab('general')"><i class="bi bi-info-circle me-2" aria-hidden="true"></i>Informazioni generali</button>
+      <button id="recurrence-tab-occurrences" class="detail-tab" type="button" role="tab" aria-controls="recurrence-panel-occurrences" [attr.aria-selected]="activeTab() === 'occurrences'" [class.active]="activeTab() === 'occurrences'" (click)="selectTab('occurrences')"><i class="bi bi-list-check me-2" aria-hidden="true"></i>Occorrenze generate <span class="badge rounded-pill ms-1">{{ item.generatedCount }}</span></button>
+      <button id="recurrence-tab-reminders" class="detail-tab" type="button" role="tab" aria-controls="recurrence-panel-reminders" [attr.aria-selected]="activeTab() === 'reminders'" [class.active]="activeTab() === 'reminders'" (click)="selectTab('reminders')"><i class="bi bi-bell me-2" aria-hidden="true"></i>Promemoria <span class="badge rounded-pill ms-1">{{ item.reminderTemplates.length }}</span></button>
+    </nav>
+
+    @if (activeTab() === 'general') {
+      <section id="recurrence-panel-general" role="tabpanel" aria-labelledby="recurrence-tab-general" class="row g-3">
+        <div class="col-12 col-xl-8"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+          <h2 class="h5 mb-3">Regola e classificazione</h2>
+          <dl class="detail-grid">
+            <div><dt>Frequenza</dt><dd>{{ item.frequency | recurrenceFrequency:item.interval }}</dd></div>
+            <div><dt>Pagamento</dt><dd><app-payment-method-badge [method]="item.paymentMethod" /></dd></div>
+            <div><dt>Data iniziale</dt><dd>{{ item.startDate | italianExpenseDate }}</dd></div>
+            <div><dt>Data finale</dt><dd>{{ item.endDate ? (item.endDate | italianExpenseDate) : 'Nessuna' }}</dd></div>
+            <div><dt>Prossima occorrenza</dt><dd>{{ item.nextOccurrenceDate ? (item.nextOccurrenceDate | italianExpenseDate) : '—' }}</dd></div>
+            <div><dt>Ultima generazione</dt><dd>{{ item.lastGeneratedDate ? (item.lastGeneratedDate | italianExpenseDate) : '—' }}</dd></div>
+            <div><dt>Occorrenze generate</dt><dd>{{ item.generatedCount }}@if (item.maxOccurrences) { / {{ item.maxOccurrences }} }</dd></div>
+            <div><dt>Generazione anticipata</dt><dd>{{ item.generateDaysAhead }} giorni</dd></div>
+            <div><dt>Esercente</dt><dd>{{ item.merchant || '—' }}</dd></div>
+            <div><dt>Ora della spesa</dt><dd>{{ item.expenseTime || '—' }}</dd></div>
+          </dl>
+          <h3 class="h6 mt-4">Note</h3><p class="notes-text mb-0">{{ item.notes || 'Nessuna nota.' }}</p>
+          @if (item.labels.length) { <div class="d-flex flex-wrap gap-2 mt-3">@for (label of item.labels; track label.id) { <span class="badge rounded-pill" [style.background]="label.color">@if (label.icon) { <i class="bi me-1" [class]="label.icon" aria-hidden="true"></i> }{{ label.name }}</span> }</div> }
+        </div></div></div>
+        <div class="col-12 col-xl-4"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+          <h2 class="h5">Prossime date</h2>
+          @if (item.previewDates?.length) { <ol class="ps-3 mb-3">@for (date of item.previewDates; track date) { <li class="mb-2">{{ date | italianExpenseDate }}</li> }</ol> } @else { <p class="text-body-secondary">Nessuna data futura.</p> }
+          @if (item.nextOccurrenceDate && item.status === 'ACTIVE') { <button class="btn btn-sm btn-outline-secondary" type="button" (click)="skipNext()"><i class="bi bi-skip-forward me-2" aria-hidden="true"></i>Salta prossima occorrenza</button> }
+        </div></div></div>
+      </section>
+    }
+
+    @if (activeTab() === 'occurrences') {
+      <section id="recurrence-panel-occurrences" role="tabpanel" aria-labelledby="recurrence-tab-occurrences" class="card border-0 shadow-sm overflow-hidden">
+        <div class="card-header"><h2 class="h5 mb-0">Spese generate</h2><p class="small text-body-secondary mb-0 mt-1">Le occorrenze sono normali spese pianificate e restano consultabili singolarmente.</p></div>
+        @if (expenses().length === 0) {
+          <app-empty-state title="Questa ricorrenza non ha ancora generato spese." description="Le occorrenze verranno create entro l’orizzonte configurato." />
+        } @else {
+          <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Data</th><th>Descrizione</th><th>Importo</th><th>Stato</th><th></th></tr></thead><tbody>@for (expense of expenses(); track expense.id) {
+            <tr class="clickable-expense" tabindex="0" (click)="openExpense(expense)" (keydown.enter)="openExpense(expense)"><td>{{ expense.expenseDate | italianExpenseDate }}</td><td><strong>{{ expense.description }}</strong></td><td>{{ expense.amount | euroAmount }}</td><td><app-expense-status-badge [status]="expense.status" /></td><td class="text-end"><button class="btn btn-sm btn-outline-primary" type="button" (click)="$event.stopPropagation(); openExpense(expense)"><i class="bi bi-arrow-up-right me-1" aria-hidden="true"></i>Apri</button></td></tr>
+          }</tbody></table></div>
+        }
+        @if (meta().totalPages > 1) { <div class="card-footer"><app-pagination [meta]="meta()" (pageChange)="page($event)" /></div> }
+      </section>
+    }
+
+    @if (activeTab() === 'reminders') {
+      <section id="recurrence-panel-reminders" role="tabpanel" aria-labelledby="recurrence-tab-reminders" class="card border-0 shadow-sm"><div class="card-body">
+        <h2 class="h5">Promemoria delle nuove occorrenze</h2>
+        <p class="text-body-secondary">Questi modelli vengono copiati automaticamente sulle nuove spese generate. La modifica non altera i promemoria delle spese già create, salvo l’ambito scelto nel form.</p>
+        @if (item.reminderTemplates.length) {
+          <ul class="reminder-list mb-0">@for (template of item.reminderTemplates; track template.id) { <li><i class="bi bi-alarm" aria-hidden="true"></i><div><strong>{{ reminderLabel(template.type) }}</strong><span>Alle {{ template.reminderTime || item.expenseTime || '09:00' }}</span></div></li> }</ul>
+        } @else {
+          <app-empty-state title="Nessun promemoria predefinito." description="Puoi aggiungerne modificando la ricorrenza." ><a class="btn btn-outline-primary" [routerLink]="['/recurrences', item.id, 'edit']"><i class="bi bi-pencil me-2" aria-hidden="true"></i>Modifica ricorrenza</a></app-empty-state>
+        }
+      </div></section>
+    }
+  } @else if (error()) { <div class="alert alert-danger">{{ error() }}</div> }
+</div>
+
+@if (cancelOpen() && rule(); as item) {
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="detail-cancel-recurrence-title">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+      <div class="modal-header"><h2 id="detail-cancel-recurrence-title" class="modal-title fs-5">Termina {{ item.name }}</h2><button class="btn-close" type="button" aria-label="Chiudi" (click)="cancelOpen.set(false)"></button></div>
+      <div class="modal-body">
+        <p>La regola non genererà altre spese. Scegli cosa fare con le future già generate.</p>
+        <div class="form-check"><input id="detail-keep-future" class="form-check-input" type="radio" name="detailCancelFuture" [checked]="!cancelFuture()" (change)="cancelFuture.set(false)"><label for="detail-keep-future" class="form-check-label">Mantieni le future pianificate</label></div>
+        <div class="form-check mt-2"><input id="detail-cancel-future" class="form-check-input" type="radio" name="detailCancelFuture" [checked]="cancelFuture()" (change)="cancelFuture.set(true)"><label for="detail-cancel-future" class="form-check-label">Annulla le future pianificate</label></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" (click)="cancelOpen.set(false)"><i class="bi bi-arrow-left me-2" aria-hidden="true"></i>Indietro</button><button class="btn btn-danger" type="button" (click)="confirmCancel()" [disabled]="busy()"><i class="bi bi-stop-circle me-2" aria-hidden="true"></i>Termina ricorrenza</button></div>
+    </div></div>
+  </div><div class="modal-backdrop show"></div>
+}

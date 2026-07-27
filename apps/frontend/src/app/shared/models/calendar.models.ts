@@ -1,6 +1,6 @@
 import type { ExpenseStatus, PaymentMethod } from './expense.models';
 
-export type CalendarView = 'month' | 'week' | 'list';
+export type CalendarView = 'month' | 'week' | 'year' | 'list';
 
 export interface CalendarExpenseEvent {
   id: string;
@@ -26,6 +26,12 @@ export interface CalendarExpenseEvent {
     icon: string | null;
   }>;
   paymentMethod: PaymentMethod;
+  generatedByRecurrence: boolean;
+  recurrence: {
+    id: string;
+    name: string;
+    status: import('./recurrence.models').RecurrenceStatus;
+  } | null;
 }
 
 export interface CalendarFilters {

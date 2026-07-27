@@ -1,12 +1,13 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { map, Observable, tap } from 'rxjs';
+import { catchError, map, Observable, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import type { ApiEnvelope } from '../auth/auth.models';
 import type {
   CreateLabelRequest,
   Label,
   LabelQueryParams,
+  LabelSummary,
   ReorderItem,
   UpdateLabelRequest,
 } from '../../shared/models/catalog.models';
@@ -28,6 +29,14 @@ export class LabelService {
       );
   }
 
+  summary(query: LabelQueryParams = {}): Observable<LabelSummary> {
+    return this.http
+      .get<ApiEnvelope<LabelSummary>>(`${environment.apiBaseUrl}/labels/summary`, {
+        params: paramsFrom(query),
+      })
+      .pipe(map((response) => response.data));
+  }
+
   get(id: string): Observable<Label> {
     return this.http
       .get<ApiEnvelope<Label>>(`${environment.apiBaseUrl}/labels/${id}`)
@@ -47,11 +56,22 @@ export class LabelService {
   }
 
   reorder(items: ReorderItem[]): Observable<Label[]> {
+    const previous = this.cache();
+    const positions = new Map(items.map((item) => [item.id, item.sortOrder]));
+    this.cache.set(
+      previous
+        .map((item) => ({ ...item, sortOrder: positions.get(item.id) ?? item.sortOrder }))
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    );
     return this.http
       .patch<ApiEnvelope<Label[]>>(`${environment.apiBaseUrl}/labels/reorder`, { items })
       .pipe(
         map((response) => response.data),
         tap((result) => this.cache.set(result)),
+        catchError((error: unknown) => {
+          this.cache.set(previous);
+          return throwError(() => error);
+        }),
       );
   }
 

@@ -56,6 +56,11 @@ const planned = {
   createdAt: new Date('2026-07-01T08:00:00Z'),
   updatedAt: new Date('2026-07-01T08:00:00Z'),
   deletedAt: null,
+  overdueNotifiedForDate: null,
+  recurrenceRuleId: null,
+  occurrenceDate: null,
+  generatedByRecurrence: false,
+  recurrenceRule: null,
   category,
   labels: [{ expenseId: 'expense-1', labelId: label.id, label }],
 };

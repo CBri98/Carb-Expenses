@@ -93,6 +93,13 @@ export class ExpensesController {
     return this.expenses.findAll(user.id, query);
   }
 
+  @Get('summary')
+  @ApiOperation({ summary: 'Restituisce i contatori delle spese filtrate' })
+  @ApiOkResponse({ description: 'Totale risultati e conteggi per stato' })
+  summary(@CurrentUser() user: PublicUser, @Query() query: ExpenseExportQueryDto) {
+    return this.expenses.summary(user.id, query);
+  }
+
   @Get('export')
   @ApiOperation({ summary: 'Esporta in CSV UTF-8 le spese filtrate' })
   @ApiProduces('text/csv')

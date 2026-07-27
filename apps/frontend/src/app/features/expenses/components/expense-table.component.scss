@@ -2,10 +2,10 @@ th { color: var(--text-muted-strong); font-size: .72rem; letter-spacing: .04em; 
 .sort-button { padding: 0; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; background: transparent; border: 0; }
 .actions { display: flex; gap: .3rem; justify-content: flex-end; }
 .expense-row { cursor: pointer; }
-.expense-row:focus-visible { position: relative; z-index: 1; outline: 3px solid rgb(124 131 214 / 35%); outline-offset: -3px; }
+.expense-row:focus-visible { position: relative; z-index: 1; outline: 3px solid rgb(var(--primary-rgb) / 35%); outline-offset: -3px; }
 .expense-row--planned > * {
-  --bs-table-bg: #fff8e8;
-  --bs-table-hover-bg: #fff1d1;
+  --bs-table-bg: var(--warning-soft);
+  --bs-table-hover-bg: color-mix(in srgb, var(--warning) 24%, var(--surface));
   background-color: var(--bs-table-bg);
 }
 .expense-row--planned:hover > * { background-color: var(--bs-table-hover-bg); }

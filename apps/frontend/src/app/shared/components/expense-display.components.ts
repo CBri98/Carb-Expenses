@@ -5,6 +5,8 @@ import {
   expenseStatusLabel,
   formatEuroAmount,
   formatItalianDate,
+  formatItalianDateTime,
+  formatItalianExtendedDate,
   paymentMethodLabel,
 } from '../utilities/expense-format';
 
@@ -19,6 +21,20 @@ export class EuroAmountPipe implements PipeTransform {
 export class ItalianExpenseDatePipe implements PipeTransform {
   transform(value: string): string {
     return formatItalianDate(value);
+  }
+}
+
+@Pipe({ name: 'italianExtendedDate', standalone: true })
+export class ItalianExtendedDatePipe implements PipeTransform {
+  transform(value: string): string {
+    return formatItalianExtendedDate(value);
+  }
+}
+
+@Pipe({ name: 'italianDateTime', standalone: true })
+export class ItalianDateTimePipe implements PipeTransform {
+  transform(value: string): string {
+    return formatItalianDateTime(value);
   }
 }
 

@@ -33,6 +33,8 @@ export class CalendarMapper {
         icon: label.icon,
       })),
       paymentMethod: mapped.paymentMethod,
+      generatedByRecurrence: mapped.generatedByRecurrence,
+      recurrence: mapped.recurrence,
     };
   }
 }

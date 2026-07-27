@@ -53,15 +53,21 @@ export function createAuthFixture(): {
       Promise.resolve(tokens.get(args.where.id) ?? null)
     ),
     updateMany: vi.fn((args: {
-      where: { id: string; userId: string; revokedAt: null };
+      where: { id?: string | { not: string }; userId: string; revokedAt: null };
       data: { revokedAt: Date };
     }) => {
-      const stored = tokens.get(args.where.id);
-      if (!stored || stored.userId !== args.where.userId || stored.revokedAt) {
-        return Promise.resolve({ count: 0 });
+      let count = 0;
+      for (const stored of tokens.values()) {
+        const idMatches = typeof args.where.id === 'string'
+          ? stored.id === args.where.id
+          : args.where.id && 'not' in args.where.id
+            ? stored.id !== args.where.id.not
+            : true;
+        if (!idMatches || stored.userId !== args.where.userId || stored.revokedAt) continue;
+        stored.revokedAt = args.data.revokedAt;
+        count += 1;
       }
-      stored.revokedAt = args.data.revokedAt;
-      return Promise.resolve({ count: 1 });
+      return Promise.resolve({ count });
     })
   };
   const prisma = {

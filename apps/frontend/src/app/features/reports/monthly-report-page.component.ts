@@ -18,6 +18,7 @@ import { ExpenseService } from '../../core/services/expense.service';
 import { LabelService } from '../../core/services/label.service';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { ReportsService } from '../../core/services/reports.service';
+import { SettingsStore } from '../../core/services/settings.store';
 import {
   EmptyStateComponent,
   LoadingSkeletonComponent,
@@ -45,7 +46,7 @@ import {
   percentageLabel,
   reportPeriodFromParams,
 } from '../../shared/utilities/report-format';
-import { DashboardChartComponent } from '../dashboard/dashboard-chart.component';
+import { DashboardChartComponent, type DashboardChartSelection } from '../dashboard/dashboard-chart.component';
 import { StatCardComponent } from '../dashboard/stat-card.component';
 import {
   ExpenseTableComponent,
@@ -83,6 +84,7 @@ export class MonthlyReportPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly settings = inject(SettingsStore);
   private readonly refresh = new Subject<void>();
   private readonly today = currentReportPeriod();
   private observedExpenseVersion = 0;
@@ -92,7 +94,7 @@ export class MonthlyReportPageComponent {
   readonly statuses = EXPENSE_STATUSES;
   readonly paymentMethods = PAYMENT_METHODS;
   readonly selected = signal<MonthlyReportQuery>(this.today);
-  readonly filters = signal<ExpenseQueryParams>(defaultFilters());
+  readonly filters = signal<ExpenseQueryParams>(defaultFilters(this.settings.experience().defaultPageSize));
   readonly report = signal<MonthlyReport | null>(null);
   readonly expenses = signal<ExpenseListItem[]>([]);
   readonly meta = signal<PaginationMeta>(emptyMeta());
@@ -111,8 +113,18 @@ export class MonthlyReportPageComponent {
   readonly categoryValues = computed(() => this.report()?.categoryDistribution.map((item) => Number(item.total)) ?? []);
   readonly categoryCounts = computed(() => this.report()?.categoryDistribution.map((item) => item.expenseCount) ?? []);
   readonly categoryColors = computed(() => this.report()?.categoryDistribution.map((item) => item.color) ?? []);
+  readonly dailyDescription = computed(() => {
+    const report = this.report();
+    if (!report) return '';
+    return `Completate ${formatEuroAmount(report.summary.completedTotal)}; pianificate ${formatEuroAmount(report.summary.plannedTotal)}.`;
+  });
+  readonly categoryDescription = computed(() => {
+    const top = this.report()?.topCategory;
+    return top ? `${top.name} guida il mese con ${formatEuroAmount(top.total)} (${top.percentage}%).` : 'Nessuna categoria con spese completate.';
+  });
 
   constructor() {
+    this.settings.ensureLoaded();
     this.categoriesService
       .load({ sortBy: 'sortOrder', sortDirection: 'asc' })
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -125,7 +137,7 @@ export class MonthlyReportPageComponent {
     combineLatest([this.route.queryParamMap, this.refresh.pipe(startWith(undefined))])
       .pipe(
         switchMap(([params]) => {
-          const parsed = parseMonthlyState(params, this.today);
+          const parsed = parseMonthlyState(params, this.today, this.settings.experience().defaultPageSize);
           if (!parsed.valid) {
             void this.navigate(parsed.period, parsed.filters, true);
             return EMPTY;
@@ -228,6 +240,35 @@ export class MonthlyReportPageComponent {
   paymentLabel(method: PaymentMethod): string { return paymentMethodLabel(method); }
   percentage(value: number | null): string { return percentageLabel(value); }
 
+  openTopCategory(): void {
+    const category = this.report()?.topCategory;
+    if (category) this.navigateToExpenses({ categoryIds: [category.categoryId], statuses: ['COMPLETED'] });
+  }
+
+  openHighestExpense(): void {
+    const expense = this.report()?.highestExpense;
+    if (expense) void this.router.navigate(['/expenses', expense.id]);
+  }
+
+  openDailyPoint(selection: DashboardChartSelection): void {
+    const point = this.report()?.dailyTrend[selection.index];
+    if (!point) return;
+    this.navigateToExpenses({
+      dateFrom: point.date,
+      dateTo: point.date,
+      statuses: [selection.datasetIndex === 0 ? 'COMPLETED' : 'PLANNED'],
+    });
+  }
+
+  openCategoryPoint(selection: DashboardChartSelection): void {
+    const category = this.report()?.categoryDistribution[selection.index];
+    if (category) this.navigateToExpenses({ categoryIds: [category.categoryId], statuses: ['COMPLETED'] });
+  }
+
+  openPaymentMethod(paymentMethod: PaymentMethod): void {
+    this.navigateToExpenses({ paymentMethods: [paymentMethod], statuses: ['COMPLETED'] });
+  }
+
   view(expense: ExpenseListItem): void {
     void this.router.navigate(['/expenses', expense.id]);
   }
@@ -282,18 +323,23 @@ export class MonthlyReportPageComponent {
       replaceUrl,
     });
   }
+
+  private navigateToExpenses(filters: ExpenseQueryParams): void {
+    void this.router.navigate(['/expenses'], { queryParams: queryParams(this.selected(), filters) });
+  }
 }
 
 function parseMonthlyState(
   params: ParamMap,
   fallback: MonthlyReportQuery,
+  defaultPageSize = 20,
 ): { period: MonthlyReportQuery; filters: ExpenseQueryParams; valid: boolean } {
   const period = reportPeriodFromParams(params.get('month'), params.get('year'), fallback);
   const valid =
     String(period.month) === params.get('month') && String(period.year) === params.get('year');
-  const filters = defaultFilters();
+  const filters = defaultFilters(defaultPageSize);
   filters.page = positiveInt(params.get('page')) ?? 1;
-  filters.pageSize = Math.min(100, positiveInt(params.get('pageSize')) ?? 20);
+  filters.pageSize = Math.min(100, positiveInt(params.get('pageSize')) ?? defaultPageSize);
   filters.search = params.get('search') || undefined;
   filters.categoryId = params.get('categoryId') || undefined;
   filters.labelIds = params.get('labelIds')?.split(',').filter(Boolean);
@@ -325,8 +371,8 @@ function queryParams(
   return result;
 }
 
-function defaultFilters(): ExpenseQueryParams {
-  return { page: 1, pageSize: 20, sortBy: 'expenseDate', sortDirection: 'desc' };
+function defaultFilters(defaultPageSize = 20): ExpenseQueryParams {
+  return { page: 1, pageSize: defaultPageSize, sortBy: 'expenseDate', sortDirection: 'desc' };
 }
 function emptyMeta(): PaginationMeta {
   return { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 };

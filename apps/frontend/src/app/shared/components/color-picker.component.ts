@@ -77,7 +77,7 @@ const PALETTE = [
         box-shadow: 0 0 0 1px var(--border-strong);
       }
       .swatch.selected {
-        box-shadow: 0 0 0 3px rgb(124 131 214 / 35%);
+        box-shadow: 0 0 0 3px rgb(var(--primary-rgb) / 35%);
       }
     `,
   ],
