@@ -57,7 +57,7 @@ La Fase 10.6 è completata. La specifica autorevole è `PHASE_10_6_UI_CORRECTION
 - Docker Compose: frontend, backend e MariaDB healthy;
 - frontend e backend health: HTTP 200;
 - E2E browser reale: superato;
-- responsive verificato a 390, 768 e 1440 px senza overflow;
+- responsive verificato a 320, 390, 768 e 1440 px senza overflow;
 - light mode, dark mode e cambio accent verificati;
 - badge StatCard assoluto e card della stessa riga allineate;
 - disclosure giornaliero con 8 righe demo e tre colonne leggibili;

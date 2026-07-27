@@ -122,13 +122,14 @@ try {
   assert(visualTokens.mint !== visualTokens.rose, 'Il nav item attivo non reagisce al cambio accent color');
   assert(visualTokens.lightSurface !== visualTokens.darkSurface, 'Le superfici light e dark risultano identiche');
 
-  const widths = [390, 768, 1440];
+  const widths = [320, 390, 768, 1440];
   const responsive = [];
   for (const width of widths) {
-    await socket.command('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 768 });
-    await delay(120);
-    responsive.push(await socket.evaluate(`({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth, overflow: document.documentElement.scrollWidth > innerWidth + 1 })`));
+    await socket.command('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
+    await delay(300);
+    responsive.push(await socket.evaluate(`({ requestedWidth: ${width}, width: innerWidth, scrollWidth: document.documentElement.scrollWidth, overflow: document.documentElement.scrollWidth > innerWidth + 1 })`));
   }
+  assert(responsive.every((entry) => entry.width === entry.requestedWidth), `Viewport responsive non applicato esattamente: ${JSON.stringify(responsive)}`);
   assert(responsive.every((entry) => !entry.overflow), `Overflow orizzontale rilevato: ${JSON.stringify(responsive)}`);
   await socket.command('Emulation.clearDeviceMetricsOverride');
 
