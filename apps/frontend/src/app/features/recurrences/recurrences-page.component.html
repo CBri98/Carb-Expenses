@@ -1,5 +1,5 @@
 <div class="container-fluid px-0">
-  <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item">Gestione</li><li class="breadcrumb-item active">Spese ricorrenti</li></ol></nav>
+  <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Spese ricorrenti' }]" />
   <app-page-header title="Spese ricorrenti" subtitle="Gestisci abbonamenti, rate e spese periodiche">
     <a class="btn btn-primary" routerLink="/recurrences/new"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Nuova ricorrenza</a>
   </app-page-header>

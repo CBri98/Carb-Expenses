@@ -8,6 +8,7 @@ import { catchError, combineLatest, EMPTY, finalize, type Observable, startWith,
 import { DashboardService } from '../../core/services/dashboard.service';
 import { ExpenseService } from '../../core/services/expense.service';
 import { SettingsStore } from '../../core/services/settings.store';
+import { AppBreadcrumbComponent } from '../../shared/components/app-breadcrumb.component';
 import { EuroAmountPipe, ItalianExtendedDatePipe } from '../../shared/components/expense-display.components';
 import type { DashboardData, DashboardPeriodQuery, RecentExpense, UpcomingExpense } from '../../shared/models/dashboard.models';
 import { changeLabel, dashboardPeriodLabel, ITALIAN_MONTHS, shiftDashboardPeriod } from '../../shared/utilities/dashboard-format';
@@ -19,7 +20,7 @@ import { UpcomingExpensesComponent } from './upcoming-expenses.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, FormsModule, NgSelectComponent, EuroAmountPipe, ItalianExtendedDatePipe, DashboardChartComponent, RecentExpensesComponent, StatCardComponent, UpcomingExpensesComponent],
+  imports: [RouterLink, FormsModule, NgSelectComponent, AppBreadcrumbComponent, EuroAmountPipe, ItalianExtendedDatePipe, DashboardChartComponent, RecentExpensesComponent, StatCardComponent, UpcomingExpensesComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
 })

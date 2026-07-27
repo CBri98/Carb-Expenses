@@ -1,10 +1,11 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
 import { apiErrorMessage } from '../../core/services/api-error';
 import { RecurrenceService } from '../../core/services/recurrence.service';
+import { AppBreadcrumbComponent } from '../../shared/components/app-breadcrumb.component';
 import {
   LoadingSkeletonComponent,
   PageHeaderComponent,
@@ -19,10 +20,10 @@ import { RecurrenceFormComponent } from './recurrence-form.component';
 @Component({
   selector: 'app-recurrence-form-page',
   standalone: true,
-  imports: [RouterLink, PageHeaderComponent, LoadingSkeletonComponent, RecurrenceFormComponent],
+  imports: [AppBreadcrumbComponent, PageHeaderComponent, LoadingSkeletonComponent, RecurrenceFormComponent],
   template: `
     <div class="container-fluid px-0">
-      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item"><a routerLink="/recurrences">Spese ricorrenti</a></li><li class="breadcrumb-item active">{{ editing() ? 'Modifica' : 'Nuova' }}</li></ol></nav>
+      <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Spese ricorrenti', link: '/recurrences' }, { label: editing() ? 'Modifica' : 'Nuova' }]" />
       <app-page-header [title]="editing() ? 'Modifica ricorrenza' : 'Nuova ricorrenza'" subtitle="Definisci la regola, l’orizzonte e i promemoria delle spese pianificate" />
       @if (error()) { <div class="alert alert-danger" role="alert">{{ error() }}</div> }
       @if (loading()) { <div class="card border-0 shadow-sm"><div class="card-body"><app-loading-skeleton /></div></div> }

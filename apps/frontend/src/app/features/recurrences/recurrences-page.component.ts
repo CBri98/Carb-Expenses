@@ -10,6 +10,7 @@ import { apiErrorMessage } from '../../core/services/api-error';
 import { CategoryService } from '../../core/services/category.service';
 import { RecurrenceService } from '../../core/services/recurrence.service';
 import { SettingsStore } from '../../core/services/settings.store';
+import { AppBreadcrumbComponent } from '../../shared/components/app-breadcrumb.component';
 import {
   CounterCardComponent,
   EmptyStateComponent,
@@ -40,6 +41,7 @@ import { RecurrenceActionsMenuComponent } from './recurrence-actions-menu.compon
     ReactiveFormsModule,
     FormsModule,
     RouterLink,
+    AppBreadcrumbComponent,
     NgSelectComponent,
     PageHeaderComponent,
     CounterCardComponent,

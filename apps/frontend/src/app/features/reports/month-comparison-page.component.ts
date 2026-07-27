@@ -6,6 +6,7 @@ import { NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, EMPTY, finalize, switchMap, tap } from 'rxjs';
 
 import { ReportsService } from '../../core/services/reports.service';
+import { AppBreadcrumbComponent } from '../../shared/components/app-breadcrumb.component';
 import { LoadingSkeletonComponent } from '../../shared/components/catalog-display.components';
 import { EuroAmountPipe, PaymentMethodBadgeComponent } from '../../shared/components/expense-display.components';
 import { FilterPanelComponent } from '../../shared/components/filter-panel.component';
@@ -41,6 +42,7 @@ type CategorySort = 'CHANGE' | 'PERIOD_A' | 'PERIOD_B' | 'NAME';
   imports: [
     RouterLink,
     FormsModule,
+    AppBreadcrumbComponent,
     NgSelectComponent,
     LoadingSkeletonComponent,
     FilterPanelComponent,

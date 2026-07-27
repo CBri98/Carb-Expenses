@@ -1,5 +1,5 @@
 <div class="container-fluid px-0">
-  <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item"><a routerLink="/recurrences">Spese ricorrenti</a></li><li class="breadcrumb-item active">Dettaglio</li></ol></nav>
+  <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Spese ricorrenti', link: '/recurrences' }, { label: 'Dettaglio' }]" />
   @if (loading()) {
     <div class="card border-0 shadow-sm"><div class="card-body"><app-loading-skeleton /></div></div>
   } @else if (rule(); as item) {

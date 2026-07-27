@@ -5,6 +5,7 @@ import { finalize, forkJoin } from 'rxjs';
 
 import { apiErrorMessage } from '../../core/services/api-error';
 import { RecurrenceService } from '../../core/services/recurrence.service';
+import { AppBreadcrumbComponent } from '../../shared/components/app-breadcrumb.component';
 import {
   EmptyStateComponent,
   LoadingSkeletonComponent,
@@ -30,6 +31,7 @@ import {
   standalone: true,
   imports: [
     RouterLink,
+    AppBreadcrumbComponent,
     PageHeaderComponent,
     EmptyStateComponent,
     LoadingSkeletonComponent,

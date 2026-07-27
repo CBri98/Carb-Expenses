@@ -2,7 +2,7 @@
 
 Gestionale per la registrazione, pianificazione e analisi delle spese personali.
 
-Sono complete le Fasi 1–10 e le rifiniture 10.5–10.6: setup Docker, autenticazione, categorie ed etichette, gestione spese, dashboard, report mensili, calendario gestionale, promemoria, notifiche interne, spese ricorrenti, preferenze utente e consolidamento dell’interfaccia.
+Sono complete le Fasi 1–10 e le rifiniture 10.5–10.7: setup Docker, autenticazione, categorie ed etichette, gestione spese, dashboard, report mensili, calendario gestionale, promemoria, notifiche interne, spese ricorrenti, preferenze utente, consolidamento dell’interfaccia e gerarchia di navigazione coerente.
 
 ## Requisiti
 
@@ -246,6 +246,12 @@ La seconda rifinitura corregge l'allineamento delle StatCard, rende leggibili i 
 Il form Spesa su pagina usa sezioni-card separate, la ricerca Spese è racchiusa nella propria card e l'indicatore delle spese ricorrenti è testuale. Filtri, counter card e pulsanti sono uniformati in Ricorrenze, Categorie, Etichette e Notifiche. I valori multipli di `ng-select` mantengono colore, padding e rimozione individuale accessibile.
 
 La specifica è in [docs/PHASE_10_6_UI_CORRECTIONS.md](docs/PHASE_10_6_UI_CORRECTIONS.md); il resoconto finale è in [docs/PHASE_10_6_COMPLETION_2026-07-27.md](docs/PHASE_10_6_COMPLETION_2026-07-27.md).
+
+## Fase 10.7 — Navigazione e breadcrumb
+
+La sidebar separa ora le quattro pagine operative sotto “Gestione” e colloca Notifiche e Impostazioni nell’ultima sezione “Area personale”. Un componente breadcrumb condiviso rende coerenti e navigabili le gerarchie di Gestione, Analisi e Area personale, comprese le pagine di creazione, modifica e dettaglio.
+
+La specifica è in [docs/PHASE_10_7_NAVIGATION_AND_BREADCRUMBS.md](docs/PHASE_10_7_NAVIGATION_AND_BREADCRUMBS.md); il resoconto finale è in [docs/PHASE_10_7_COMPLETION_2026-07-27.md](docs/PHASE_10_7_COMPLETION_2026-07-27.md).
 
 
 ## Fase 5 — Dashboard

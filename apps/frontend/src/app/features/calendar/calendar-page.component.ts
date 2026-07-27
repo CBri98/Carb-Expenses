@@ -2,7 +2,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { Component, DestroyRef, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, type ParamMap, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, type ParamMap, Router } from '@angular/router';
 import { NgLabelTemplateDirective, NgOptionTemplateDirective, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, combineLatest, debounceTime, distinctUntilChanged, EMPTY, finalize, map, startWith, Subject, switchMap, tap } from 'rxjs';
 
@@ -12,6 +12,7 @@ import { CategoryService } from '../../core/services/category.service';
 import { ExpenseService } from '../../core/services/expense.service';
 import { LabelService } from '../../core/services/label.service';
 import { SettingsStore } from '../../core/services/settings.store';
+import { AppBreadcrumbComponent } from '../../shared/components/app-breadcrumb.component';
 import { EmptyStateComponent, LoadingSkeletonComponent, PageHeaderComponent } from '../../shared/components/catalog-display.components';
 import { FilterPanelComponent } from '../../shared/components/filter-panel.component';
 import { MultiselectValueComponent } from '../../shared/components/multiselect-value.component';
@@ -26,7 +27,7 @@ import { CalendarExpenseEventComponent } from './calendar-expense-event.componen
 @Component({
   selector: 'app-calendar-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, NgSelectComponent, NgOptionTemplateDirective, NgLabelTemplateDirective, FilterPanelComponent, MultiselectValueComponent, PageHeaderComponent, EmptyStateComponent, LoadingSkeletonComponent, QuickExpenseModalComponent, CalendarExpenseEventComponent, EscapeCloseDirective],
+  imports: [FormsModule, NgSelectComponent, NgOptionTemplateDirective, NgLabelTemplateDirective, AppBreadcrumbComponent, FilterPanelComponent, MultiselectValueComponent, PageHeaderComponent, EmptyStateComponent, LoadingSkeletonComponent, QuickExpenseModalComponent, CalendarExpenseEventComponent, EscapeCloseDirective],
   templateUrl: './calendar-page.component.html',
   styleUrl: './calendar-page.component.scss',
 })

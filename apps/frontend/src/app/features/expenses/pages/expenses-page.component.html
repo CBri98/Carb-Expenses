@@ -1,5 +1,5 @@
 <section aria-labelledby="expenses-title">
-  <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item active" aria-current="page">Spese</li></ol></nav>
+  <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Spese' }]" />
   <app-page-header title="Spese" subtitle="Consulta, filtra e gestisci tutte le tue spese.">
     <div class="d-flex flex-wrap align-items-center gap-3">
       <div class="form-check form-switch mb-0">

@@ -13,6 +13,7 @@ import { debounceTime, finalize, forkJoin } from 'rxjs';
 import { CategoryService } from '../../../core/services/category.service';
 import { SettingsStore } from '../../../core/services/settings.store';
 import { apiErrorMessage } from '../../../core/services/api-error';
+import { AppBreadcrumbComponent } from '../../../shared/components/app-breadcrumb.component';
 import {
   CategoryBadgeComponent,
   CounterCardComponent,
@@ -45,6 +46,7 @@ interface Notice {
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    AppBreadcrumbComponent,
     NgSelectComponent,
     NgOptionTemplateDirective,
     NgLabelTemplateDirective,

@@ -101,6 +101,31 @@ try {
   await waitFor(socket, "location.pathname === '/settings/categories' && Boolean(document.querySelector('app-categories'))", 'pagina categorie');
   const activeEntries = await socket.evaluate(`Array.from(document.querySelectorAll('.sidebar__nav a.active')).map(item => item.textContent.trim()).filter(Boolean)`);
   assert(JSON.stringify(activeEntries) === JSON.stringify(['Categorie']), `Voci sidebar attive inattese: ${activeEntries.join(', ')}`);
+  const navigationHierarchy = await socket.evaluate(`(() => {
+    const sections = Array.from(document.querySelectorAll('.sidebar__section')).map((section) => {
+      const items = [];
+      let sibling = section.nextElementSibling;
+      while (sibling && !sibling.classList.contains('sidebar__section')) {
+        if (sibling.matches('a')) items.push(sibling.querySelector('span')?.textContent.trim() || '');
+        sibling = sibling.nextElementSibling;
+      }
+      return { label: section.textContent.trim(), items };
+    });
+    const breadcrumbItems = Array.from(document.querySelectorAll('app-breadcrumb .breadcrumb-item')).map((item) => item.textContent.trim());
+    const breadcrumbLink = document.querySelector('app-breadcrumb a')?.getAttribute('href') || '';
+    return { sections, breadcrumbItems, breadcrumbLink };
+  })()`);
+  const managementSection = navigationHierarchy.sections.find((section) => section.label === 'Gestione');
+  const personalSection = navigationHierarchy.sections.find((section) => section.label === 'Area personale');
+  assert(JSON.stringify(managementSection?.items) === JSON.stringify(['Spese', 'Spese ricorrenti', 'Categorie', 'Etichette']), `Sezione Gestione inattesa: ${JSON.stringify(managementSection)}`);
+  assert(navigationHierarchy.sections.at(-1)?.label === 'Area personale', 'Area personale non Ã¨ l ultima sezione della sidebar');
+  assert(JSON.stringify(personalSection?.items) === JSON.stringify(['Notifiche', 'Impostazioni']), `Sezione Area personale inattesa: ${JSON.stringify(personalSection)}`);
+  assert(JSON.stringify(navigationHierarchy.breadcrumbItems) === JSON.stringify(['Gestione', 'Categorie']), `Breadcrumb Categorie inatteso: ${navigationHierarchy.breadcrumbItems.join(' > ')}`);
+  assert(navigationHierarchy.breadcrumbLink === '/expenses', `Link Gestione inatteso: ${navigationHierarchy.breadcrumbLink}`);
+  await socket.evaluate(`document.querySelector('app-breadcrumb a').click()`);
+  await waitFor(socket, "location.pathname === '/expenses' && Boolean(document.querySelector('app-expenses-page'))", 'link breadcrumb Gestione');
+  await socket.command('Page.navigate', { url: `${frontendUrl}/settings/categories` });
+  await waitFor(socket, "location.pathname === '/settings/categories' && Boolean(document.querySelector('app-categories'))", 'ritorno categorie');
 
   const visualTokens = await socket.evaluate(`(() => {
     const root = document.documentElement;
@@ -249,10 +274,20 @@ try {
   await waitFor(socket, "location.pathname === '/notifications' && Boolean(document.querySelector('app-notifications-page'))", 'notifiche 10.6');
   const notificationRefinement = await socket.evaluate(`({
     counterIcons: document.querySelectorAll('app-notifications-page app-counter-card .counter-card__icon').length,
-    themedReadAll: Boolean(Array.from(document.querySelectorAll('app-notifications-page button')).find(item => item.textContent.includes('Segna tutte come lette'))?.classList.contains('btn-primary'))
+    themedReadAll: Boolean(Array.from(document.querySelectorAll('app-notifications-page button')).find(item => item.textContent.includes('Segna tutte come lette'))?.classList.contains('btn-primary')),
+    breadcrumbItems: Array.from(document.querySelectorAll('app-breadcrumb .breadcrumb-item')).map(item => item.textContent.trim()),
+    personalHref: document.querySelector('app-breadcrumb a')?.getAttribute('href') || ''
   })`);
   assert(notificationRefinement.counterIcons === 2, 'Icone counter card Notifiche mancanti');
   assert(notificationRefinement.themedReadAll, 'Pulsante Segna tutte come lette non tematizzato');
+  assert(JSON.stringify(notificationRefinement.breadcrumbItems) === JSON.stringify(['Area personale', 'Notifiche']), `Breadcrumb Notifiche inatteso: ${notificationRefinement.breadcrumbItems.join(' > ')}`);
+  assert(notificationRefinement.personalHref === '/notifications', `Link Area personale inatteso: ${notificationRefinement.personalHref}`);
+  await socket.command('Page.navigate', { url: `${frontendUrl}/settings/account` });
+  await waitFor(socket, "location.pathname === '/settings/account' && Boolean(document.querySelector('app-settings-page'))", 'impostazioni area personale');
+  const settingsBreadcrumb = await socket.evaluate(`({ items: Array.from(document.querySelectorAll('app-breadcrumb .breadcrumb-item')).map(item => item.textContent.trim()), href: document.querySelector('app-breadcrumb a')?.getAttribute('href') || '' })`);
+  assert(JSON.stringify(settingsBreadcrumb.items) === JSON.stringify(['Area personale', 'Impostazioni']), `Breadcrumb Impostazioni inatteso: ${settingsBreadcrumb.items.join(' > ')}`);
+  await socket.evaluate(`document.querySelector('app-breadcrumb a').click()`);
+  await waitFor(socket, "location.pathname === '/notifications' && Boolean(document.querySelector('app-notifications-page'))", 'link breadcrumb Area personale');
 
   await socket.evaluate(`fetch(${JSON.stringify(`${apiUrl}/auth/logout`)}, {
     method: 'POST', credentials: 'include'
@@ -265,6 +300,7 @@ try {
     loginRedirectObserved: false,
     legacyCookieCollisionCovered: true,
     sidebarSingleActiveEntry: activeEntries,
+    navigationHierarchy,
     accentColorsReact: true,
     lightDarkSurfacesDiffer: true,
     responsiveWidths: responsive,
@@ -278,6 +314,7 @@ try {
     comparisonChartsInteractive: true,
     recurrenceRefinement,
     notificationRefinement,
+    settingsBreadcrumb,
     recurrenceFlowCovered: true,
   }, null, 2));
 } catch (error) {

@@ -1,5 +1,5 @@
 <section class="calendar-page">
-  <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li><li class="breadcrumb-item active" aria-current="page">Calendario</li></ol></nav>
+  <app-breadcrumb [items]="[{ label: 'Analisi', link: '/calendar' }, { label: 'Calendario' }]" />
   <app-page-header eyebrow="Pianificazione" title="Calendario spese" subtitle="Consulta, crea e gestisci le spese nel periodo visibile.">
     <button class="btn btn-primary" type="button" (click)="openCreate()"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Nuova spesa</button>
   </app-page-header>

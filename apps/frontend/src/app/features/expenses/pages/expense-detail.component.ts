@@ -7,6 +7,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 import { ExpenseService } from '../../../core/services/expense.service';
 import { ExpenseReminderService } from '../../../core/services/expense-reminder.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { AppBreadcrumbComponent } from '../../../shared/components/app-breadcrumb.component';
 import { CategoryBadgeComponent, LabelBadgeComponent, LoadingSkeletonComponent, PageHeaderComponent } from '../../../shared/components/catalog-display.components';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog.component';
 import { EuroAmountPipe, ExpenseStatusBadgeComponent, ItalianDateTimePipe, ItalianExtendedDatePipe, PaymentMethodBadgeComponent } from '../../../shared/components/expense-display.components';
@@ -20,6 +21,7 @@ import { ExpenseReminderListComponent } from '../components/expense-reminder-lis
   selector: 'app-expense-detail',
   standalone: true,
   imports: [
+    AppBreadcrumbComponent,
     PageHeaderComponent, LoadingSkeletonComponent, ConfirmDialogComponent,
     CategoryBadgeComponent, LabelBadgeComponent, ExpenseStatusBadgeComponent,
     PaymentMethodBadgeComponent, EuroAmountPipe, ItalianExtendedDatePipe, ItalianDateTimePipe,

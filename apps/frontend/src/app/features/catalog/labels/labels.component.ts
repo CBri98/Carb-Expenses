@@ -14,6 +14,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 import { CategoryService } from '../../../core/services/category.service';
 import { LabelService } from '../../../core/services/label.service';
 import { SettingsStore } from '../../../core/services/settings.store';
+import { AppBreadcrumbComponent } from '../../../shared/components/app-breadcrumb.component';
 import {
   CategoryBadgeComponent,
   CounterCardComponent,
@@ -47,6 +48,7 @@ interface Notice {
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    AppBreadcrumbComponent,
     NgSelectComponent,
     NgOptionTemplateDirective,
     NgLabelTemplateDirective,

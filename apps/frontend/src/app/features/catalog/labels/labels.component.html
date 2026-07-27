@@ -1,10 +1,5 @@
 <section aria-labelledby="labels-title">
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb mb-3">
-      <li class="breadcrumb-item">Impostazioni</li>
-      <li class="breadcrumb-item active" aria-current="page">Etichette</li>
-    </ol>
-  </nav>
+  <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Etichette' }]" />
   <app-page-header
     title="Etichette"
     subtitle="Crea classificazioni personali da associare alle spese."

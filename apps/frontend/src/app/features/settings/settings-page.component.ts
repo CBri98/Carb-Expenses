@@ -5,15 +5,16 @@ import { finalize } from 'rxjs';
 
 import { apiErrorMessage } from '../../core/services/api-error';
 import { SettingsStore } from '../../core/services/settings.store';
+import { AppBreadcrumbComponent } from '../../shared/components/app-breadcrumb.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.component';
 
 @Component({
   selector: 'app-settings-page',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, ConfirmDialogComponent],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, AppBreadcrumbComponent, ConfirmDialogComponent],
   template: `
     <section aria-labelledby="settings-title">
-      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item active">Impostazioni</li></ol></nav>
+      <app-breadcrumb [items]="[{ label: 'Area personale', link: '/notifications' }, { label: 'Impostazioni' }]" />
       <div class="settings-heading mb-4">
         <div><p class="eyebrow mb-1">Preferenze personali</p><h1 id="settings-title" class="h2 mb-1">Impostazioni</h1><p class="text-body-secondary mb-0">Configura account e comportamento dell’applicazione.</p></div>
         <button class="btn btn-outline-danger" type="button" (click)="resetOpen.set(true)"><i class="bi bi-arrow-counterclockwise me-2"></i>Ripristina preferenze</button>

@@ -7,6 +7,7 @@ import { debounceTime, distinctUntilChanged, finalize, map, Subject } from 'rxjs
 import { NotificationService } from '../../core/services/notification.service';
 import { ToastService } from '../../core/services/toast.service';
 import { SettingsStore } from '../../core/services/settings.store';
+import { AppBreadcrumbComponent } from '../../shared/components/app-breadcrumb.component';
 import {
   CounterCardComponent,
   EmptyStateComponent,
@@ -33,6 +34,7 @@ const EMPTY_META: PaginationMeta = { page: 1, pageSize: 20, totalItems: 0, total
   imports: [
     RouterLink,
     FormsModule,
+    AppBreadcrumbComponent,
     PageHeaderComponent,
     CounterCardComponent,
     LoadingSkeletonComponent,
@@ -43,7 +45,7 @@ const EMPTY_META: PaginationMeta = { page: 1, pageSize: 20, totalItems: 0, total
   ],
   template: `
     <section>
-      <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item">Area personale</li><li class="breadcrumb-item active">Notifiche</li></ol></nav>
+      <app-breadcrumb [items]="[{ label: 'Area personale', link: '/notifications' }, { label: 'Notifiche' }]" />
       <app-page-header title="Notifiche" subtitle="Promemoria e aggiornamenti sulle tue spese">
         <button class="btn btn-primary" type="button" [disabled]="busy() || notifications.unreadCount() === 0" (click)="markAllRead()"><i class="bi bi-check2-all me-2"></i>Segna tutte come lette</button>
       </app-page-header>

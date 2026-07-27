@@ -23,6 +23,7 @@ import { LabelService } from '../../core/services/label.service';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { ReportsService } from '../../core/services/reports.service';
 import { SettingsStore } from '../../core/services/settings.store';
+import { AppBreadcrumbComponent } from '../../shared/components/app-breadcrumb.component';
 import {
   EmptyStateComponent,
   LoadingSkeletonComponent,
@@ -68,6 +69,7 @@ import { PaymentMethodBreakdownComponent } from './payment-method-breakdown.comp
   imports: [
     RouterLink,
     FormsModule,
+    AppBreadcrumbComponent,
     NgSelectComponent,
     EmptyStateComponent,
     LoadingSkeletonComponent,

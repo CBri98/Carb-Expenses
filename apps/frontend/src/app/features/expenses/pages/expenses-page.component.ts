@@ -9,6 +9,7 @@ import { CategoryService } from '../../../core/services/category.service';
 import { ExpenseService } from '../../../core/services/expense.service';
 import { LabelService } from '../../../core/services/label.service';
 import { SettingsStore } from '../../../core/services/settings.store';
+import { AppBreadcrumbComponent } from '../../../shared/components/app-breadcrumb.component';
 import { CounterCardComponent, EmptyStateComponent, LoadingSkeletonComponent, PageHeaderComponent } from '../../../shared/components/catalog-display.components';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog.component';
 import type { ExpenseListItem, ExpenseListSummary, ExpenseQueryParams, ExpenseStatus, PaginationMeta } from '../../../shared/models/expense.models';
@@ -22,6 +23,7 @@ interface Notice { type: 'success' | 'danger'; text: string; }
   selector: 'app-expenses-page',
   standalone: true,
   imports: [
+    AppBreadcrumbComponent,
     PageHeaderComponent, EmptyStateComponent, LoadingSkeletonComponent, ConfirmDialogComponent,
     ExpenseFiltersComponent, ExpenseTableComponent, PaginationComponent,
     CounterCardComponent,

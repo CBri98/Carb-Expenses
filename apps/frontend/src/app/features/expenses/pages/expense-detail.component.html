@@ -1,5 +1,5 @@
 <section>
-  <nav aria-label="breadcrumb"><ol class="breadcrumb mb-3"><li class="breadcrumb-item">Spese</li><li class="breadcrumb-item active">Dettaglio</li></ol></nav>
+  <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Spese', link: '/expenses' }, { label: 'Dettaglio' }]" />
   <app-page-header title="Dettaglio spesa" subtitle="Dati completi e operazioni disponibili.">
     <button class="btn btn-outline-secondary" type="button" (click)="back()"><i class="bi bi-arrow-left me-2"></i>Torna alla lista</button>
   </app-page-header>
