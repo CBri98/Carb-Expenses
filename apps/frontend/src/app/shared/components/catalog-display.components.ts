@@ -17,7 +17,7 @@ import { Component, input, output } from '@angular/core';
 export class PageHeaderComponent {
   readonly title = input.required<string>();
   readonly subtitle = input('');
-  readonly eyebrow = input('Impostazioni');
+  readonly eyebrow = input.required<string>();
 }
 
 @Component({

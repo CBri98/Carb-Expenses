@@ -132,14 +132,22 @@ try {
     const active = document.querySelector('.sidebar__nav a.active');
     const sidebar = document.querySelector('.sidebar');
     const topbar = document.querySelector('.topbar');
+    const bodyTransition = getComputedStyle(document.body).transitionDuration;
+    const sidebarTransition = getComputedStyle(sidebar).transitionDuration;
+    const transitionFreeze = document.createElement('style');
+    transitionFreeze.textContent = '*,*::before,*::after{transition:none!important}';
+    document.head.append(transitionFreeze);
     const probe = document.createElement('span');
     probe.style.background = 'var(--surface-soft)';
-    document.body.append(probe);
+    const linkProbe = document.createElement('a');
+    linkProbe.style.color = 'rgb(var(--bs-link-color-rgb))';
+    document.body.append(probe, linkProbe);
     const snapshot = () => ({
       active: getComputedStyle(active).backgroundColor,
       sidebar: getComputedStyle(sidebar).backgroundColor,
       topbar: getComputedStyle(topbar).backgroundColor,
       surfaceSoft: getComputedStyle(probe).backgroundColor,
+      link: getComputedStyle(linkProbe).color,
     });
     const originalTheme = root.dataset.theme;
     const originalAccent = root.dataset.accent;
@@ -158,8 +166,11 @@ try {
     root.dataset.theme = originalTheme || 'light';
     root.dataset.accent = originalAccent || 'indigo';
     const navMargin = Number.parseFloat(getComputedStyle(document.querySelector('.sidebar__nav a')).marginTop);
+    const expectedNavMargin = Number.parseFloat(getComputedStyle(root).fontSize) * .25;
+    transitionFreeze.remove();
     probe.remove();
-    return { mintLight, roseLight, mintDark, roseDark, lightSurface, darkSurface, navMargin };
+    linkProbe.remove();
+    return { mintLight, roseLight, mintDark, roseDark, lightSurface, darkSurface, navMargin, expectedNavMargin, bodyTransition, sidebarTransition };
   })()`);
   for (const mode of ['Light', 'Dark']) {
     const mint = visualTokens[`mint${mode}`];
@@ -168,9 +179,11 @@ try {
     assert(mint.sidebar !== rose.sidebar, `--sidebar-bg non reagisce al cambio accent color in tema ${mode}`);
     assert(mint.topbar !== rose.topbar, `--topbar-translucent non reagisce al cambio accent color in tema ${mode}`);
     assert(mint.surfaceSoft !== rose.surfaceSoft, `--surface-soft non reagisce al cambio accent color in tema ${mode}`);
+    assert(mint.link !== rose.link, `--bs-link-color-rgb non reagisce al cambio accent color in tema ${mode}`);
   }
   assert(visualTokens.lightSurface !== visualTokens.darkSurface, 'Le superfici light e dark risultano identiche');
-  assert(visualTokens.navMargin > 0, 'Le voci della sidebar non hanno il margine minimo richiesto');
+  assert(Math.abs(visualTokens.navMargin - visualTokens.expectedNavMargin) < .1, `Margine sidebar inatteso: ${visualTokens.navMargin}px`);
+  assert(!visualTokens.bodyTransition.startsWith('0s') && !visualTokens.sidebarTransition.split(',').every(value => value.trim() === '0s'), 'Transizione cambio tema assente');
 
   const widths = [320, 390, 768, 1440];
   const responsive = [];
@@ -195,11 +208,16 @@ try {
   const dashboardRefinement = await socket.evaluate(`(() => {
     const cards = Array.from(document.querySelectorAll('.stat-card'));
     const nextExpenseCard = cards.find(card => card.querySelector('.stat-card__title')?.textContent.trim() === 'Prossima spesa');
+    const due = document.querySelector('app-upcoming-expenses .due');
+    const colorProbe = document.createElement('span');
+    colorProbe.style.color = 'var(--primary-strong)';
+    document.body.append(colorProbe);
     const badge = document.querySelector('.stat-card__badge');
     const badgeCard = badge?.closest('.stat-card');
     const disclosure = document.querySelector('.chart-data-disclosure');
     if (disclosure) disclosure.open = true;
-    return {
+    const result = {
+      eyebrow: document.querySelector('app-dashboard .section-eyebrow')?.textContent.trim() || '',
       categoryAlternatives: document.querySelectorAll('.category-summary__link').length,
       categoryVisibilityButtons: document.querySelectorAll('.category-visibility').length,
       dailyInsights: document.querySelectorAll('.chart-insights:first-of-type > div').length,
@@ -209,12 +227,16 @@ try {
       nextExpenseBodyGrows: getComputedStyle(nextExpenseCard?.querySelector('.stat-card__body')).flexGrow === '1',
       strongCardDetails: document.querySelectorAll('.stat-card__detail strong').length,
       strongHistoryPeak: document.querySelectorAll('#history-title + p strong').length,
+      upcomingDueUsesAccent: due ? getComputedStyle(due).color === getComputedStyle(colorProbe).color : true,
       rowHeights: cards.map(card => Math.round(card.getBoundingClientRect().height)),
       disclosureRows: disclosure?.querySelectorAll('tbody tr').length || 0,
       disclosureColumns: Array.from(disclosure?.querySelectorAll('th') || []).map(item => item.textContent.trim()),
       trendMonths: document.querySelector('.dashboard-trend-months .ng-value-label')?.textContent.trim() || ''
     };
+    colorProbe.remove();
+    return result;
   })()`);
+  assert(dashboardRefinement.eyebrow === 'Panoramica', `Sovratitolo Dashboard inatteso: ${dashboardRefinement.eyebrow}`);
   assert(dashboardRefinement.categoryAlternatives > 0, 'Legenda categorie Dashboard non interattiva');
   assert(dashboardRefinement.categoryVisibilityButtons === dashboardRefinement.categoryAlternatives, 'Pulsanti visibilità categorie mancanti');
   assert(dashboardRefinement.dailyInsights >= 3, 'Insight sintetici Dashboard mancanti');
@@ -223,6 +245,7 @@ try {
   assert(dashboardRefinement.nextExpenseBodyGrows, 'Il body della card Prossima spesa non usa lo spazio orizzontale disponibile');
   assert(dashboardRefinement.strongCardDetails >= 5, 'Valori informativi delle StatCard non evidenziati in grassetto');
   assert(dashboardRefinement.strongHistoryPeak === 2, 'Massimo storico Dashboard non evidenziato semanticamente');
+  assert(dashboardRefinement.upcomingDueUsesAccent, 'La scadenza nelle Prossime spese usa ancora un colore non coerente con l accent');
   assert(new Set(dashboardRefinement.rowHeights.slice(3)).size === 1, `Badge StatCard altera l’allineamento della riga: ${dashboardRefinement.rowHeights.join(', ')}`);
   assert(dashboardRefinement.disclosureRows > 0 && dashboardRefinement.disclosureColumns.join('|') === 'Data|Totale|Spese', 'Dati giornalieri espansi non strutturati');
   assert(dashboardRefinement.trendMonths.includes('12 mesi'), `Default storico inatteso: ${dashboardRefinement.trendMonths}`);
@@ -244,11 +267,13 @@ try {
   await socket.command('Page.navigate', { url: `${frontendUrl}/expenses` });
   await waitFor(socket, "location.pathname === '/expenses' && Boolean(document.querySelector('#expense-search')) && Boolean(document.querySelector('app-expense-table'))", 'lista spese 10.6');
   const expensesRefinement = await socket.evaluate(`({
+    eyebrow: document.querySelector('app-expenses-page app-page-header p')?.textContent.trim() || '',
     searchInCard: Boolean(document.querySelector('#expense-search')?.closest('.card')),
     fullMonthInTable: /(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)/i.test(document.querySelector('app-expense-table tbody')?.textContent || ''),
     recurringIndicatorsAreBadges: document.querySelectorAll('app-recurrence-expense-indicator .badge').length,
     recurringTextIndicators: document.querySelectorAll('app-recurrence-expense-indicator .recurrence-expense-link').length
   })`);
+  assert(expensesRefinement.eyebrow === 'Gestione', `Sovratitolo Spese inatteso: ${expensesRefinement.eyebrow}`);
   assert(expensesRefinement.searchInCard, 'Ricerca Spese fuori dalla card');
   assert(expensesRefinement.fullMonthInTable, 'Le date della tabella Spese non mostrano il mese completo');
   assert(expensesRefinement.recurringIndicatorsAreBadges === 0, 'Indicatore Spesa ricorrente ancora in formato badge');
@@ -265,10 +290,12 @@ try {
   await socket.command('Page.navigate', { url: `${frontendUrl}/reports/monthly?month=7&year=2026` });
   await waitFor(socket, "location.pathname === '/reports/monthly' && Boolean(document.querySelector('#monthly-search')) && Boolean(document.querySelector('app-monthly-report-page app-filter-panel'))", 'report mensile rifinito');
   const monthlyReportRefinement = await socket.evaluate(`({
+    eyebrow: document.querySelector('app-monthly-report-page .section-eyebrow')?.textContent.trim() || '',
     nativeSelects: document.querySelectorAll('app-monthly-report-page select').length,
     filterPanels: document.querySelectorAll('app-monthly-report-page app-filter-panel').length,
     accessibleChartLinks: document.querySelectorAll('app-monthly-report-page .report-data-link, app-monthly-report-page .category-list__button').length
   })`);
+  assert(monthlyReportRefinement.eyebrow === 'Analisi', `Sovratitolo Report inatteso: ${monthlyReportRefinement.eyebrow}`);
   assert(monthlyReportRefinement.nativeSelects === 0, 'Il Report mensile contiene ancora select native');
   assert(monthlyReportRefinement.filterPanels > 0, 'FilterPanel Report mensile assente');
   assert(monthlyReportRefinement.accessibleChartLinks > 0, 'Alternative interattive ai grafici del Report mensile assenti');
@@ -281,10 +308,12 @@ try {
   await waitFor(socket, "Array.from(document.querySelectorAll('a')).some(item => /^\\/recurrences\\/[0-9a-f-]+$/i.test(item.getAttribute('href') || ''))", 'prima ricorrenza');
   await socket.evaluate(`if (!document.querySelector('app-recurrences-page .filters__panel')) document.querySelector('app-recurrences-page .filters__toggle')?.click()`);
   await waitFor(socket, "Boolean(document.querySelector('app-recurrences-page .filters__panel'))", 'filtri ricorrenze aperti');
-  const recurrenceRefinement = await socket.evaluate(`({ counterIcons: document.querySelectorAll('app-recurrences-page app-counter-card .counter-card__icon').length, nestedFilterCards: document.querySelectorAll('app-recurrences-page .filters__panel .card').length, resetSemantic: Array.from(document.querySelectorAll('app-recurrences-page button')).some(item => item.textContent.trim() === 'Reimposta') })`);
+  const recurrenceRefinement = await socket.evaluate(`({ eyebrow: document.querySelector('app-recurrences-page app-page-header p')?.textContent.trim() || '', counterIcons: document.querySelectorAll('app-recurrences-page app-counter-card .counter-card__icon').length, nestedFilterCards: document.querySelectorAll('app-recurrences-page .filters__panel .card').length, resetSemantic: Array.from(document.querySelectorAll('app-recurrences-page button')).some(item => item.textContent.trim() === 'Reimposta'), tableHover: document.querySelector('app-recurrences-page table')?.classList.contains('table-hover') || false, rowTransition: getComputedStyle(document.querySelector('app-recurrences-page tbody tr')).transitionDuration })`);
+  assert(recurrenceRefinement.eyebrow === 'Gestione', `Sovratitolo Ricorrenze inatteso: ${recurrenceRefinement.eyebrow}`);
   assert(recurrenceRefinement.counterIcons === 4, 'Icone counter card Ricorrenze mancanti');
   assert(recurrenceRefinement.nestedFilterCards === 0, 'Card annidata nei filtri Ricorrenze');
   assert(recurrenceRefinement.resetSemantic, 'Semantica Reimposta assente nei filtri Ricorrenze');
+  assert(recurrenceRefinement.tableHover && !recurrenceRefinement.rowTransition.split(',').every(value => value.trim() === '0s'), 'Hover tabella Ricorrenze non allineato alla tabella Spese');
   const detailPath = await socket.evaluate(`Array.from(document.querySelectorAll('a')).map(item => item.getAttribute('href') || '').find(path => /^\\/recurrences\\/[0-9a-f-]+$/i.test(path)) || ''`);
   assert(/^\/recurrences\/[0-9a-f-]+$/i.test(detailPath), `Link dettaglio ricorrenza non trovato: ${detailPath}`);
   const recurrenceSearch = await socket.evaluate(`document.querySelector('tbody tr strong')?.textContent.trim() || ''`);
@@ -305,18 +334,21 @@ try {
   await socket.command('Page.navigate', { url: `${frontendUrl}/notifications` });
   await waitFor(socket, "location.pathname === '/notifications' && Boolean(document.querySelector('app-notifications-page'))", 'notifiche 10.6');
   const notificationRefinement = await socket.evaluate(`({
+    eyebrow: document.querySelector('app-notifications-page app-page-header p')?.textContent.trim() || '',
     counterIcons: document.querySelectorAll('app-notifications-page app-counter-card .counter-card__icon').length,
     themedReadAll: Boolean(Array.from(document.querySelectorAll('app-notifications-page button')).find(item => item.textContent.includes('Segna tutte come lette'))?.classList.contains('btn-primary')),
     breadcrumbItems: Array.from(document.querySelectorAll('app-breadcrumb .breadcrumb-item')).map(item => item.textContent.trim()),
     personalHref: document.querySelector('app-breadcrumb a')?.getAttribute('href') || ''
   })`);
+  assert(notificationRefinement.eyebrow === 'Area personale', `Sovratitolo Notifiche inatteso: ${notificationRefinement.eyebrow}`);
   assert(notificationRefinement.counterIcons === 2, 'Icone counter card Notifiche mancanti');
   assert(notificationRefinement.themedReadAll, 'Pulsante Segna tutte come lette non tematizzato');
   assert(JSON.stringify(notificationRefinement.breadcrumbItems) === JSON.stringify(['Area personale', 'Notifiche']), `Breadcrumb Notifiche inatteso: ${notificationRefinement.breadcrumbItems.join(' > ')}`);
   assert(notificationRefinement.personalHref === '/notifications', `Link Area personale inatteso: ${notificationRefinement.personalHref}`);
   await socket.command('Page.navigate', { url: `${frontendUrl}/settings/account` });
   await waitFor(socket, "location.pathname === '/settings/account' && Boolean(document.querySelector('app-settings-page'))", 'impostazioni area personale');
-  const settingsBreadcrumb = await socket.evaluate(`({ items: Array.from(document.querySelectorAll('app-breadcrumb .breadcrumb-item')).map(item => item.textContent.trim()), href: document.querySelector('app-breadcrumb a')?.getAttribute('href') || '' })`);
+  const settingsBreadcrumb = await socket.evaluate(`({ eyebrow: document.querySelector('app-settings-page .eyebrow')?.textContent.trim() || '', items: Array.from(document.querySelectorAll('app-breadcrumb .breadcrumb-item')).map(item => item.textContent.trim()), href: document.querySelector('app-breadcrumb a')?.getAttribute('href') || '' })`);
+  assert(settingsBreadcrumb.eyebrow === 'Area personale', `Sovratitolo Impostazioni inatteso: ${settingsBreadcrumb.eyebrow}`);
   assert(JSON.stringify(settingsBreadcrumb.items) === JSON.stringify(['Area personale', 'Impostazioni']), `Breadcrumb Impostazioni inatteso: ${settingsBreadcrumb.items.join(' > ')}`);
   await socket.evaluate(`document.querySelector('app-breadcrumb a').click()`);
   await waitFor(socket, "location.pathname === '/notifications' && Boolean(document.querySelector('app-notifications-page'))", 'link breadcrumb Area personale');

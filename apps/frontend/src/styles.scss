@@ -64,6 +64,7 @@
   --radius-md: 0.7rem;
   --radius-lg: 0.95rem;
   --motion-fast: 160ms ease;
+  --theme-motion: 240ms ease;
 
   --bs-primary: var(--primary-strong);
   --bs-primary-rgb: var(--primary-rgb);
@@ -83,6 +84,7 @@
   --bs-body-bg: var(--app-bg);
   --bs-border-color: var(--border-color);
   --bs-link-color: var(--primary-strong);
+  --bs-link-color-rgb: var(--primary-rgb);
   --bs-link-hover-color: var(--primary-hover);
   --bs-focus-ring-color: var(--primary-focus-ring);
   --bs-font-sans-serif: "Reddit Sans Variable", "Reddit Sans", ui-sans-serif, system-ui,
@@ -201,10 +203,12 @@ body {
     radial-gradient(circle at 12% 5%, var(--body-glow-primary), transparent 30rem),
     radial-gradient(circle at 94% 18%, var(--body-glow-secondary), transparent 28rem),
     var(--app-bg);
+  transition: color var(--theme-motion), background-color var(--theme-motion);
 }
 
 a {
   font-weight: 650;
+  transition: color var(--motion-fast);
 }
 
 .min-w-0 {
@@ -237,10 +241,20 @@ a {
 
 .btn,
 .card,
-.table > tbody > tr,
+.table > :is(thead, tbody) > tr > *,
 .nav-link,
 .dropdown-item,
-.badge {
+.badge,
+.form-control,
+.form-select,
+.input-group-text,
+.list-group-item,
+.modal-content,
+.modal-header,
+.modal-footer,
+.dropdown-menu,
+.toast,
+.ng-select .ng-select-container {
   transition: color var(--motion-fast), background-color var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
 }
 

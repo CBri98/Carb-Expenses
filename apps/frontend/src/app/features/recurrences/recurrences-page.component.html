@@ -1,6 +1,6 @@
 <div class="container-fluid px-0">
   <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Spese ricorrenti' }]" />
-  <app-page-header title="Spese ricorrenti" subtitle="Gestisci abbonamenti, rate e spese periodiche">
+  <app-page-header eyebrow="Gestione" title="Spese ricorrenti" subtitle="Gestisci abbonamenti, rate e spese periodiche">
     <a class="btn btn-primary" routerLink="/recurrences/new"><i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Nuova ricorrenza</a>
   </app-page-header>
 
@@ -61,7 +61,7 @@
     <app-empty-state title="Nessuna ricorrenza corrisponde ai filtri applicati." description="Modifica o reimposta i criteri di ricerca."><button class="btn btn-outline-secondary" type="button" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Reimposta</button></app-empty-state>
   } @else {
     <div class="card border-0 shadow-sm overflow-hidden">
-      <div class="table-responsive d-none d-md-block"><table class="table align-middle mb-0">
+      <div class="table-responsive d-none d-md-block"><table class="table table-hover align-middle mb-0">
         <thead><tr>
           <th [attr.aria-sort]="ariaSort('name')"><button class="sortable-header" type="button" (click)="sort('name')">Nome <i class="bi" [class]="sortIcon('name')" [class.sort-active]="query().sortBy === 'name'" aria-hidden="true"></i></button></th>
           <th [attr.aria-sort]="ariaSort('amount')"><button class="sortable-header" type="button" (click)="sort('amount')">Importo <i class="bi" [class]="sortIcon('amount')" [class.sort-active]="query().sortBy === 'amount'" aria-hidden="true"></i></button></th>

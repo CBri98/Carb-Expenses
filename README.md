@@ -2,7 +2,7 @@
 
 Gestionale per la registrazione, pianificazione e analisi delle spese personali.
 
-Sono complete le Fasi 1–10 e le rifiniture 10.5–10.8: setup Docker, autenticazione, categorie ed etichette, gestione spese, dashboard, report mensili, calendario gestionale, promemoria, notifiche interne, spese ricorrenti, preferenze utente, consolidamento dell’interfaccia e gerarchia di navigazione coerente.
+Sono complete le Fasi 1–10 e le rifiniture 10.5–10.9: setup Docker, autenticazione, categorie ed etichette, gestione spese, dashboard, report mensili, calendario gestionale, promemoria, notifiche interne, spese ricorrenti, preferenze utente, consolidamento dell’interfaccia e gerarchia di navigazione coerente.
 
 ## Requisiti
 
@@ -266,6 +266,19 @@ sidebar e card Dashboard includono le correzioni di spaziatura, larghezza ed
 enfasi numerica.
 
 La specifica è in [docs/PHASE_10_8_COUNTERS_ICONS_AND_THEME.md](docs/PHASE_10_8_COUNTERS_ICONS_AND_THEME.md); il resoconto finale è in [docs/PHASE_10_8_COMPLETION_2026-07-28.md](docs/PHASE_10_8_COMPLETION_2026-07-28.md).
+
+## Fase 10.9 — Transizioni, gerarchia e tabelle
+
+Il cambio tema e accent anima ora le superfici principali senza passaggi
+bruschi e aggiorna anche il token Bootstrap RGB dei link. I sovratitoli delle
+pagine corrispondono alle sezioni Panoramica, Gestione, Analisi e Area
+personale della sidebar.
+
+La sidebar usa una spaziatura uniforme di `0.25rem`; le scadenze Dashboard
+seguono l’accento e la tabella Spese ricorrenti adotta hover e transizioni
+coerenti con la tabella Spese.
+
+La specifica è in [docs/PHASE_10_9_THEME_HEADERS_AND_TABLES.md](docs/PHASE_10_9_THEME_HEADERS_AND_TABLES.md); il resoconto finale è in [docs/PHASE_10_9_COMPLETION_2026-07-28.md](docs/PHASE_10_9_COMPLETION_2026-07-28.md).
 
 
 ## Fase 5 — Dashboard

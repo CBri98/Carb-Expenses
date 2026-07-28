@@ -46,7 +46,7 @@ const EMPTY_META: PaginationMeta = { page: 1, pageSize: 20, totalItems: 0, total
   template: `
     <section>
       <app-breadcrumb [items]="[{ label: 'Area personale', link: '/notifications' }, { label: 'Notifiche' }]" />
-      <app-page-header title="Notifiche" subtitle="Promemoria e aggiornamenti sulle tue spese">
+      <app-page-header eyebrow="Area personale" title="Notifiche" subtitle="Promemoria e aggiornamenti sulle tue spese">
         <button class="btn btn-primary" type="button" [disabled]="busy() || notifications.unreadCount() === 0" (click)="markAllRead()"><i class="bi bi-check2-all me-2"></i>Segna tutte come lette</button>
       </app-page-header>
 

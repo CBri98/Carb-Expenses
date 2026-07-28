@@ -1,6 +1,6 @@
 <section aria-labelledby="expenses-title">
   <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Spese' }]" />
-  <app-page-header title="Spese" subtitle="Consulta, filtra e gestisci tutte le tue spese.">
+  <app-page-header eyebrow="Gestione" title="Spese" subtitle="Consulta, filtra e gestisci tutte le tue spese.">
     <div class="d-flex flex-wrap align-items-center gap-3">
       <div class="form-check form-switch mb-0">
         <input id="show-future-expenses" class="form-check-input" type="checkbox" role="switch" [checked]="showFuture()" (change)="toggleFuture($event)">

@@ -66,7 +66,7 @@ La realizzazione procede per incrementi avviabili. Ogni fase termina con build, 
 - ricorrenze uniformate, catalogo di 97 icone e date estese centralizzate;
 - test unitari completi e test E2E del reload autenticato, responsive, tema e flussi Ricorrenze.
 
-## Fasi 10.6–10.8 — Correzioni e coerenza UI (completate)
+## Fasi 10.6–10.9 — Correzioni e coerenza UI (completate)
 
 - card, filtri, form, date estese e componenti multi-select uniformati;
 - navigazione separata in Gestione, Analisi e Area personale con breadcrumb
@@ -74,6 +74,7 @@ La realizzazione procede per incrementi avviabili. Ogni fase termina con build, 
 - counter globali con risultato filtrato e interazioni autorevoli;
 - catalogo icone frontend/backend allineato;
 - colori accent coordinati su sidebar, topbar e superfici soft.
+- transizioni tema, gerarchia dei sovratitoli e hover delle tabelle uniformati.
 
 ## Fase 11 — Gestione centralizzata dei promemoria
 

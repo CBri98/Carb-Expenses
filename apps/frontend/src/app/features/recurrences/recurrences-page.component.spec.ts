@@ -45,6 +45,8 @@ describe('RecurrencesPageComponent', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(element.textContent).toContain('Addebito mensile del canone');
     expect(element.textContent).not.toContain('Descrizione legacy');
+    expect(element.querySelector('app-page-header p')?.textContent).toBe('Gestione');
+    expect(element.querySelector('table')?.classList.contains('table-hover')).toBe(true);
 
     element.querySelector<HTMLTableRowElement>('tbody tr')?.click();
     expect(router.navigate).toHaveBeenCalledWith(['/recurrences', rule.id]);

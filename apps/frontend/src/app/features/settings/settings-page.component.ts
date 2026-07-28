@@ -16,7 +16,7 @@ import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog.c
     <section aria-labelledby="settings-title">
       <app-breadcrumb [items]="[{ label: 'Area personale', link: '/notifications' }, { label: 'Impostazioni' }]" />
       <div class="settings-heading mb-4">
-        <div><p class="eyebrow mb-1">Preferenze personali</p><h1 id="settings-title" class="h2 mb-1">Impostazioni</h1><p class="text-body-secondary mb-0">Configura account e comportamento dell’applicazione.</p></div>
+        <div><p class="eyebrow mb-1">Area personale</p><h1 id="settings-title" class="h2 mb-1">Impostazioni</h1><p class="text-body-secondary mb-0">Configura account e comportamento dell’applicazione.</p></div>
         <button class="btn btn-outline-danger" type="button" (click)="resetOpen.set(true)"><i class="bi bi-arrow-counterclockwise me-2"></i>Ripristina preferenze</button>
       </div>
       @if (notice(); as message) { <div class="alert" [class.alert-success]="message.tone === 'success'" [class.alert-danger]="message.tone === 'danger'" role="status">{{ message.text }}</div> }

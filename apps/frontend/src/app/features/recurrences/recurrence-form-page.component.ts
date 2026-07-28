@@ -24,7 +24,7 @@ import { RecurrenceFormComponent } from './recurrence-form.component';
   template: `
     <div class="container-fluid px-0">
       <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Spese ricorrenti', link: '/recurrences' }, { label: editing() ? 'Modifica' : 'Nuova' }]" />
-      <app-page-header [title]="editing() ? 'Modifica ricorrenza' : 'Nuova ricorrenza'" subtitle="Definisci la regola, l’orizzonte e i promemoria delle spese pianificate" />
+      <app-page-header eyebrow="Gestione" [title]="editing() ? 'Modifica ricorrenza' : 'Nuova ricorrenza'" subtitle="Definisci la regola, l’orizzonte e i promemoria delle spese pianificate" />
       @if (error()) { <div class="alert alert-danger" role="alert">{{ error() }}</div> }
       @if (loading()) { <div class="card border-0 shadow-sm"><div class="card-body"><app-loading-skeleton /></div></div> }
       @else { <app-recurrence-form [recurrence]="recurrence()" [submitting]="submitting()" (submitted)="save($event)" (cancelled)="cancel()" /> }

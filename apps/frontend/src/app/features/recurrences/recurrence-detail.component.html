@@ -3,7 +3,7 @@
   @if (loading()) {
     <div class="card border-0 shadow-sm"><div class="card-body"><app-loading-skeleton /></div></div>
   } @else if (rule(); as item) {
-    <app-page-header [title]="item.name" [subtitle]="item.notes || 'Dettaglio e pianificazione della ricorrenza'">
+    <app-page-header eyebrow="Gestione" [title]="item.name" [subtitle]="item.notes || 'Dettaglio e pianificazione della ricorrenza'">
       <div class="d-flex flex-wrap gap-2">
         @if (item.status !== 'CANCELLED') { <a class="btn btn-outline-primary" [routerLink]="['/recurrences', item.id, 'edit']"><i class="bi bi-pencil me-2" aria-hidden="true"></i>Modifica</a> }
         @if (item.status === 'ACTIVE') { <button class="btn btn-outline-warning" type="button" (click)="pause()" [disabled]="busy()"><i class="bi bi-pause-circle me-2" aria-hidden="true"></i>Sospendi</button> }

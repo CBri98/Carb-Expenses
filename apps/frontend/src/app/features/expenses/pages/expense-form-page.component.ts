@@ -19,7 +19,7 @@ import { ExpenseFormComponent } from '../components/expense-form.component';
   template: `
     <section>
       <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Spese', link: '/expenses' }, { label: expenseId ? 'Modifica' : 'Nuova' }]" />
-      <app-page-header [title]="expenseId ? 'Modifica spesa' : 'Nuova spesa'" [subtitle]="expenseId ? 'Aggiorna i dati della spesa selezionata.' : 'Registra una nuova spesa nel gestionale.'" />
+      <app-page-header eyebrow="Gestione" [title]="expenseId ? 'Modifica spesa' : 'Nuova spesa'" [subtitle]="expenseId ? 'Aggiorna i dati della spesa selezionata.' : 'Registra una nuova spesa nel gestionale.'" />
       @if (error()) { <div class="alert alert-danger" role="alert">{{ error() }}</div> }
       @if (loading()) { <article class="card"><div class="card-body"><app-loading-skeleton /></div></article> }
       @else {

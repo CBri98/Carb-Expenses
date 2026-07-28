@@ -1,6 +1,6 @@
 <section>
   <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Spese', link: '/expenses' }, { label: 'Dettaglio' }]" />
-  <app-page-header title="Dettaglio spesa" subtitle="Dati completi e operazioni disponibili.">
+  <app-page-header eyebrow="Gestione" title="Dettaglio spesa" subtitle="Dati completi e operazioni disponibili.">
     <button class="btn btn-outline-secondary" type="button" (click)="back()"><i class="bi bi-arrow-left me-2"></i>Torna alla lista</button>
   </app-page-header>
   @if (error()) { <div class="alert alert-danger" role="alert">{{ error() }}</div> }
