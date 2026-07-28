@@ -107,6 +107,11 @@ export class LabelQueryDto {
   @IsBoolean()
   active?: boolean;
 
+  @ApiPropertyOptional({ enum: ['withCategory', 'withoutCategory', 'unused'] })
+  @IsOptional()
+  @IsIn(['withCategory', 'withoutCategory', 'unused'])
+  mode?: 'withCategory' | 'withoutCategory' | 'unused';
+
   @ApiPropertyOptional({ enum: ['name', 'sortOrder', 'createdAt'] })
   @IsOptional()
   @IsIn(['name', 'sortOrder', 'createdAt'])

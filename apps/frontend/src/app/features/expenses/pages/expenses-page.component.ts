@@ -51,8 +51,10 @@ export class ExpensesPageComponent {
   readonly showFuture = signal(this.readShowFuturePreference());
   readonly expenses = signal<ExpenseListItem[]>([]);
   readonly meta = signal<PaginationMeta>({ page: 1, pageSize: 20, totalItems: 0, totalPages: 0 });
-  readonly summary = signal<ExpenseListSummary>({ totalResults: 0, completed: 0, planned: 0, cancelled: 0 });
+  readonly globalSummary = signal<ExpenseListSummary>({ totalResults: 0, completed: 0, planned: 0, cancelled: 0 });
+  readonly filteredSummary = signal<ExpenseListSummary>({ totalResults: 0, completed: 0, planned: 0, cancelled: 0 });
   readonly query = signal<ExpenseQueryParams>({ page: 1, pageSize: 20 });
+  readonly summaryFiltered = computed(() => hasExpenseSummaryFilters(this.effectiveQuery(this.query())));
   readonly loading = signal(true);
   readonly exporting = signal(false);
   readonly deleting = signal(false);
@@ -208,15 +210,17 @@ export class ExpensesPageComponent {
     const effective = this.effectiveQuery(query);
     forkJoin({
       list: this.expensesService.list(effective),
-      summary: this.expensesService.summary(effective),
+      globalSummary: this.expensesService.summary({}),
+      filteredSummary: this.expensesService.summary(effective),
     }).pipe(
       finalize(() => this.loading.set(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: ({ list, summary }) => {
+      next: ({ list, globalSummary, filteredSummary }) => {
         this.expenses.set(list.items);
         this.meta.set(list.meta);
-        this.summary.set(summary);
+        this.globalSummary.set(globalSummary);
+        this.filteredSummary.set(filteredSummary);
       },
       error: (error: unknown) => this.failure(error),
     });
@@ -275,6 +279,27 @@ export class ExpensesPageComponent {
   private failure(error: unknown): void {
     this.notice.set({ type: 'danger', text: apiErrorMessage(error) });
   }
+}
+
+function hasExpenseSummaryFilters(query: ExpenseQueryParams): boolean {
+  return Boolean(
+    query.search
+    || query.dateFrom
+    || query.dateTo
+    || query.month
+    || query.year
+    || query.categoryId
+    || query.categoryIds?.length
+    || query.labelIds?.length
+    || query.status
+    || query.statuses?.length
+    || query.paymentMethod
+    || query.paymentMethods?.length
+    || query.recurrenceMode
+    || query.minAmount
+    || query.maxAmount
+    || query.includeFuture === false
+  );
 }
 
 function queryFromParams(

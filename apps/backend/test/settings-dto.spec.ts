@@ -7,6 +7,7 @@ import {
   UpdateExperiencePreferencesDto,
   UpdateIconPreferencesDto,
 } from '../src/settings/dto/settings.dto';
+import { ALLOWED_ICON_KEYS } from '../src/settings/settings.defaults';
 
 describe('Settings DTO', () => {
   it('rifiuta colori arbitrari e stato CANCELLED come default', async () => {
@@ -34,5 +35,17 @@ describe('Settings DTO', () => {
       enabledCategoryIcons: [], enabledLabelIcons: [],
     }));
     expect(empty).toHaveLength(2);
+  });
+
+  it('accetta l’intero catalogo icone esposto dalle impostazioni', async () => {
+    expect(ALLOWED_ICON_KEYS).toHaveLength(97);
+    expect(ALLOWED_ICON_KEYS).toEqual(expect.arrayContaining([
+      'bi-cart-check', 'bi-trophy', 'bi-feather', 'bi-shield-check', 'bi-people',
+    ]));
+    const errors = await validate(plainToInstance(UpdateIconPreferencesDto, {
+      enabledCategoryIcons: [...ALLOWED_ICON_KEYS],
+      enabledLabelIcons: [...ALLOWED_ICON_KEYS],
+    }));
+    expect(errors).toHaveLength(0);
   });
 });

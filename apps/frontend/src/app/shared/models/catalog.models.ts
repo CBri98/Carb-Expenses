@@ -79,6 +79,7 @@ export interface LabelQueryParams {
   search?: string;
   categoryId?: string;
   active?: boolean;
+  mode?: 'withCategory' | 'withoutCategory' | 'unused';
   sortBy?: 'name' | 'sortOrder' | 'createdAt';
   sortDirection?: 'asc' | 'desc';
 }

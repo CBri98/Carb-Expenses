@@ -3,17 +3,17 @@
 
   --app-bg: #f5f7fb;
   --surface: #ffffff;
-  --surface-soft: #f8f4ff;
+  --surface-soft: color-mix(in srgb, var(--primary) 5%, #ffffff);
   --surface-accent: var(--primary-soft);
   --surface-accent-strong: color-mix(in srgb, var(--primary) 22%, var(--surface));
   --form-surface: #ffffff;
-  --sidebar-bg: #dfe4f8;
+  --sidebar-bg: color-mix(in srgb, var(--primary) 14%, #f1f3f8);
   --sidebar-surface: #eef0fb;
   --sidebar-active: var(--primary-soft);
   --sidebar-text: #424762;
   --sidebar-muted: #6b718d;
   --topbar-bg: #eef0fa;
-  --topbar-translucent: rgb(238 240 250 / 94%);
+  --topbar-translucent: color-mix(in srgb, var(--primary) 7%, rgb(248 249 252 / 94%));
   --body-glow-primary: color-mix(in srgb, var(--primary) 15%, transparent);
   --body-glow-secondary: rgb(232 245 241 / 72%);
   --date-color-scheme: light;
@@ -148,15 +148,15 @@ html[data-theme='dark'] {
 
   --app-bg: #151720;
   --surface: #20232e;
-  --surface-soft: #272a36;
+  --surface-soft: color-mix(in srgb, var(--primary) 8%, #272a36);
   --form-surface: #1b1e28;
-  --sidebar-bg: #1c2030;
+  --sidebar-bg: color-mix(in srgb, var(--primary) 10%, #1c2030);
   --sidebar-surface: #272c3d;
   --sidebar-active: var(--primary-soft);
   --sidebar-text: #e4e7f3;
   --sidebar-muted: #a9afc3;
   --topbar-bg: #1b1e28;
-  --topbar-translucent: rgb(27 30 40 / 94%);
+  --topbar-translucent: color-mix(in srgb, var(--primary) 7%, rgb(27 30 40 / 94%));
   --body-glow-primary: color-mix(in srgb, var(--primary) 18%, transparent);
   --body-glow-secondary: rgb(54 105 93 / 13%);
   --date-color-scheme: dark;

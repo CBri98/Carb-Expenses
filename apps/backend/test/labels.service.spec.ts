@@ -132,6 +132,27 @@ describe('LabelsService', () => {
     expect(result).toHaveLength(1);
   });
 
+  it('applica filtri autorevoli per relazione e utilizzo', async () => {
+    prisma.label.findMany.mockResolvedValue([]);
+
+    await service.findAll('user-1', Object.assign(new LabelQueryDto(), { mode: 'withCategory' as const }));
+    expect(prisma.label.findMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ categoryId: { not: null } }),
+    }));
+
+    await service.findAll('user-1', Object.assign(new LabelQueryDto(), { mode: 'withoutCategory' as const }));
+    expect(prisma.label.findMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ categoryId: null }),
+    }));
+
+    await service.findAll('user-1', Object.assign(new LabelQueryDto(), { mode: 'unused' as const }));
+    expect(prisma.label.findMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        expenseLinks: { none: { expense: { userId: 'user-1', deletedAt: null } } },
+      }),
+    }));
+  });
+
   it('calcola contatori e non utilizzate escludendo spese eliminate o altrui', async () => {
     const global = label({ id: '20000000-0000-4000-8000-000000000002', categoryId: null });
     prisma.label.findMany.mockResolvedValue([

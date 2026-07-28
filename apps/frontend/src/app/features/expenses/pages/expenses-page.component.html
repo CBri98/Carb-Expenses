@@ -15,11 +15,11 @@
 
   @if (notice(); as currentNotice) { <div class="alert" [class.alert-success]="currentNotice.type === 'success'" [class.alert-danger]="currentNotice.type === 'danger'" role="status"><div class="d-flex justify-content-between gap-3"><span>{{ currentNotice.text }}</span><button class="btn-close" type="button" aria-label="Chiudi" (click)="notice.set(null)"></button></div></div> }
 
-  <div class="row g-3 mb-3" aria-label="Riepilogo spese filtrate">
-    <div class="col-6 col-xl-3"><app-counter-card label="Totale risultati" [value]="summary().totalResults" icon="bi-receipt" [interactive]="true" (activated)="filterByStatus()" /></div>
-    <div class="col-6 col-xl-3"><app-counter-card label="Completate" [value]="summary().completed" icon="bi-check-circle" [interactive]="true" (activated)="filterByStatus('COMPLETED')" /></div>
-    <div class="col-6 col-xl-3"><app-counter-card label="Pianificate" [value]="summary().planned" icon="bi-clock-history" [interactive]="true" (activated)="filterByStatus('PLANNED')" /></div>
-    <div class="col-6 col-xl-3"><app-counter-card label="Annullate" [value]="summary().cancelled" icon="bi-x-circle" [interactive]="true" (activated)="filterByStatus('CANCELLED')" /></div>
+  <div class="row g-3 mb-3" aria-label="Riepilogo globale e filtrato delle spese">
+    <div class="col-6 col-xl-3"><app-counter-card label="Totale risultati" [value]="globalSummary().totalResults" valueHint="Totale globale" [filteredValue]="summaryFiltered() ? filteredSummary().totalResults : null" icon="bi-receipt" [interactive]="true" (activated)="filterByStatus()" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Completate" [value]="globalSummary().completed" valueHint="Totale globale" [filteredValue]="summaryFiltered() ? filteredSummary().completed : null" icon="bi-check-circle" [interactive]="true" (activated)="filterByStatus('COMPLETED')" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Pianificate" [value]="globalSummary().planned" valueHint="Totale globale" [filteredValue]="summaryFiltered() ? filteredSummary().planned : null" icon="bi-clock-history" [interactive]="true" (activated)="filterByStatus('PLANNED')" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Annullate" [value]="globalSummary().cancelled" valueHint="Totale globale" [filteredValue]="summaryFiltered() ? filteredSummary().cancelled : null" icon="bi-x-circle" [interactive]="true" (activated)="filterByStatus('CANCELLED')" /></div>
   </div>
 
   <app-expense-filters [query]="query()" [categories]="categories()" [labels]="labels()" [defaultPageSize]="defaultPageSize()" (queryChange)="applyFilters($event)" />

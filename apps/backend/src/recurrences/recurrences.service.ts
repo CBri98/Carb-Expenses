@@ -91,21 +91,7 @@ export class RecurrencesService {
     userId: string,
     query: RecurrenceQueryDto,
   ): Promise<ApiPayload<RecurrenceResponse[]>> {
-    const where: Prisma.RecurrenceRuleWhereInput = {
-      userId,
-      deletedAt: null,
-      status: query.status,
-      frequency: query.frequency,
-      categoryId: query.categoryId,
-      paymentMethod: query.paymentMethod,
-      OR: query.search
-        ? [
-            { name: { contains: query.search } },
-            { notes: { contains: query.search } },
-            { merchant: { contains: query.search } },
-          ]
-        : undefined,
-    };
+    const where = this.buildWhere(userId, query);
     const primaryOrder: Prisma.RecurrenceRuleOrderByWithRelationInput =
       query.sortBy === 'nextOccurrenceDate'
         ? { nextOccurrenceDate: { sort: query.sortDirection, nulls: 'last' } }
@@ -131,7 +117,11 @@ export class RecurrencesService {
     };
   }
 
-  async summary(userId: string, now = new Date()): Promise<RecurrenceSummary> {
+  async summary(
+    userId: string,
+    query: RecurrenceQueryDto,
+    now = new Date(),
+  ): Promise<RecurrenceSummary> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { timezone: true },
@@ -139,10 +129,11 @@ export class RecurrencesService {
     if (!user) throw new NotFoundException('Utente non trovato');
     const today = localDateOnly(now, user.timezone);
     const horizon = this.calculator.horizon(today, 30);
+    const ruleWhere = this.buildWhere(userId, query);
     const [statuses, upcoming] = await Promise.all([
       this.prisma.recurrenceRule.groupBy({
         by: ['status'],
-        where: { userId, deletedAt: null },
+        where: ruleWhere,
         _count: { _all: true },
       }),
       this.prisma.expense.aggregate({
@@ -153,6 +144,7 @@ export class RecurrencesService {
           deletedAt: null,
           status: ExpenseStatus.PLANNED,
           expenseDate: { gte: today, lte: horizon },
+          recurrenceRule: ruleWhere,
         },
         _count: { _all: true },
         _sum: { amount: true },
@@ -719,6 +711,27 @@ export class RecurrencesService {
       limit,
       rule.generatedCount,
     );
+  }
+
+  private buildWhere(
+    userId: string,
+    query: RecurrenceQueryDto,
+  ): Prisma.RecurrenceRuleWhereInput {
+    return {
+      userId,
+      deletedAt: null,
+      status: query.status,
+      frequency: query.frequency,
+      categoryId: query.categoryId,
+      paymentMethod: query.paymentMethod,
+      OR: query.search
+        ? [
+            { name: { contains: query.search } },
+            { notes: { contains: query.search } },
+            { merchant: { contains: query.search } },
+          ]
+        : undefined,
+    };
   }
 
   private async findOwned(userId: string, id: string): Promise<RecurrenceWithRelations> {

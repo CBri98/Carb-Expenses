@@ -2,7 +2,7 @@
 
 Gestionale per la registrazione, pianificazione e analisi delle spese personali.
 
-Sono complete le Fasi 1–10 e le rifiniture 10.5–10.7: setup Docker, autenticazione, categorie ed etichette, gestione spese, dashboard, report mensili, calendario gestionale, promemoria, notifiche interne, spese ricorrenti, preferenze utente, consolidamento dell’interfaccia e gerarchia di navigazione coerente.
+Sono complete le Fasi 1–10 e le rifiniture 10.5–10.8: setup Docker, autenticazione, categorie ed etichette, gestione spese, dashboard, report mensili, calendario gestionale, promemoria, notifiche interne, spese ricorrenti, preferenze utente, consolidamento dell’interfaccia e gerarchia di navigazione coerente.
 
 ## Requisiti
 
@@ -252,6 +252,20 @@ La specifica è in [docs/PHASE_10_6_UI_CORRECTIONS.md](docs/PHASE_10_6_UI_CORREC
 La sidebar separa ora le quattro pagine operative sotto “Gestione” e colloca Notifiche e Impostazioni nell’ultima sezione “Area personale”. Un componente breadcrumb condiviso rende coerenti e navigabili le gerarchie di Gestione, Analisi e Area personale, comprese le pagine di creazione, modifica e dettaglio.
 
 La specifica è in [docs/PHASE_10_7_NAVIGATION_AND_BREADCRUMBS.md](docs/PHASE_10_7_NAVIGATION_AND_BREADCRUMBS.md); il resoconto finale è in [docs/PHASE_10_7_COMPLETION_2026-07-27.md](docs/PHASE_10_7_COMPLETION_2026-07-27.md).
+
+## Fase 10.8 — Counter globali, icone e tema coordinato
+
+I riepiloghi di Spese, Spese ricorrenti, Categorie ed Etichette mantengono il
+totale globale e mostrano separatamente il risultato filtrato. Le counter card
+di Ricorrenze ed Etichette sono navigabili e applicano filtri backend
+autorevoli.
+
+Il catalogo delle 97 icone è ora coerente tra frontend e validazione API. Il
+colore accent coordina anche sidebar, topbar e superfici soft in light/dark;
+sidebar e card Dashboard includono le correzioni di spaziatura, larghezza ed
+enfasi numerica.
+
+La specifica è in [docs/PHASE_10_8_COUNTERS_ICONS_AND_THEME.md](docs/PHASE_10_8_COUNTERS_ICONS_AND_THEME.md); il resoconto finale è in [docs/PHASE_10_8_COMPLETION_2026-07-28.md](docs/PHASE_10_8_COMPLETION_2026-07-28.md).
 
 
 ## Fase 5 — Dashboard

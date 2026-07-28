@@ -58,8 +58,8 @@ export class RecurrencesController {
   @Get('summary')
   @ApiOperation({ summary: 'Restituisce il riepilogo leggero delle ricorrenze' })
   @ApiOkResponse({ description: 'Conteggi e totale delle occorrenze generate nei prossimi 30 giorni' })
-  summary(@CurrentUser() user: PublicUser) {
-    return this.recurrences.summary(user.id);
+  summary(@CurrentUser() user: PublicUser, @Query() query: RecurrenceQueryDto) {
+    return this.recurrences.summary(user.id, query);
   }
 
   @Post('preview')

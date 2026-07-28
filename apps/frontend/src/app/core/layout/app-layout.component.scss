@@ -76,6 +76,10 @@
   text-decoration: none;
   border-radius: 0.65rem;
 }
+.sidebar__nav a,
+.sidebar__disabled {
+  margin-block: 0.1rem;
+}
 .sidebar__nav a:hover {
   color: var(--primary-strong);
   background: var(--nav-hover-bg);

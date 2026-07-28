@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CategoriesService } from '../categories/categories.service';
 import { catalogSlug, normalizeCatalogName, optionalText } from '../common/utils/catalog.utils';
 import { PrismaService } from '../prisma/prisma.service';
@@ -13,19 +14,30 @@ export class LabelsService {
   ) {}
 
   async findAll(userId: string, query: LabelQueryDto): Promise<LabelResponse[]> {
-    const rows = await this.prisma.label.findMany({
-      where: {
-        userId,
-        deletedAt: null,
-        categoryId: query.categoryId,
-        isActive: query.active,
-        OR: query.search?.trim()
-          ? [
-              { name: { contains: query.search.trim() } },
-              { description: { contains: query.search.trim() } },
-            ]
+    const where: Prisma.LabelWhereInput = {
+      userId,
+      deletedAt: null,
+      categoryId:
+        query.categoryId ??
+        (query.mode === 'withCategory'
+          ? { not: null }
+          : query.mode === 'withoutCategory'
+            ? null
+            : undefined),
+      isActive: query.active,
+      OR: query.search?.trim()
+        ? [
+            { name: { contains: query.search.trim() } },
+            { description: { contains: query.search.trim() } },
+          ]
+        : undefined,
+      expenseLinks:
+        query.mode === 'unused'
+          ? { none: { expense: { userId, deletedAt: null } } }
           : undefined,
-      },
+    };
+    const rows = await this.prisma.label.findMany({
+      where,
       include: { category: true },
       orderBy: { [query.sortBy ?? 'sortOrder']: query.sortDirection ?? 'asc' },
     });

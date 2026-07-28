@@ -90,6 +90,21 @@ describe('LabelsComponent', () => {
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Elimina etichetta');
   });
+  it('mostra contatori globali cliccabili e applica il filtro non utilizzate', async () => {
+    const { fixture, labels } = await createFixture();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const cards = (fixture.nativeElement as HTMLElement).querySelectorAll(
+      'app-counter-card article[role="button"]',
+    );
+    expect(cards).toHaveLength(4);
+    expect(labels.summary).toHaveBeenCalledWith({});
+
+    fixture.componentInstance.filterFromSummary('unused');
+    expect(fixture.componentInstance.filters.controls.mode.value).toBe('unused');
+    expect(fixture.componentInstance.filters.controls.categoryId.value).toBeNull();
+  });
 });
 
 async function createFixture() {

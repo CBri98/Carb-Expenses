@@ -50,6 +50,17 @@ describe('RecurrencesPageComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/recurrences', rule.id]);
 
     const component = fixture.componentInstance;
+    expect(service.summary).toHaveBeenCalledWith({});
+    expect(element.querySelectorAll('app-counter-card article[role="button"]')).toHaveLength(4);
+    router.navigate.mockClear();
+    component.filterFromSummary('PAUSED');
+    expect(router.navigate).toHaveBeenLastCalledWith([], expect.objectContaining({
+      queryParams: expect.objectContaining({ status: 'PAUSED' }),
+    }));
+    component.openUpcomingExpenses();
+    expect(router.navigate).toHaveBeenLastCalledWith(['/expenses'], expect.objectContaining({
+      queryParams: expect.objectContaining({ recurrenceMode: 'ONLY', statuses: 'PLANNED' }),
+    }));
     router.navigate.mockClear();
     component.sort('name');
     expect(router.navigate).toHaveBeenLastCalledWith([], expect.objectContaining({ queryParams: expect.objectContaining({ sortBy: 'name', sortDirection: 'asc' }) }));

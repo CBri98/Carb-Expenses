@@ -83,11 +83,11 @@ export class DashboardComponent {
       emptyDays: points.filter((point) => Number(point.total) === 0).length,
     };
   });
-  readonly historyDescription = computed(() => {
+  readonly historyPeak = computed(() => {
     const points = this.data()?.monthlyTrend.filter((point) => Number(point.total) > 0) ?? [];
-    if (!points.length) return 'Nessun dato storico disponibile.';
+    if (!points.length) return null;
     const peak = points.reduce((current, point) => Number(point.total) > Number(current.total) ? point : current);
-    return `Massimo del periodo: ${peak.label}, ${formatEuroAmount(peak.total)}.`;
+    return { label: peak.label, total: formatEuroAmount(peak.total) };
   });
   readonly historyInsights = computed(() => {
     const points = this.data()?.monthlyTrend.filter((point) => Number(point.total) > 0) ?? [];

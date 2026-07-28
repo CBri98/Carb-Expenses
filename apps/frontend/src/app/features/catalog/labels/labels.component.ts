@@ -89,23 +89,40 @@ export class LabelsComponent {
   readonly notice = signal<Notice | null>(null);
   readonly reordering = signal(false);
   readonly filtersExpanded = signal(false);
-  readonly summary = signal<LabelSummary>({ total: 0, withCategory: 0, withoutCategory: 0, unused: 0 });
+  readonly globalSummary = signal<LabelSummary>({ total: 0, withCategory: 0, withoutCategory: 0, unused: 0 });
+  readonly filteredSummary = signal<LabelSummary>({ total: 0, withCategory: 0, withoutCategory: 0, unused: 0 });
   private readonly filterVersion = signal(0);
   readonly activeOptions = [
     { value: 'all', label: 'Tutti', icon: 'bi-circle-half' },
     { value: 'true', label: 'Attive', icon: 'bi-check-circle' },
     { value: 'false', label: 'Disattivate', icon: 'bi-pause-circle' },
   ] as const;
+  readonly modeOptions = [
+    { value: 'all', label: 'Tutte', icon: 'bi-collection' },
+    { value: 'withCategory', label: 'Associate a categoria', icon: 'bi-diagram-3' },
+    { value: 'withoutCategory', label: 'Senza categoria', icon: 'bi-tag' },
+    { value: 'unused', label: 'Non utilizzate', icon: 'bi-inbox' },
+  ] as const;
+  readonly summaryFiltered = computed(() => {
+    this.filterVersion();
+    const filters = this.filters.getRawValue();
+    return Boolean(filters.search.trim() || filters.categoryId || filters.active !== 'all' || filters.mode !== 'all');
+  });
   readonly canReorder = computed(() => {
     this.filterVersion();
     const filters = this.filters.getRawValue();
-    return !this.reordering() && !filters.search.trim() && !filters.categoryId && filters.active === 'all';
+    return !this.reordering()
+      && !filters.search.trim()
+      && !filters.categoryId
+      && filters.active === 'all'
+      && filters.mode === 'all';
   });
 
   readonly filters = this.formBuilder.nonNullable.group({
     search: [''],
     categoryId: this.formBuilder.control<string | null>(null),
     active: ['all'],
+    mode: ['all'],
   });
 
   readonly form = this.formBuilder.nonNullable.group({
@@ -122,7 +139,13 @@ export class LabelsComponent {
     this.settings.ensureLoaded();
     this.filters.valueChanges
       .pipe(debounceTime(250), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => { this.filterVersion.update((value) => value + 1); this.navigateFilters(); });
+      .subscribe(() => {
+        if (this.filters.controls.categoryId.value && this.filters.controls.mode.value !== 'all') {
+          this.filters.controls.mode.setValue('all', { emitEvent: false });
+        }
+        this.filterVersion.update((value) => value + 1);
+        this.navigateFilters();
+      });
     this.loadCategories();
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const active = params.get('active');
@@ -130,6 +153,7 @@ export class LabelsComponent {
         search: params.get('search') ?? '',
         categoryId: params.get('categoryId'),
         active: active === 'true' || active === 'false' ? active : 'all',
+        mode: labelMode(params.get('mode')) ?? 'all',
       }, { emitEvent: false });
       this.filterVersion.update((value) => value + 1);
       this.loadLabels();
@@ -138,7 +162,7 @@ export class LabelsComponent {
 
   activeFilterCount(): number {
     const value = this.filters.getRawValue();
-    return Number(Boolean(value.categoryId)) + Number(value.active !== 'all');
+    return Number(Boolean(value.categoryId)) + Number(value.active !== 'all') + Number(value.mode !== 'all');
   }
 
   filterSummary(): string {
@@ -146,6 +170,7 @@ export class LabelsComponent {
     const parts = [
       value.categoryId ? this.categories().find((item) => item.id === value.categoryId)?.name : null,
       value.active !== 'all' ? this.activeOptions.find((item) => item.value === value.active)?.label : null,
+      value.mode !== 'all' ? this.modeOptions.find((item) => item.value === value.mode)?.label : null,
     ].filter(Boolean);
     return parts.length ? parts.join(' · ') : 'Nessun filtro strutturato applicato';
   }
@@ -289,7 +314,11 @@ export class LabelsComponent {
   }
 
   resetFilters(): void {
-    this.filters.setValue({ search: '', categoryId: null, active: 'all' });
+    this.filters.setValue({ search: '', categoryId: null, active: 'all', mode: 'all' });
+  }
+
+  filterFromSummary(mode: 'all' | 'withCategory' | 'withoutCategory' | 'unused'): void {
+    this.filters.patchValue({ categoryId: null, mode });
   }
 
   updateColor(color: string): void {
@@ -317,14 +346,18 @@ export class LabelsComponent {
     const query = this.query();
     forkJoin({
       items: this.labelService.load(query),
-      summary: this.labelService.summary(query),
+      globalSummary: this.labelService.summary({}),
+      filteredSummary: this.labelService.summary(query),
     })
       .pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: ({ summary }) => this.summary.set(summary),
+        next: ({ globalSummary, filteredSummary }) => {
+          this.globalSummary.set(globalSummary);
+          this.filteredSummary.set(filteredSummary);
+        },
         error: (error: unknown) =>
           this.notice.set({ type: 'danger', text: apiErrorMessage(error) }),
       });
@@ -336,6 +369,7 @@ export class LabelsComponent {
       search: filters.search.trim() || undefined,
       categoryId: filters.categoryId ?? undefined,
       active: filters.active === 'all' ? undefined : filters.active === 'true',
+      mode: filters.categoryId ? undefined : labelMode(filters.mode),
       sortBy: 'sortOrder',
       sortDirection: 'asc',
     };
@@ -349,6 +383,7 @@ export class LabelsComponent {
         ...(value.search.trim() ? { search: value.search.trim() } : {}),
         ...(value.categoryId ? { categoryId: value.categoryId } : {}),
         ...(value.active !== 'all' ? { active: value.active } : {}),
+        ...(!value.categoryId && value.mode !== 'all' ? { mode: value.mode } : {}),
       },
       replaceUrl: true,
     });
@@ -357,4 +392,10 @@ export class LabelsComponent {
   private showSuccess(text: string): void {
     this.notice.set({ type: 'success', text });
   }
+}
+
+function labelMode(value: string | null | undefined): LabelQueryParams['mode'] {
+  return value && ['withCategory', 'withoutCategory', 'unused'].includes(value)
+    ? value as LabelQueryParams['mode']
+    : undefined;
 }

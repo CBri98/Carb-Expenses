@@ -8,6 +8,7 @@ import type { ApiEnvelope } from '../auth/auth.models';
 import type {
   CreateRecurrenceRequest,
   RecurrenceRule,
+  RecurrenceSummary,
 } from '../../shared/models/recurrence.models';
 import { RecurrenceService } from './recurrence.service';
 
@@ -93,6 +94,25 @@ describe('RecurrenceService', () => {
       message: '',
     };
     request.flush(response);
+  });
+
+  it('invia i filtri anche al riepilogo', () => {
+    service.summary({ status: 'ACTIVE', categoryId: rule.category.id }).subscribe((result) => {
+      expect(result.activeCount).toBe(1);
+    });
+    const request = http.expectOne((candidate) =>
+      candidate.url === `${environment.apiBaseUrl}/recurrences/summary`
+      && candidate.params.get('status') === 'ACTIVE'
+      && candidate.params.get('categoryId') === rule.category.id,
+    );
+    const summary: RecurrenceSummary = {
+      activeCount: 1,
+      pausedCount: 0,
+      upcomingOccurrences: 1,
+      upcomingTotal: '850.00',
+      horizonDays: 30,
+    };
+    request.flush({ data: summary, meta: {}, message: '' });
   });
 
   it('calcola anteprima senza mutare la versione locale', () => {

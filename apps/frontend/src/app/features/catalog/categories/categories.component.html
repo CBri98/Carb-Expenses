@@ -28,11 +28,11 @@
     </div>
   }
 
-  <div class="row g-3 mb-3" aria-label="Riepilogo categorie filtrate">
-    <div class="col-6 col-xl-3"><app-counter-card label="Totali" [value]="summary().total" icon="bi-collection" [interactive]="true" (activated)="filterFromSummary()" /></div>
-    <div class="col-6 col-xl-3"><app-counter-card label="Attive" [value]="summary().active" icon="bi-check-circle" [interactive]="true" (activated)="filterFromSummary('all', 'true')" /></div>
-    <div class="col-6 col-xl-3"><app-counter-card label="Disattivate" [value]="summary().inactive" icon="bi-pause-circle" [interactive]="true" (activated)="filterFromSummary('all', 'false')" /></div>
-    <div class="col-6 col-xl-3"><app-counter-card label="Personalizzate" [value]="summary().custom" icon="bi-person-gear" [interactive]="true" (activated)="filterFromSummary('custom')" /></div>
+  <div class="row g-3 mb-3" aria-label="Riepilogo globale e filtrato delle categorie">
+    <div class="col-6 col-xl-3"><app-counter-card label="Totali" [value]="globalSummary().total" valueHint="Totale globale" [filteredValue]="summaryFiltered() ? filteredSummary().total : null" icon="bi-collection" [interactive]="true" (activated)="filterFromSummary()" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Attive" [value]="globalSummary().active" valueHint="Totale globale" [filteredValue]="summaryFiltered() ? filteredSummary().active : null" icon="bi-check-circle" [interactive]="true" (activated)="filterFromSummary('all', 'true')" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Disattivate" [value]="globalSummary().inactive" valueHint="Totale globale" [filteredValue]="summaryFiltered() ? filteredSummary().inactive : null" icon="bi-pause-circle" [interactive]="true" (activated)="filterFromSummary('all', 'false')" /></div>
+    <div class="col-6 col-xl-3"><app-counter-card label="Personalizzate" [value]="globalSummary().custom" valueHint="Totale globale" [filteredValue]="summaryFiltered() ? filteredSummary().custom : null" icon="bi-person-gear" [interactive]="true" (activated)="filterFromSummary('custom')" /></div>
   </div>
 
   <div class="card border-0 shadow-sm catalog-search mb-3">

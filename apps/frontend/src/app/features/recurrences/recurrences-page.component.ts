@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -20,6 +20,7 @@ import {
 import { EuroAmountPipe, ItalianExpenseDatePipe } from '../../shared/components/expense-display.components';
 import { FilterPanelComponent } from '../../shared/components/filter-panel.component';
 import type { PaginationMeta } from '../../shared/models/expense.models';
+import { addCalendarDays, todayRomeDate } from '../../shared/utilities/calendar-date';
 import {
   RECURRENCE_FREQUENCIES,
   RECURRENCE_STATUSES,
@@ -70,7 +71,8 @@ export class RecurrencesPageComponent {
 
   readonly items = signal<RecurrenceRule[]>([]);
   readonly meta = signal<PaginationMeta>({ page: 1, pageSize: 20, totalItems: 0, totalPages: 0 });
-  readonly summary = signal<RecurrenceSummary | null>(null);
+  readonly globalSummary = signal<RecurrenceSummary | null>(null);
+  readonly filteredSummary = signal<RecurrenceSummary | null>(null);
   readonly loading = signal(true);
   readonly busyId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
@@ -81,6 +83,7 @@ export class RecurrencesPageComponent {
   readonly statuses = RECURRENCE_STATUSES;
   readonly frequencies = RECURRENCE_FREQUENCIES;
   readonly query = signal<RecurrenceQueryParams>({});
+  readonly summaryFiltered = computed(() => hasRecurrenceSummaryFilters(this.query()));
   readonly searchDraft = signal('');
   readonly filtersExpanded = signal(false);
   readonly filters = this.fb.nonNullable.group({
@@ -145,6 +148,22 @@ export class RecurrencesPageComponent {
       value.categoryId ? this.categories().find((item) => item.id === value.categoryId)?.name : null,
     ].filter((item): item is string => Boolean(item));
     return parts.length ? parts.join(' · ') : 'Nessun filtro strutturato applicato';
+  }
+
+  filterFromSummary(status: 'ACTIVE' | 'PAUSED'): void {
+    void this.navigate({ ...this.query(), page: 1, status });
+  }
+
+  openUpcomingExpenses(): void {
+    const dateFrom = todayRomeDate();
+    void this.router.navigate(['/expenses'], {
+      queryParams: {
+        recurrenceMode: 'ONLY',
+        statuses: 'PLANNED',
+        dateFrom,
+        dateTo: addCalendarDays(dateFrom, 30),
+      },
+    });
   }
 
   sort(column: NonNullable<RecurrenceQueryParams['sortBy']>): void {
@@ -248,14 +267,19 @@ export class RecurrencesPageComponent {
   load(query: RecurrenceQueryParams, showLoading = true): void {
     if (showLoading) this.loading.set(true);
     this.error.set(null);
-    forkJoin({ list: this.service.list(query), summary: this.service.summary() }).pipe(
+    forkJoin({
+      list: this.service.list(query),
+      globalSummary: this.service.summary({}),
+      filteredSummary: this.service.summary(query),
+    }).pipe(
       finalize(() => this.loading.set(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: ({ list, summary }) => {
+      next: ({ list, globalSummary, filteredSummary }) => {
         this.items.set(list.items);
         this.meta.set(list.meta);
-        this.summary.set(summary);
+        this.globalSummary.set(globalSummary);
+        this.filteredSummary.set(filteredSummary);
       },
       error: (error: unknown) => this.error.set(apiErrorMessage(error)),
     });
@@ -282,6 +306,16 @@ export class RecurrencesPageComponent {
       void this.navigate(next);
     }
   }
+}
+
+function hasRecurrenceSummaryFilters(query: RecurrenceQueryParams): boolean {
+  return Boolean(
+    query.search
+    || query.status
+    || query.frequency
+    || query.categoryId
+    || query.paymentMethod,
+  );
 }
 
 function fromParams(params: ParamMap, defaultPageSize = 20): RecurrenceQueryParams {

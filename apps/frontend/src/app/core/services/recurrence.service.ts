@@ -31,9 +31,11 @@ export class RecurrenceService {
       .pipe(map((response) => ({ items: response.data, meta: pagination(response.meta) })));
   }
 
-  summary(): Observable<RecurrenceSummary> {
+  summary(query: RecurrenceQueryParams = {}): Observable<RecurrenceSummary> {
     return this.http
-      .get<ApiEnvelope<RecurrenceSummary>>(`${environment.apiBaseUrl}/recurrences/summary`)
+      .get<ApiEnvelope<RecurrenceSummary>>(`${environment.apiBaseUrl}/recurrences/summary`, {
+        params: paramsFrom(query),
+      })
       .pipe(map((response) => response.data));
   }
 

@@ -84,8 +84,14 @@ export class CategoriesComponent {
   readonly notice = signal<Notice | null>(null);
   readonly reordering = signal(false);
   readonly filtersExpanded = signal(false);
-  readonly summary = signal<CategorySummary>({ total: 0, active: 0, inactive: 0, custom: 0 });
+  readonly globalSummary = signal<CategorySummary>({ total: 0, active: 0, inactive: 0, custom: 0 });
+  readonly filteredSummary = signal<CategorySummary>({ total: 0, active: 0, inactive: 0, custom: 0 });
   private readonly filterVersion = signal(0);
+  readonly summaryFiltered = computed(() => {
+    this.filterVersion();
+    const value = this.filters.getRawValue();
+    return Boolean(value.search.trim() || value.type !== 'all' || value.active !== 'all');
+  });
   readonly typeOptions = [
     { value: 'all', label: 'Tutte', icon: 'bi-collection' },
     { value: 'default', label: 'Predefinite', icon: 'bi-shield-check' },
@@ -308,14 +314,18 @@ export class CategoriesComponent {
     const query = this.query();
     forkJoin({
       items: this.categoryService.load(query),
-      summary: this.categoryService.summary(query),
+      globalSummary: this.categoryService.summary({}),
+      filteredSummary: this.categoryService.summary(query),
     })
       .pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe({
-        next: ({ summary }) => this.summary.set(summary),
+        next: ({ globalSummary, filteredSummary }) => {
+          this.globalSummary.set(globalSummary);
+          this.filteredSummary.set(filteredSummary);
+        },
         error: (error: unknown) =>
           this.notice.set({ type: 'danger', text: apiErrorMessage(error) }),
       });

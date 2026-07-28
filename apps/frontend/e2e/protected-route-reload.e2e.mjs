@@ -130,22 +130,47 @@ try {
   const visualTokens = await socket.evaluate(`(() => {
     const root = document.documentElement;
     const active = document.querySelector('.sidebar__nav a.active');
+    const sidebar = document.querySelector('.sidebar');
+    const topbar = document.querySelector('.topbar');
+    const probe = document.createElement('span');
+    probe.style.background = 'var(--surface-soft)';
+    document.body.append(probe);
+    const snapshot = () => ({
+      active: getComputedStyle(active).backgroundColor,
+      sidebar: getComputedStyle(sidebar).backgroundColor,
+      topbar: getComputedStyle(topbar).backgroundColor,
+      surfaceSoft: getComputedStyle(probe).backgroundColor,
+    });
     const originalTheme = root.dataset.theme;
     const originalAccent = root.dataset.accent;
     root.dataset.theme = 'light';
     root.dataset.accent = 'mint';
-    const mint = getComputedStyle(active).backgroundColor;
+    const mintLight = snapshot();
     const lightSurface = getComputedStyle(root).getPropertyValue('--surface').trim();
     root.dataset.accent = 'rose';
-    const rose = getComputedStyle(active).backgroundColor;
+    const roseLight = snapshot();
     root.dataset.theme = 'dark';
+    root.dataset.accent = 'mint';
+    const mintDark = snapshot();
     const darkSurface = getComputedStyle(root).getPropertyValue('--surface').trim();
+    root.dataset.accent = 'rose';
+    const roseDark = snapshot();
     root.dataset.theme = originalTheme || 'light';
     root.dataset.accent = originalAccent || 'indigo';
-    return { mint, rose, lightSurface, darkSurface };
+    const navMargin = Number.parseFloat(getComputedStyle(document.querySelector('.sidebar__nav a')).marginTop);
+    probe.remove();
+    return { mintLight, roseLight, mintDark, roseDark, lightSurface, darkSurface, navMargin };
   })()`);
-  assert(visualTokens.mint !== visualTokens.rose, 'Il nav item attivo non reagisce al cambio accent color');
+  for (const mode of ['Light', 'Dark']) {
+    const mint = visualTokens[`mint${mode}`];
+    const rose = visualTokens[`rose${mode}`];
+    assert(mint.active !== rose.active, `Il nav item attivo non reagisce al cambio accent color in tema ${mode}`);
+    assert(mint.sidebar !== rose.sidebar, `--sidebar-bg non reagisce al cambio accent color in tema ${mode}`);
+    assert(mint.topbar !== rose.topbar, `--topbar-translucent non reagisce al cambio accent color in tema ${mode}`);
+    assert(mint.surfaceSoft !== rose.surfaceSoft, `--surface-soft non reagisce al cambio accent color in tema ${mode}`);
+  }
   assert(visualTokens.lightSurface !== visualTokens.darkSurface, 'Le superfici light e dark risultano identiche');
+  assert(visualTokens.navMargin > 0, 'Le voci della sidebar non hanno il margine minimo richiesto');
 
   const widths = [320, 390, 768, 1440];
   const responsive = [];
@@ -169,6 +194,7 @@ try {
   await waitFor(socket, "location.pathname === '/dashboard' && document.querySelectorAll('.stat-card').length >= 6 && document.querySelectorAll('.chart-insights').length >= 2", 'dashboard rifinita');
   const dashboardRefinement = await socket.evaluate(`(() => {
     const cards = Array.from(document.querySelectorAll('.stat-card'));
+    const nextExpenseCard = cards.find(card => card.querySelector('.stat-card__title')?.textContent.trim() === 'Prossima spesa');
     const badge = document.querySelector('.stat-card__badge');
     const badgeCard = badge?.closest('.stat-card');
     const disclosure = document.querySelector('.chart-data-disclosure');
@@ -180,6 +206,9 @@ try {
       hasNumericUserDate: /\\b\\d{2}\\/\\d{2}\\/\\d{4}\\b/.test(document.querySelector('app-dashboard')?.textContent || ''),
       badgeAbsolute: badge ? getComputedStyle(badge).position === 'absolute' : false,
       badgeInsideCard: Boolean(badgeCard && badge.getBoundingClientRect().top >= badgeCard.getBoundingClientRect().top),
+      nextExpenseBodyGrows: getComputedStyle(nextExpenseCard?.querySelector('.stat-card__body')).flexGrow === '1',
+      strongCardDetails: document.querySelectorAll('.stat-card__detail strong').length,
+      strongHistoryPeak: document.querySelectorAll('#history-title + p strong').length,
       rowHeights: cards.map(card => Math.round(card.getBoundingClientRect().height)),
       disclosureRows: disclosure?.querySelectorAll('tbody tr').length || 0,
       disclosureColumns: Array.from(disclosure?.querySelectorAll('th') || []).map(item => item.textContent.trim()),
@@ -191,6 +220,9 @@ try {
   assert(dashboardRefinement.dailyInsights >= 3, 'Insight sintetici Dashboard mancanti');
   assert(!dashboardRefinement.hasNumericUserDate, 'Dashboard mostra ancora date DD/MM/YYYY');
   assert(dashboardRefinement.badgeAbsolute && dashboardRefinement.badgeInsideCard, 'Badge StatCard non posizionato in alto nella card');
+  assert(dashboardRefinement.nextExpenseBodyGrows, 'Il body della card Prossima spesa non usa lo spazio orizzontale disponibile');
+  assert(dashboardRefinement.strongCardDetails >= 5, 'Valori informativi delle StatCard non evidenziati in grassetto');
+  assert(dashboardRefinement.strongHistoryPeak === 2, 'Massimo storico Dashboard non evidenziato semanticamente');
   assert(new Set(dashboardRefinement.rowHeights.slice(3)).size === 1, `Badge StatCard altera l’allineamento della riga: ${dashboardRefinement.rowHeights.join(', ')}`);
   assert(dashboardRefinement.disclosureRows > 0 && dashboardRefinement.disclosureColumns.join('|') === 'Data|Totale|Spese', 'Dati giornalieri espansi non strutturati');
   assert(dashboardRefinement.trendMonths.includes('12 mesi'), `Default storico inatteso: ${dashboardRefinement.trendMonths}`);

@@ -32,12 +32,12 @@
     @if (loading()) { <div class="refresh-indicator" role="status"><span class="spinner-border spinner-border-sm me-2"></span>Aggiornamento dati…</div> }
 
     <div class="row g-3 mb-4">
-      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Totale speso" [value]="euro(dashboard.summary.totalSpent)" icon="bi-wallet2" [detail]="dashboard.summary.expenseCount + ' spese completate'" /></div>
-      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Variazione mensile" [value]="euro(dashboard.summary.absoluteChange)" icon="bi-arrow-left-right" [detail]="variationText()" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Totale speso" [value]="euro(dashboard.summary.totalSpent)" icon="bi-wallet2" [detail]="dashboard.summary.expenseCount + ' spese completate'" [detailStrong]="true" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Variazione mensile" [value]="euro(dashboard.summary.absoluteChange)" icon="bi-arrow-left-right" [detail]="variationText()" [detailStrong]="true" /></div>
       <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Media giornaliera" [value]="euro(dashboard.summary.dailyAverage)" icon="bi-calendar-day" [detail]="dashboard.summary.period.isCurrentMonth ? 'Sui giorni trascorsi' : 'Sui giorni del mese'" /></div>
-      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Categoria principale" [value]="dashboard.summary.topCategory?.name ?? 'Nessun dato'" icon="bi-pie-chart" [detail]="dashboard.summary.topCategory ? euro(dashboard.summary.topCategory.total) : ''" [secondaryDetail]="dashboard.summary.topCategory ? dashboard.summary.topCategory.percentage + '% del totale mensile' : ''" [interactive]="dashboard.summary.topCategory !== null" (activated)="openTopCategory()" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Categoria principale" [value]="dashboard.summary.topCategory?.name ?? 'Nessun dato'" icon="bi-pie-chart" [detail]="dashboard.summary.topCategory ? euro(dashboard.summary.topCategory.total) : ''" [detailStrong]="true" [secondaryDetail]="dashboard.summary.topCategory ? dashboard.summary.topCategory.percentage + '% del totale mensile' : ''" [secondaryDetailStrong]="true" [interactive]="dashboard.summary.topCategory !== null" (activated)="openTopCategory()" /></div>
       <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Spese future" [value]="euro(dashboard.summary.plannedTotal)" icon="bi-clock-history" detail="Pianificate da oggi in avanti" [interactive]="true" (activated)="openFutureExpenses()" /></div>
-      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Prossima spesa" [value]="dashboard.summary.nextPlannedExpense?.description ?? 'Nessuna'" icon="bi-calendar2-event" [detail]="dashboard.summary.nextPlannedExpense ? euro(dashboard.summary.nextPlannedExpense.amount) : 'Nessuna spesa pianificata'" [secondaryDetail]="dashboard.summary.nextPlannedExpense ? (dashboard.summary.nextPlannedExpense.expenseDate | italianExtendedDate) : ''" [badgeLabel]="dashboard.summary.nextPlannedExpense?.category?.name ?? ''" [badgeIcon]="dashboard.summary.nextPlannedExpense?.category?.icon ?? ''" [badgeColor]="dashboard.summary.nextPlannedExpense?.category?.color ?? ''" [interactive]="dashboard.summary.nextPlannedExpense !== null" (activated)="openNextExpense()" /></div>
+      <div class="col-12 col-sm-6 col-xl-4"><app-stat-card title="Prossima spesa" [value]="dashboard.summary.nextPlannedExpense?.description ?? 'Nessuna'" icon="bi-calendar2-event" [detail]="dashboard.summary.nextPlannedExpense ? euro(dashboard.summary.nextPlannedExpense.amount) : 'Nessuna spesa pianificata'" [detailStrong]="true" [secondaryDetail]="dashboard.summary.nextPlannedExpense ? (dashboard.summary.nextPlannedExpense.expenseDate | italianExtendedDate) : ''" [secondaryDetailStrong]="true" [badgeLabel]="dashboard.summary.nextPlannedExpense?.category?.name ?? ''" [badgeIcon]="dashboard.summary.nextPlannedExpense?.category?.icon ?? ''" [badgeColor]="dashboard.summary.nextPlannedExpense?.category?.color ?? ''" [interactive]="dashboard.summary.nextPlannedExpense !== null" (activated)="openNextExpense()" /></div>
     </div>
 
     @if (dashboard.summary.expenseCount === 0) {
@@ -78,7 +78,7 @@
 
     <article class="dashboard-card mb-4" aria-labelledby="history-title">
       <div class="card-heading history-card-heading">
-        <div><h2 id="history-title" class="h5">Andamento degli ultimi mesi</h2><p>{{ historyDescription() }}</p></div>
+        <div><h2 id="history-title" class="h5">Andamento degli ultimi mesi</h2>@if (historyPeak(); as peak) { <p>Massimo del periodo: <strong>{{ peak.label }}</strong>, <strong>{{ peak.total }}</strong>.</p> } @else { <p>Nessun dato storico disponibile.</p> }</div>
         <div class="history-year-controls" aria-label="Anno andamento mensile">
           <button
             class="btn btn-sm"

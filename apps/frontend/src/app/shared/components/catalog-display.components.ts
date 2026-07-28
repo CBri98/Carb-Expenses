@@ -99,12 +99,20 @@ export class LoadingSkeletonComponent {}
   standalone: true,
   template: `<article class="card counter-card h-100" [class.counter-card--interactive]="interactive()" [attr.role]="interactive() ? 'button' : null" [attr.tabindex]="interactive() ? 0 : null" (click)="activate()" (keydown.enter)="activate($event)" (keydown.space)="activate($event)"><div class="card-body d-flex align-items-center gap-3">
     <span class="counter-card__icon" aria-hidden="true"><i class="bi" [class]="icon()"></i></span>
-    <div class="counter-card__content"><span class="small text-body-secondary">{{ label() }}</span><strong class="d-block fs-4">{{ value() }}</strong></div>
+    <div class="counter-card__content">
+      <span class="small text-body-secondary">{{ label() }}</span>
+      <strong class="counter-card__value d-block fs-4">{{ value() }}</strong>
+      @if (valueHint()) { <small class="counter-card__hint">{{ valueHint() }}</small> }
+      @if (filteredValue() !== null) { <small class="counter-card__filtered">Risultato filtrato: <strong>{{ filteredValue() }}</strong></small> }
+    </div>
   </div></article>`,
   styles: [`
     .counter-card { border: 0; box-shadow: var(--shadow-sm); }
     .counter-card .card-body, .counter-card__content { min-width: 0; }
     .counter-card__content span, .counter-card__content strong { overflow-wrap: anywhere; }
+    .counter-card__hint, .counter-card__filtered { display:block; color:var(--text-secondary); font-size:.72rem; line-height:1.3; }
+    .counter-card__filtered { margin-top:.2rem; color:var(--primary-strong); }
+    .counter-card__filtered strong { color:inherit; font-weight:800; }
     .counter-card--interactive { cursor: pointer; transition: transform var(--motion-fast, 160ms) ease, box-shadow var(--motion-fast, 160ms) ease; }
     .counter-card--interactive:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
     .counter-card--interactive:focus-visible { outline: var(--focus-ring, 3px solid rgb(var(--primary-rgb) / 35%)); outline-offset: 2px; }
@@ -114,6 +122,8 @@ export class LoadingSkeletonComponent {}
 export class CounterCardComponent {
   readonly label = input.required<string>();
   readonly value = input.required<number | string>();
+  readonly valueHint = input('');
+  readonly filteredValue = input<number | string | null>(null);
   readonly icon = input('bi-bar-chart');
   readonly interactive = input(false);
   readonly activated = output<void>();

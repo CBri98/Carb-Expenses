@@ -14,7 +14,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PrismaService } from '../src/prisma/prisma.service';
-import { RecurrenceUpdateScope } from '../src/recurrences/dto/recurrence.dto';
+import { RecurrenceQueryDto, RecurrenceUpdateScope } from '../src/recurrences/dto/recurrence.dto';
 import { RecurrenceCalculatorService } from '../src/recurrences/recurrence-calculator.service';
 import { RecurrenceGeneratorService } from '../src/recurrences/recurrence-generator.service';
 import { RecurrencesService } from '../src/recurrences/recurrences.service';
@@ -43,6 +43,7 @@ describe('RecurrencesService', () => {
     prisma.recurrenceRule.findFirst.mockResolvedValue(recurrenceRule());
     prisma.recurrenceRule.update.mockResolvedValue(recurrenceRule());
     prisma.user.findUniqueOrThrow.mockResolvedValue({ timezone: 'Europe/Rome' });
+    prisma.user.findUnique.mockResolvedValue({ timezone: 'Europe/Rome' });
     prisma.expense.findMany.mockResolvedValue([]);
     service = new RecurrencesService(
       prisma as unknown as PrismaService,
@@ -187,6 +188,41 @@ describe('RecurrencesService', () => {
       data: { isActive: false, cancelledAt: now },
     });
   });
+
+  it('calcola il riepilogo usando gli stessi filtri della lista', async () => {
+    prisma.recurrenceRule.groupBy.mockResolvedValue([
+      { status: RecurrenceStatus.ACTIVE, _count: { _all: 2 } },
+    ]);
+    prisma.expense.aggregate.mockResolvedValue({
+      _count: { _all: 3 },
+      _sum: { amount: new Prisma.Decimal('125.50') },
+    });
+    const query = Object.assign(new RecurrenceQueryDto(), {
+      status: RecurrenceStatus.ACTIVE,
+      frequency: RecurrenceFrequency.MONTHLY,
+      search: 'affitto',
+    });
+
+    await expect(service.summary('user-1', query, now)).resolves.toEqual({
+      activeCount: 2,
+      pausedCount: 0,
+      upcomingOccurrences: 3,
+      upcomingTotal: '125.50',
+      horizonDays: 30,
+    });
+    const expectedRuleWhere = expect.objectContaining({
+      userId: 'user-1',
+      deletedAt: null,
+      status: RecurrenceStatus.ACTIVE,
+      frequency: RecurrenceFrequency.MONTHLY,
+    });
+    expect(prisma.recurrenceRule.groupBy).toHaveBeenCalledWith(expect.objectContaining({
+      where: expectedRuleWhere,
+    }));
+    expect(prisma.expense.aggregate).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ recurrenceRule: expectedRuleWhere }),
+    }));
+  });
 });
 
 function recurrenceRule(
@@ -263,9 +299,11 @@ function prismaMock() {
       create: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+      groupBy: vi.fn(),
     },
-    user: { findUniqueOrThrow: vi.fn() },
+    user: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
     expense: {
+      aggregate: vi.fn(),
       findMany: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
