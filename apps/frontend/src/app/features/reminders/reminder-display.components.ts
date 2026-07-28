@@ -17,6 +17,24 @@ export class ReminderTypeLabelPipe implements PipeTransform {
 }
 
 @Component({
+  selector: 'app-reminder-type-badge',
+  standalone: true,
+  template: `<span class="badge rounded-pill reminder-type"><i class="bi me-1" [class]="icon()" aria-hidden="true"></i>{{ label() }}</span>`,
+  styles: [`.reminder-type { color: var(--primary-strong); background: var(--primary-soft); border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent); font-weight: 700; }`],
+})
+export class ReminderTypeBadgeComponent {
+  readonly type = input.required<ReminderType>();
+
+  label(): string {
+    return REMINDER_TYPES.find((item) => item.value === this.type())?.label ?? this.type();
+  }
+
+  icon(): string {
+    return REMINDER_TYPES.find((item) => item.value === this.type())?.icon ?? 'bi-alarm';
+  }
+}
+
+@Component({
   selector: 'app-reminder-status-badge',
   standalone: true,
   template: `<span class="badge rounded-pill" [class]="tone()"><i class="bi me-1" [class]="icon()" aria-hidden="true"></i>{{ label() }}</span>`,
@@ -48,8 +66,8 @@ export class ReminderStatusBadgeComponent {
 @Component({
   selector: 'app-reminder-source',
   standalone: true,
-  template: `<span class="reminder-source"><i class="bi me-1" [class]="icon()" aria-hidden="true"></i>{{ label() }}</span>`,
-  styles: [`.reminder-source { color: var(--text-secondary); font-size: .82rem; white-space: nowrap; }`],
+  template: `<span class="badge rounded-pill reminder-source"><i class="bi me-1" [class]="icon()" aria-hidden="true"></i>{{ label() }}</span>`,
+  styles: [`.reminder-source { color: var(--text-secondary); background: var(--surface-soft); border: 1px solid var(--border-color); font-weight: 650; white-space: nowrap; }`],
 })
 export class ReminderSourceComponent {
   readonly source = input.required<ReminderSource>();

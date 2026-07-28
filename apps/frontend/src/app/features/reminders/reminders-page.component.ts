@@ -13,6 +13,7 @@ import { SettingsStore } from '../../core/services/settings.store';
 import { ToastService } from '../../core/services/toast.service';
 import { AppBreadcrumbComponent } from '../../shared/components/app-breadcrumb.component';
 import {
+  CategoryBadgeComponent,
   CounterCardComponent,
   EmptyStateComponent,
   LoadingSkeletonComponent,
@@ -46,7 +47,7 @@ import { PaginationComponent } from '../expenses/components/pagination.component
 import {
   ReminderSourceComponent,
   ReminderStatusBadgeComponent,
-  ReminderTypeLabelPipe,
+  ReminderTypeBadgeComponent,
 } from './reminder-display.components';
 
 const EMPTY_META: PaginationMeta = { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 };
@@ -62,6 +63,7 @@ type ReminderAction = 'cancel' | 'reactivate' | 'delete';
     NgSelectComponent,
     AppBreadcrumbComponent,
     PageHeaderComponent,
+    CategoryBadgeComponent,
     CounterCardComponent,
     EmptyStateComponent,
     LoadingSkeletonComponent,
@@ -72,7 +74,7 @@ type ReminderAction = 'cancel' | 'reactivate' | 'delete';
     ExpenseStatusBadgeComponent,
     ReminderStatusBadgeComponent,
     ReminderSourceComponent,
-    ReminderTypeLabelPipe,
+    ReminderTypeBadgeComponent,
     EuroAmountPipe,
     ItalianDateTimePipe,
     ItalianExpenseDatePipe,

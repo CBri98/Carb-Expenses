@@ -339,12 +339,18 @@ try {
     eyebrow: document.querySelector('app-reminders-page app-page-header p')?.textContent.trim() || '',
     breadcrumbItems: Array.from(document.querySelectorAll('app-reminders-page app-breadcrumb .breadcrumb-item')).map(item => item.textContent.trim()),
     activeSidebar: Array.from(document.querySelectorAll('.sidebar__nav a.active')).map(item => item.textContent.trim()).filter(Boolean),
+    counterRows: new Set(Array.from(document.querySelectorAll('app-reminders-page app-counter-card')).map(card => Math.round(card.getBoundingClientRect().top))).size,
     queryStatus: new URLSearchParams(location.search).get('status'),
     queryPageSize: new URLSearchParams(location.search).get('pageSize'),
     filters: ['#reminder-status-filter', '#reminder-type-filter', '#reminder-source-filter', '#reminder-expense-status-filter', '#reminder-category-filter', '#reminder-recurrence-filter', '#scheduled-from', '#scheduled-to', '#expense-date-from', '#expense-date-to'].every(selector => Boolean(document.querySelector(selector))),
     nestedFilterCards: document.querySelectorAll('app-reminders-page .filters__panel .card').length,
     desktopRows: document.querySelectorAll('app-reminders-page tbody tr').length,
-    mobileCards: document.querySelectorAll('app-reminders-page .reminder-card').length
+    mobileCards: document.querySelectorAll('app-reminders-page .reminder-card').length,
+    styledTable: Boolean(document.querySelector('app-reminders-page table.reminders-table')),
+    styledHeaders: getComputedStyle(document.querySelector('app-reminders-page table.reminders-table thead th')).backgroundColor !== 'rgba(0, 0, 0, 0)',
+    rowTransitionProperty: getComputedStyle(document.querySelector('app-reminders-page .reminder-row')).transitionProperty,
+    typeBadges: document.querySelectorAll('app-reminders-page table app-reminder-type-badge').length,
+    categoryBadges: document.querySelectorAll('app-reminders-page table app-category-badge').length
   })`);
   assert(remindersRefinement.eyebrow === 'Gestione', `Sovratitolo Promemoria inatteso: ${remindersRefinement.eyebrow}`);
   assert(JSON.stringify(remindersRefinement.breadcrumbItems) === JSON.stringify(['Gestione', 'Promemoria']), `Breadcrumb Promemoria inatteso: ${remindersRefinement.breadcrumbItems.join(' > ')}`);
@@ -352,6 +358,10 @@ try {
   assert(remindersRefinement.queryStatus === 'UPCOMING' && remindersRefinement.queryPageSize === '5', 'Query Promemoria non persistita');
   assert(remindersRefinement.filters && remindersRefinement.nestedFilterCards === 0, 'Filtri Promemoria incompleti o con card annidate');
   assert(remindersRefinement.desktopRows > 0 && remindersRefinement.mobileCards > 0, 'Vista desktop/mobile Promemoria senza dati seed');
+  assert(remindersRefinement.counterRows === 2, `Le counter card Promemoria non occupano due righe: ${remindersRefinement.counterRows}`);
+  assert(remindersRefinement.styledTable && remindersRefinement.styledHeaders, 'Stile gestionale della tabella Promemoria assente');
+  assert(remindersRefinement.rowTransitionProperty.includes('background-color') && remindersRefinement.rowTransitionProperty.includes('box-shadow'), 'Hover delle righe Promemoria assente');
+  assert(remindersRefinement.typeBadges > 0 && remindersRefinement.categoryBadges > 0, 'Badge delle colonne Promemoria mancanti');
   await socket.command('Page.reload', { ignoreCache: false });
   await waitFor(socket, "document.readyState === 'complete' && location.pathname === '/reminders' && new URLSearchParams(location.search).get('status') === 'UPCOMING' && Boolean(document.querySelector('app-reminders-page'))", 'reload promemoria con query');
 
