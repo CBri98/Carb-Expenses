@@ -80,8 +80,10 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 4200
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:3000}
+      LAN_ALLOWED_HOSTS: ${LAN_ALLOWED_HOSTS:-}
     ports:
-      - "${FRONTEND_PORT:-4200}:4200"
+      - "${APP_BIND_ADDRESS:-0.0.0.0}:${FRONTEND_PORT:-4200}:4200"
     depends_on:
       backend:
         condition: service_healthy

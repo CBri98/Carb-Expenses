@@ -31,6 +31,28 @@ Il backend attende MariaDB, applica le migrazioni Prisma, esegue il seed idempot
 - Swagger: <http://localhost:3000/api/docs>
 - MariaDB: `localhost:3306`
 
+### Accesso dalla rete locale
+
+Il frontend Docker ascolta su tutte le interfacce tramite `APP_BIND_ADDRESS=0.0.0.0`. Dallo stesso PC resta disponibile su <http://localhost:4200>; da telefono, tablet o un altro computer collegato alla stessa rete va aperto:
+
+```text
+http://IP_DEL_PC:4200
+```
+
+Su Windows l'indirizzo IPv4 della scheda di rete si trova con `ipconfig`. Ad esempio, con IP `192.168.1.23`, l'app è disponibile su <http://192.168.1.23:4200>.
+
+Il browser usa `/api/v1` sullo stesso host del frontend. Il container frontend inoltra queste richieste al backend tramite `BACKEND_INTERNAL_URL=http://backend:3000`; non è quindi necessario configurare nel bundle l'IP del PC e autenticazione, cookie e API continuano a funzionare anche se l'indirizzo LAN cambia.
+
+Gli indirizzi IPv4/IPv6 privati e loopback sono autorizzati automaticamente. Per usare anche un nome DNS locale, aggiungerlo a `LAN_ALLOWED_HOSTS` nel file `.env`; più nomi possono essere separati da virgole.
+
+Se il dispositivo remoto non riesce a collegarsi, verificare che la rete Windows sia impostata come **Privata** e che il firewall consenta connessioni TCP in ingresso sulla porta configurata da `FRONTEND_PORT` (predefinita `4200`). In PowerShell avviato come amministratore è possibile creare una regola limitata alla sola rete locale:
+
+```powershell
+New-NetFirewallRule -DisplayName "Carbexpenses Frontend LAN" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 4200 -Profile Private,Public -RemoteAddress LocalSubnet
+```
+
+Non esporre questa porta direttamente su Internet: per l'accesso esterno usare HTTPS e un reverse proxy autenticato.
+
 In `development` il seed crea l’utente configurato da `DEMO_USER_EMAIL` e `DEMO_USER_PASSWORD`, quattro etichette, venticinque spese dimostrative distribuite su più mesi e sette regole ricorrenti rappresentative. In produzione non crea dati demo.
 
 ## Funzionalità disponibili

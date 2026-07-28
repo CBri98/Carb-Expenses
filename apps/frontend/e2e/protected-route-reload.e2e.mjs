@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 
 const frontendUrl = process.env['E2E_FRONTEND_URL'] ?? 'http://localhost:4200';
-const apiUrl = process.env['E2E_API_URL'] ?? 'http://localhost:3000/api/v1';
+const apiUrl = process.env['E2E_API_URL'] ?? `${frontendUrl}/api/v1`;
 const email = process.env['E2E_EMAIL'] ?? 'demo@expense.local';
 const password = process.env['E2E_PASSWORD'] ?? 'DemoExpense2026!';
 const requestedPath = '/calendar?view=week&date=2026-07-18&status=PLANNED';
@@ -377,7 +377,7 @@ try {
   assert(remindersRefinement.desktopRows > 0 && remindersRefinement.mobileCards > 0, 'Vista desktop/mobile Promemoria senza dati seed');
   assert(remindersRefinement.counterRows === 2, `Le counter card Promemoria non occupano due righe: ${remindersRefinement.counterRows}`);
   assert(remindersRefinement.styledTable && remindersRefinement.styledHeaders, 'Stile gestionale della tabella Promemoria assente');
-  assert(remindersRefinement.rowTransitionProperty.includes('background-color') && remindersRefinement.rowTransitionProperty.includes('box-shadow'), 'Hover delle righe Promemoria assente');
+  assert(remindersRefinement.rowTransitionProperty === 'all' || (remindersRefinement.rowTransitionProperty.includes('background-color') && remindersRefinement.rowTransitionProperty.includes('box-shadow')), `Hover delle righe Promemoria assente: ${remindersRefinement.rowTransitionProperty}`);
   assert(remindersRefinement.typeBadges > 0 && remindersRefinement.categoryBadges > 0, 'Badge delle colonne Promemoria mancanti');
   await socket.command('Page.reload', { ignoreCache: false });
   await waitFor(socket, "document.readyState === 'complete' && location.pathname === '/reminders' && new URLSearchParams(location.search).get('status') === 'UPCOMING' && Boolean(document.querySelector('app-reminders-page'))", 'reload promemoria con query');
