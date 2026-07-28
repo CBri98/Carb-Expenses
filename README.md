@@ -42,6 +42,7 @@ Le sezioni protette principali sono:
 - <http://localhost:4200/expenses>
 - <http://localhost:4200/calendar>
 - <http://localhost:4200/recurrences>
+- <http://localhost:4200/reminders>
 - <http://localhost:4200/notifications>
 - <http://localhost:4200/reports/monthly>
 - <http://localhost:4200/reports/compare>
@@ -209,7 +210,7 @@ Non sono inclusi Redis, code esterne, pagamenti, sincronizzazioni esterne, email
 
 La sezione protetta <http://localhost:4200/settings> comprende Account, Aspetto, Esperienza, Icone e Promemoria. Le preferenze sono isolate per utente in una relazione Prisma uno-a-uno e sincronizzate con il server; la cache locale contiene soltanto dati non sensibili e permette di applicare tema, colore e densità prima del bootstrap Angular.
 
-Sono disponibili tema chiaro, scuro o di sistema e sei preset di colore controllati. Non vengono accettati colori, CSS, HTML, classi o nomi di icona arbitrari. Le preferenze di esperienza governano sidebar iniziale, densità tabelle, page size, filtri spese, valori iniziali del form, periodo dashboard e vista calendario. La sezione Promemoria configura soltanto i preset proposti nei nuovi form e le notifiche automatiche del giorno/scaduto; non introduce la pagina globale di gestione promemoria.
+Sono disponibili tema chiaro, scuro o di sistema e sei preset di colore controllati. Non vengono accettati colori, CSS, HTML, classi o nomi di icona arbitrari. Le preferenze di esperienza governano sidebar iniziale, densità tabelle, page size, filtri spese, valori iniziali del form, periodo dashboard e vista calendario. La sezione Promemoria delle Impostazioni configura i preset proposti nei nuovi form e le notifiche automatiche del giorno/scaduto; la gestione operativa globale è descritta nella Fase 11.
 
 Il catalogo icone condiviso può essere ristretto separatamente per categorie ed etichette. Un’icona già usata continua a essere resa e resta disponibile durante la modifica del record, anche se è stata nascosta dai nuovi selettori.
 
@@ -279,6 +280,33 @@ seguono l’accento e la tabella Spese ricorrenti adotta hover e transizioni
 coerenti con la tabella Spese.
 
 La specifica è in [docs/PHASE_10_9_THEME_HEADERS_AND_TABLES.md](docs/PHASE_10_9_THEME_HEADERS_AND_TABLES.md); il resoconto finale è in [docs/PHASE_10_9_COMPLETION_2026-07-28.md](docs/PHASE_10_9_COMPLETION_2026-07-28.md).
+
+## Fase 11 — Gestione centralizzata dei promemoria
+
+La sezione autenticata <http://localhost:4200/reminders> raccoglie i promemoria di tutte le spese dell’utente. I promemoria sono regole programmate; le notifiche sono invece i messaggi storici prodotti quando una regola diventa dovuta. Annullare o modificare un promemoria non elimina notifiche già generate.
+
+La lista è paginata e filtrata dal backend per ricerca, stato derivato (`ACTIVE`, `UPCOMING`, `DUE`, `PROCESSED`, `CANCELLED`, `INVALID`), tipo, origine (`MANUAL`, `RECURRENCE`, `SYSTEM`), stato spesa, categoria, ricorrenza e intervalli delle due date. Sono disponibili ordinamenti controllati per programmazione, creazione, aggiornamento, data/descrizione spesa e stato. Filtri, ordinamento e pagina sono persistiti nell’URL; page size, densità, tema e accento rispettano le Impostazioni.
+
+Un promemoria non processato può essere modificato riutilizzando il form delle spese. L’annullamento è idempotente. La riattivazione è consentita soltanto per date future collegate a spese `PLANNED` disponibili e senza duplicati equivalenti. L’eliminazione fisica è limitata ai promemoria non processati, senza notifiche e non gestiti da ricorrenza; negli altri casi resta disponibile l’annullamento. Le azioni massive accettano al massimo 100 UUID e restituiscono successi ed errori parziali senza modificare spese o template ricorrenti.
+
+Endpoint globali autenticati:
+
+```text
+GET    /api/v1/reminders
+GET    /api/v1/reminders/summary
+GET    /api/v1/reminders/:id
+PATCH  /api/v1/reminders/:id
+PATCH  /api/v1/reminders/:id/cancel
+PATCH  /api/v1/reminders/:id/reactivate
+DELETE /api/v1/reminders/:id
+PATCH  /api/v1/reminders/bulk/cancel
+PATCH  /api/v1/reminders/bulk/reactivate
+DELETE /api/v1/reminders/bulk
+```
+
+I promemoria copiati dai template di una ricorrenza sono marcati esplicitamente `RECURRENCE`: una modifica dalla pagina agisce solo sull’occorrenza selezionata e non cambia la regola. Lo scheduler della Fase 8 resta l’unico responsabile della generazione delle notifiche.
+
+La specifica è in [docs/PHASE_11_REMINDERS_MANAGEMENT.md](docs/PHASE_11_REMINDERS_MANAGEMENT.md); il resoconto è in [docs/PHASE_11_COMPLETION_2026-07-28.md](docs/PHASE_11_COMPLETION_2026-07-28.md).
 
 
 ## Fase 5 — Dashboard

@@ -15,6 +15,7 @@ import { LabelsModule } from './labels/labels.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RecurrencesModule } from './recurrences/recurrences.module';
+import { RemindersModule } from './reminders/reminders.module';
 import { ReportsModule } from './reports/reports.module';
 import { SettingsModule } from './settings/settings.module';
 
@@ -43,6 +44,7 @@ import { SettingsModule } from './settings/settings.module';
     CalendarModule,
     NotificationsModule,
     RecurrencesModule,
+    RemindersModule,
     SettingsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

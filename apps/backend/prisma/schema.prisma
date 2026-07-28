@@ -32,6 +32,12 @@ enum ReminderType {
   CUSTOM
 }
 
+enum ReminderSource {
+  MANUAL
+  RECURRENCE
+  SYSTEM
+}
+
 enum NotificationType {
   EXPENSE_REMINDER
   EXPENSE_DUE_TODAY
@@ -262,6 +268,7 @@ model ExpenseReminder {
   userId        String         @map("user_id") @db.VarChar(36)
   expenseId     String         @map("expense_id") @db.VarChar(36)
   type          ReminderType
+  source        ReminderSource @default(MANUAL)
   offsetMinutes Int?           @map("offset_minutes")
   scheduledAt   DateTime       @map("scheduled_at") @db.DateTime(3)
   isActive      Boolean        @default(true) @map("is_active")
@@ -275,6 +282,8 @@ model ExpenseReminder {
 
   @@unique([expenseId, type, scheduledAt], map: "expense_reminders_equivalent_key")
   @@index([userId], map: "expense_reminders_user_id_idx")
+  @@index([userId, scheduledAt], map: "expense_reminders_user_scheduled_idx")
+  @@index([userId, source], map: "expense_reminders_user_source_idx")
   @@index([expenseId], map: "expense_reminders_expense_id_idx")
   @@index([isActive, processedAt, scheduledAt], map: "expense_reminders_scheduler_idx")
   @@map("expense_reminders")

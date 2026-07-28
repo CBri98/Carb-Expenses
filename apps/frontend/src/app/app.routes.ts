@@ -61,6 +61,14 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'reminders',
+        title: 'Promemoria | Carbexpenses',
+        loadComponent: () =>
+          import('./features/reminders/reminders-page.component').then(
+            (module) => module.RemindersPageComponent,
+          ),
+      },
+      {
         path: 'recurrences',
         title: 'Spese ricorrenti | Carbexpenses',
         loadComponent: () =>

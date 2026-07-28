@@ -1,0 +1,242 @@
+<div class="container-fluid px-0">
+  <app-breadcrumb [items]="[{ label: 'Gestione', link: '/expenses' }, { label: 'Promemoria' }]" />
+  <app-page-header eyebrow="Gestione" title="Promemoria" subtitle="Controlla scadenze, origine e stato degli avvisi configurati sulle spese">
+    <a class="btn btn-primary" routerLink="/expenses" [queryParams]="{ statuses: 'PLANNED' }">
+      <i class="bi bi-plus-lg me-2" aria-hidden="true"></i>Configura da una spesa
+    </a>
+  </app-page-header>
+
+  @if (summary(); as data) {
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-lg-4 col-xl-2"><app-counter-card label="Attivi" [value]="data.activeCount" icon="bi-play-circle" [interactive]="true" (activated)="filterStatus('ACTIVE')" /></div>
+      <div class="col-6 col-lg-4 col-xl-2"><app-counter-card label="Entro 7 giorni" [value]="data.upcomingCount" icon="bi-calendar2-week" [interactive]="true" (activated)="filterStatus('UPCOMING')" /></div>
+      <div class="col-6 col-lg-4 col-xl-2"><app-counter-card label="Da elaborare" [value]="data.dueCount" icon="bi-exclamation-circle" [interactive]="true" (activated)="filterStatus('DUE')" /></div>
+      <div class="col-6 col-lg-4 col-xl-2"><app-counter-card label="Processati" [value]="data.processedCount" icon="bi-check2-circle" [interactive]="true" (activated)="filterStatus('PROCESSED')" /></div>
+      <div class="col-6 col-lg-4 col-xl-2"><app-counter-card label="Annullati" [value]="data.cancelledCount" icon="bi-x-circle" [interactive]="true" (activated)="filterStatus('CANCELLED')" /></div>
+      <div class="col-6 col-lg-4 col-xl-2">
+        <app-counter-card
+          label="Prossimo promemoria"
+          [value]="data.nextReminder?.expenseDescription || 'Nessuno'"
+          [valueHint]="data.nextReminder ? (data.nextReminder.scheduledAt | italianDateTime) : 'Nessun avviso futuro'"
+          icon="bi-alarm"
+        />
+      </div>
+    </div>
+  }
+
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body reminder-search">
+      <label class="form-label" for="reminder-search">Cerca nei promemoria</label>
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+        <input id="reminder-search" class="form-control" type="search" maxlength="150" placeholder="Spesa, esercente, categoria o ricorrenza…" [ngModel]="searchDraft()" (ngModelChange)="updateSearch($event)">
+        @if (searchDraft()) {
+          <button class="btn btn-outline-secondary" type="button" aria-label="Cancella ricerca" (click)="updateSearch('')"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <app-filter-panel
+    titleId="reminder-filters-title"
+    panelId="reminder-filters-panel"
+    [expanded]="filtersExpanded()"
+    [activeCount]="activeFilterCount()"
+    [summary]="filterSummary()"
+    (expandedChange)="filtersExpanded.set($event)"
+    (resetRequested)="resetFilters()"
+  >
+    <form [formGroup]="filters">
+      <div class="row g-3">
+        <div class="col-12"><h3 class="filter-section-title">Classificazione</h3></div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="reminder-status-filter">Stato promemoria</label>
+          <ng-select labelForId="reminder-status-filter" [items]="statuses" bindLabel="label" bindValue="value" formControlName="status" placeholder="Tutti" ariaLabel="Filtra per stato promemoria">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="reminder-type-filter">Tipo</label>
+          <ng-select labelForId="reminder-type-filter" [items]="types" bindLabel="label" bindValue="value" formControlName="type" placeholder="Tutti" ariaLabel="Filtra per tipo">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="reminder-source-filter">Origine</label>
+          <ng-select labelForId="reminder-source-filter" [items]="sources" bindLabel="label" bindValue="value" formControlName="source" placeholder="Tutte" ariaLabel="Filtra per origine">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <label class="form-label" for="reminder-expense-status-filter">Stato spesa</label>
+          <ng-select labelForId="reminder-expense-status-filter" [items]="expenseStatuses" bindLabel="label" bindValue="value" formControlName="expenseStatus" placeholder="Tutti" ariaLabel="Filtra per stato spesa">
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
+        </div>
+
+        <div class="col-12"><h3 class="filter-section-title">Collegamenti</h3></div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="reminder-category-filter">Categoria</label>
+          <ng-select labelForId="reminder-category-filter" [items]="categories()" bindLabel="name" bindValue="id" formControlName="categoryId" placeholder="Tutte" ariaLabel="Filtra per categoria">
+            <ng-template ng-option-tmp let-item="item"><span class="entity-select-option"><i class="bi" [class]="item.icon" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="entity-select-option"><i class="bi" [class]="item.icon" [style.color]="item.color" aria-hidden="true"></i>{{ item.name }}</span></ng-template>
+          </ng-select>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="reminder-recurrence-filter">Ricorrenza</label>
+          <ng-select labelForId="reminder-recurrence-filter" [items]="recurrences()" bindLabel="name" bindValue="id" formControlName="recurrenceRuleId" placeholder="Tutte" ariaLabel="Filtra per ricorrenza" />
+        </div>
+
+        <div class="col-12"><h3 class="filter-section-title">Intervalli di data</h3></div>
+        <div class="col-12 col-md-6 col-xl-3"><label class="form-label" for="scheduled-from">Promemoria da</label><input id="scheduled-from" class="form-control" type="datetime-local" formControlName="scheduledFrom"></div>
+        <div class="col-12 col-md-6 col-xl-3"><label class="form-label" for="scheduled-to">Promemoria a</label><input id="scheduled-to" class="form-control" type="datetime-local" formControlName="scheduledTo"></div>
+        <div class="col-12 col-md-6 col-xl-3"><label class="form-label" for="expense-date-from">Data spesa da</label><input id="expense-date-from" class="form-control" type="date" formControlName="expenseDateFrom"></div>
+        <div class="col-12 col-md-6 col-xl-3"><label class="form-label" for="expense-date-to">Data spesa a</label><input id="expense-date-to" class="form-control" type="date" formControlName="expenseDateTo"></div>
+      </div>
+      <div class="d-flex justify-content-end mt-3">
+        <button class="btn btn-outline-secondary" type="button" [disabled]="activeFilterCount() === 0 && !searchDraft()" (click)="resetFilters()"><i class="bi bi-arrow-counterclockwise me-2" aria-hidden="true"></i>Reimposta</button>
+      </div>
+    </form>
+  </app-filter-panel>
+
+  @if (error()) {
+    <div class="alert alert-danger d-flex flex-wrap justify-content-between align-items-center gap-2" role="alert">
+      <span>Non è stato possibile caricare i promemoria. {{ error() }}</span>
+      <button class="btn btn-sm btn-outline-danger" type="button" (click)="load()"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Riprova</button>
+    </div>
+  }
+
+  @if (selected().size > 0) {
+    <div class="bulk-toolbar card border-0 shadow-sm mb-3" role="region" aria-label="Azioni sui promemoria selezionati">
+      <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <strong>{{ selected().size }} promemori{{ selected().size === 1 ? 'o selezionato' : 'a selezionati' }}</strong>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-sm btn-outline-secondary" type="button" (click)="clearSelection()">Deseleziona</button>
+          <button class="btn btn-sm btn-outline-warning" type="button" (click)="ask('cancel')"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>Annulla</button>
+          <button class="btn btn-sm btn-outline-primary" type="button" (click)="ask('reactivate')"><i class="bi bi-play-circle me-1" aria-hidden="true"></i>Riattiva</button>
+          <button class="btn btn-sm btn-outline-danger" type="button" (click)="ask('delete')"><i class="bi bi-trash me-1" aria-hidden="true"></i>Elimina</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="card border-0 shadow-sm"><div class="card-body"><app-loading-skeleton /></div></div>
+  } @else if (items().length === 0 && !searchDraft() && activeFilterCount() === 0) {
+    <app-empty-state title="Non hai ancora configurato promemoria." message="Apri una spesa pianificata per aggiungere il primo avviso.">
+      <a class="btn btn-primary" routerLink="/expenses" [queryParams]="{ statuses: 'PLANNED' }">Vai alle spese pianificate</a>
+    </app-empty-state>
+  } @else if (items().length === 0) {
+    <app-empty-state title="Nessun promemoria corrisponde ai filtri applicati." message="Modifica o reimposta i criteri di ricerca.">
+      <button class="btn btn-outline-secondary" type="button" (click)="resetFilters()">Reimposta filtri</button>
+    </app-empty-state>
+  } @else {
+    <div class="card border-0 shadow-sm overflow-hidden">
+      <div class="table-responsive d-none d-lg-block">
+        <table class="table table-hover align-middle mb-0">
+          <thead><tr>
+            <th class="selection-column"><input class="form-check-input" type="checkbox" aria-label="Seleziona la pagina" [checked]="allPageSelected()" [indeterminate]="partiallySelected()" (change)="togglePage($event)"></th>
+            <th [attr.aria-sort]="ariaSort('scheduledAt')"><button class="sortable-header" type="button" (click)="sort('scheduledAt')">Promemoria <i class="bi" [class]="sortIcon('scheduledAt')" aria-hidden="true"></i></button></th>
+            <th [attr.aria-sort]="ariaSort('expenseDescription')"><button class="sortable-header" type="button" (click)="sort('expenseDescription')">Spesa <i class="bi" [class]="sortIcon('expenseDescription')" aria-hidden="true"></i></button></th>
+            <th>Importo e categoria</th>
+            <th>Tipo e origine</th>
+            <th [attr.aria-sort]="ariaSort('status')"><button class="sortable-header" type="button" (click)="sort('status')">Stato <i class="bi" [class]="sortIcon('status')" aria-hidden="true"></i></button></th>
+            <th class="text-end">Azioni</th>
+          </tr></thead>
+          <tbody>@for (item of items(); track item.id) {
+            <tr>
+              <td><input class="form-check-input" type="checkbox" [attr.aria-label]="'Seleziona ' + item.expense.description" [checked]="selected().has(item.id)" (change)="toggleSelection(item.id, $event)"></td>
+              <td><strong class="d-block">{{ item.scheduledAt | italianDateTime }}</strong><small class="text-body-secondary">Spesa: {{ item.expense.expenseDate | italianExpenseDate }}</small></td>
+              <td>
+                <a class="fw-semibold text-decoration-none" [routerLink]="['/expenses', item.expense.id]">{{ item.expense.description }}</a>
+                @if (item.expense.merchant) { <small class="d-block text-body-secondary">{{ item.expense.merchant }}</small> }
+                @if (item.expense.recurrence; as recurrence) { <a class="small d-block" [routerLink]="['/recurrences', recurrence.id]"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ recurrence.name }}</a> }
+              </td>
+              <td><strong class="d-block">{{ item.expense.amount | euroAmount }}</strong><span class="small"><i class="bi me-1" [class]="item.expense.category.icon" [style.color]="item.expense.category.color" aria-hidden="true"></i>{{ item.expense.category.name }}</span></td>
+              <td><span class="d-block">{{ item.type | reminderTypeLabel }}</span><app-reminder-source [source]="item.source" /></td>
+              <td><app-reminder-status-badge [status]="item.status" /><app-expense-status-badge class="d-block mt-1" [status]="item.expense.status" />@if (item.notification) { <a class="small d-block mt-1" routerLink="/notifications" [queryParams]="{ expenseId: item.expense.id }"><i class="bi bi-bell me-1" aria-hidden="true"></i>Notifica</a> }</td>
+              <td class="text-end"><div class="d-inline-flex flex-wrap justify-content-end gap-1">
+                <a class="btn btn-sm btn-outline-primary" [routerLink]="['/expenses', item.expense.id]" aria-label="Apri spesa"><i class="bi bi-eye" aria-hidden="true"></i></a>
+                @if (item.allowedActions.canEdit) { <button class="btn btn-sm btn-outline-secondary" type="button" aria-label="Modifica promemoria" (click)="openEdit(item)"><i class="bi bi-pencil" aria-hidden="true"></i></button> }
+                @if (item.allowedActions.canCancel) { <button class="btn btn-sm btn-outline-warning" type="button" aria-label="Annulla promemoria" (click)="ask('cancel', item)"><i class="bi bi-x-circle" aria-hidden="true"></i></button> }
+                @if (item.allowedActions.canReactivate) { <button class="btn btn-sm btn-outline-primary" type="button" aria-label="Riattiva promemoria" (click)="ask('reactivate', item)"><i class="bi bi-play-circle" aria-hidden="true"></i></button> }
+                @if (item.allowedActions.canDelete) { <button class="btn btn-sm btn-outline-danger" type="button" aria-label="Elimina promemoria" (click)="ask('delete', item)"><i class="bi bi-trash" aria-hidden="true"></i></button> }
+              </div></td>
+            </tr>
+          }</tbody>
+        </table>
+      </div>
+
+      <div class="d-lg-none">@for (item of items(); track item.id) {
+        <article class="reminder-card">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div class="form-check"><input class="form-check-input" type="checkbox" [id]="'mobile-reminder-' + item.id" [checked]="selected().has(item.id)" (change)="toggleSelection(item.id, $event)"><label class="form-check-label fw-semibold" [for]="'mobile-reminder-' + item.id">{{ item.expense.description }}</label></div>
+            <app-reminder-status-badge [status]="item.status" />
+          </div>
+          <strong class="reminder-card__date">{{ item.scheduledAt | italianDateTime }}</strong>
+          <div class="d-flex flex-wrap gap-2 align-items-center small"><span>{{ item.type | reminderTypeLabel }}</span><app-reminder-source [source]="item.source" /><span>{{ item.expense.amount | euroAmount }}</span></div>
+          <p class="small mb-2"><i class="bi me-1" [class]="item.expense.category.icon" [style.color]="item.expense.category.color" aria-hidden="true"></i>{{ item.expense.category.name }} · spesa {{ item.expense.expenseDate | italianExpenseDate }}</p>
+          @if (item.expense.recurrence; as recurrence) { <a class="small d-block mb-2" [routerLink]="['/recurrences', recurrence.id]"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ recurrence.name }}</a> }
+          <div class="d-flex flex-wrap justify-content-end gap-2">
+            <a class="btn btn-sm btn-outline-primary" [routerLink]="['/expenses', item.expense.id]"><i class="bi bi-eye me-1" aria-hidden="true"></i>Spesa</a>
+            @if (item.allowedActions.canEdit) { <button class="btn btn-sm btn-outline-secondary" type="button" (click)="openEdit(item)"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Modifica</button> }
+            @if (item.allowedActions.canCancel) { <button class="btn btn-sm btn-outline-warning" type="button" (click)="ask('cancel', item)">Annulla</button> }
+            @if (item.allowedActions.canReactivate) { <button class="btn btn-sm btn-outline-primary" type="button" (click)="ask('reactivate', item)">Riattiva</button> }
+            @if (item.allowedActions.canDelete) { <button class="btn btn-sm btn-outline-danger" type="button" (click)="ask('delete', item)">Elimina</button> }
+          </div>
+        </article>
+      }</div>
+    </div>
+    <app-pagination [meta]="meta()" (pageChange)="goToPage($event)" />
+  }
+</div>
+
+@if (editTarget(); as item) {
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="edit-reminder-title">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+      <div class="modal-header"><div><h2 id="edit-reminder-title" class="modal-title fs-5">Modifica promemoria</h2><p class="small text-body-secondary mb-0">{{ item.expense.description }}</p></div><button class="btn-close" type="button" aria-label="Chiudi" [disabled]="busy()" (click)="editTarget.set(null)"></button></div>
+      <div class="modal-body">
+        <dl class="row small mb-3">
+          <dt class="col-sm-4">Data della spesa</dt><dd class="col-sm-8">{{ item.expense.expenseDate | italianExpenseDate }}</dd>
+          <dt class="col-sm-4">Stato spesa</dt><dd class="col-sm-8"><app-expense-status-badge [status]="item.expense.status" /></dd>
+          <dt class="col-sm-4">Origine</dt><dd class="col-sm-8"><app-reminder-source [source]="item.source" /></dd>
+          <dt class="col-sm-4">Programmazione attuale</dt><dd class="col-sm-8">{{ item.scheduledAt | italianDateTime }}</dd>
+        </dl>
+        @if (item.expense.recurrence; as recurrence) {
+          <div class="alert alert-secondary small">
+            Questo promemoria è stato generato dalla ricorrenza “{{ recurrence.name }}”. La modifica riguarda soltanto questa spesa.
+            <a class="d-block mt-2" [routerLink]="['/recurrences', recurrence.id]">Apri ricorrenza</a>
+          </div>
+        }
+        <p class="alert alert-info small"><i class="bi bi-info-circle me-2" aria-hidden="true"></i>Seleziona un solo tipo. La modifica non altera eventuali notifiche già prodotte.</p>
+        <app-expense-reminder-form
+          status="PLANNED"
+          [expenseDate]="item.expense.expenseDate"
+          [expenseTime]="item.expense.expenseTime || ''"
+          [reminders]="editReminders()"
+          [defaultTime]="settings.notifications().defaultReminderTime"
+          [resetVersion]="editResetVersion()"
+          [disabled]="busy()"
+          (draftsChanged)="captureDrafts($event)"
+          (validityChanged)="editFormValid.set($event && editDraft() !== null)"
+        />
+      </div>
+      <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" [disabled]="busy()" (click)="editTarget.set(null)">Annulla</button><button class="btn btn-primary" type="button" [disabled]="busy() || !editFormValid() || !editDraft()" (click)="saveEdit()">@if (busy()) { <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span> }Salva modifiche</button></div>
+    </div></div>
+  </div><div class="modal-backdrop show"></div>
+}
+
+<app-confirm-dialog
+  [open]="confirmAction() !== null"
+  [title]="confirmTitle()"
+  [message]="confirmMessage()"
+  [confirmLabel]="confirmAction() === 'delete' ? 'Elimina' : 'Conferma'"
+  [busy]="busy()"
+  dialogId="reminder-action-dialog"
+  (confirmed)="performConfirmed()"
+  (cancelled)="closeConfirm()"
+/>

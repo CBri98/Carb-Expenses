@@ -1,0 +1,50 @@
+.reminder-search {
+  display: grid;
+  grid-template-columns: minmax(12rem, 42rem);
+}
+
+.selection-column {
+  width: 2.75rem;
+}
+
+.reminder-card {
+  display: grid;
+  gap: .65rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color var(--motion-fast, 160ms) ease;
+}
+
+.reminder-card:last-child {
+  border-bottom: 0;
+}
+
+.reminder-card:hover {
+  background: var(--surface-soft);
+}
+
+.reminder-card__date {
+  color: var(--primary-strong);
+}
+
+.bulk-toolbar {
+  position: sticky;
+  z-index: 5;
+  top: .75rem;
+  border-inline-start: .25rem solid var(--primary) !important;
+}
+
+.table td {
+  min-width: 8rem;
+}
+
+.table td:first-child,
+.table td:last-child {
+  min-width: auto;
+}
+
+@media (max-width: 575.98px) {
+  .reminder-search {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

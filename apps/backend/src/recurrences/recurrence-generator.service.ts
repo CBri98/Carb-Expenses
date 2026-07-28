@@ -4,6 +4,7 @@ import {
   ExpenseStatus,
   Prisma,
   RecurrenceStatus,
+  ReminderSource,
   ReminderType,
 } from '@prisma/client';
 
@@ -209,6 +210,7 @@ export class RecurrenceGeneratorService {
         userId,
         expenseId,
         type: template.type,
+        source: ReminderSource.RECURRENCE,
         offsetMinutes: template.offsetMinutes,
         scheduledAt,
         isActive: active,

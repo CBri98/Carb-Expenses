@@ -117,7 +117,7 @@ try {
   })()`);
   const managementSection = navigationHierarchy.sections.find((section) => section.label === 'Gestione');
   const personalSection = navigationHierarchy.sections.find((section) => section.label === 'Area personale');
-  assert(JSON.stringify(managementSection?.items) === JSON.stringify(['Spese', 'Spese ricorrenti', 'Categorie', 'Etichette']), `Sezione Gestione inattesa: ${JSON.stringify(managementSection)}`);
+  assert(JSON.stringify(managementSection?.items) === JSON.stringify(['Spese', 'Spese ricorrenti', 'Promemoria', 'Categorie', 'Etichette']), `Sezione Gestione inattesa: ${JSON.stringify(managementSection)}`);
   assert(navigationHierarchy.sections.at(-1)?.label === 'Area personale', 'Area personale non Ã¨ l ultima sezione della sidebar');
   assert(JSON.stringify(personalSection?.items) === JSON.stringify(['Notifiche', 'Impostazioni']), `Sezione Area personale inattesa: ${JSON.stringify(personalSection)}`);
   assert(JSON.stringify(navigationHierarchy.breadcrumbItems) === JSON.stringify(['Gestione', 'Categorie']), `Breadcrumb Categorie inatteso: ${navigationHierarchy.breadcrumbItems.join(' > ')}`);
@@ -330,6 +330,30 @@ try {
   await waitFor(socket, "Boolean(document.querySelector('app-recurrence-detail')) && document.querySelectorAll('[role=tab]').length === 3", 'dettaglio ricorrenza con tab');
   await socket.evaluate(`document.querySelector('#recurrence-tab-occurrences').click()`);
   await waitFor(socket, "Boolean(document.querySelector('#recurrence-panel-occurrences'))", 'tab occorrenze ricorrenza');
+
+  await socket.command('Page.navigate', { url: `${frontendUrl}/reminders?status=UPCOMING&pageSize=5` });
+  await waitFor(socket, "location.pathname === '/reminders' && Boolean(document.querySelector('app-reminders-page')) && document.querySelectorAll('app-reminders-page app-counter-card').length === 6", 'gestione promemoria');
+  await socket.evaluate(`if (!document.querySelector('#reminder-status-filter')) document.querySelector('app-reminders-page .filters__toggle')?.click()`);
+  await waitFor(socket, "Boolean(document.querySelector('#reminder-status-filter'))", 'filtri promemoria aperti');
+  const remindersRefinement = await socket.evaluate(`({
+    eyebrow: document.querySelector('app-reminders-page app-page-header p')?.textContent.trim() || '',
+    breadcrumbItems: Array.from(document.querySelectorAll('app-reminders-page app-breadcrumb .breadcrumb-item')).map(item => item.textContent.trim()),
+    activeSidebar: Array.from(document.querySelectorAll('.sidebar__nav a.active')).map(item => item.textContent.trim()).filter(Boolean),
+    queryStatus: new URLSearchParams(location.search).get('status'),
+    queryPageSize: new URLSearchParams(location.search).get('pageSize'),
+    filters: ['#reminder-status-filter', '#reminder-type-filter', '#reminder-source-filter', '#reminder-expense-status-filter', '#reminder-category-filter', '#reminder-recurrence-filter', '#scheduled-from', '#scheduled-to', '#expense-date-from', '#expense-date-to'].every(selector => Boolean(document.querySelector(selector))),
+    nestedFilterCards: document.querySelectorAll('app-reminders-page .filters__panel .card').length,
+    desktopRows: document.querySelectorAll('app-reminders-page tbody tr').length,
+    mobileCards: document.querySelectorAll('app-reminders-page .reminder-card').length
+  })`);
+  assert(remindersRefinement.eyebrow === 'Gestione', `Sovratitolo Promemoria inatteso: ${remindersRefinement.eyebrow}`);
+  assert(JSON.stringify(remindersRefinement.breadcrumbItems) === JSON.stringify(['Gestione', 'Promemoria']), `Breadcrumb Promemoria inatteso: ${remindersRefinement.breadcrumbItems.join(' > ')}`);
+  assert(JSON.stringify(remindersRefinement.activeSidebar) === JSON.stringify(['Promemoria']), `Voce Promemoria non univocamente attiva: ${remindersRefinement.activeSidebar.join(', ')}`);
+  assert(remindersRefinement.queryStatus === 'UPCOMING' && remindersRefinement.queryPageSize === '5', 'Query Promemoria non persistita');
+  assert(remindersRefinement.filters && remindersRefinement.nestedFilterCards === 0, 'Filtri Promemoria incompleti o con card annidate');
+  assert(remindersRefinement.desktopRows > 0 && remindersRefinement.mobileCards > 0, 'Vista desktop/mobile Promemoria senza dati seed');
+  await socket.command('Page.reload', { ignoreCache: false });
+  await waitFor(socket, "document.readyState === 'complete' && location.pathname === '/reminders' && new URLSearchParams(location.search).get('status') === 'UPCOMING' && Boolean(document.querySelector('app-reminders-page'))", 'reload promemoria con query');
 
   await socket.command('Page.navigate', { url: `${frontendUrl}/notifications` });
   await waitFor(socket, "location.pathname === '/notifications' && Boolean(document.querySelector('app-notifications-page'))", 'notifiche 10.6');

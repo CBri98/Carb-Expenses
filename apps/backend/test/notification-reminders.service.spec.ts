@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ExpenseStatus, ReminderType, type ExpenseReminder } from '@prisma/client';
+import { ExpenseStatus, ReminderSource, ReminderType, type ExpenseReminder } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationRemindersService } from '../src/notifications/notification-reminders.service';
@@ -23,6 +23,7 @@ function reminder(overrides: Partial<ExpenseReminder> = {}): ExpenseReminder {
     userId: 'user-1',
     expenseId: expense.id,
     type: ReminderType.THREE_DAYS_BEFORE,
+    source: ReminderSource.MANUAL,
     offsetMinutes: 4_320,
     scheduledAt: new Date('2026-07-22T07:00:00.000Z'),
     isActive: true,

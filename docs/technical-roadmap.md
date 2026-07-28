@@ -76,9 +76,12 @@ La realizzazione procede per incrementi avviabili. Ogni fase termina con build, 
 - colori accent coordinati su sidebar, topbar e superfici soft.
 - transizioni tema, gerarchia dei sovratitoli e hover delle tabelle uniformati.
 
-## Fase 11 — Gestione centralizzata dei promemoria
+## Fase 11 — Gestione centralizzata dei promemoria (completata)
 
-- evoluzione della gestione promemoria oltre i form delle singole spese.
+- modulo e API globali con ownership, paginazione, filtri, ordinamento e riepilogo aggregato;
+- stati derivati, origine persistita e regole sicure per modifica, annullamento, riattivazione ed eliminazione;
+- pagina Angular responsive con URL state, selezione, operazioni massive e riuso del form spesa;
+- integrazione con spese, notifiche, ricorrenze, impostazioni, seed, Swagger e test automatici.
 
 ## Fase 12 — Polish, testing e release
 
