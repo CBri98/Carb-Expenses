@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { AppBreadcrumbComponent } from './app-breadcrumb.component';
 
 describe('AppBreadcrumbComponent', () => {
-  it('rende i link intermedi e marca soltanto la pagina corrente', async () => {
+  it('nasconde il raggruppamento della sidebar, rende i link intermedi e marca la pagina corrente', async () => {
     await TestBed.configureTestingModule({
       imports: [AppBreadcrumbComponent],
       providers: [provideRouter([])],
@@ -24,11 +24,10 @@ describe('AppBreadcrumbComponent', () => {
     const links = Array.from(root.querySelectorAll<HTMLAnchorElement>('a'));
 
     expect(elements.map((item) => item.textContent?.trim())).toEqual([
-      'Gestione',
       'Spese',
       'Dettaglio',
     ]);
-    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/expenses', '/expenses']);
+    expect(links.map((link) => link.getAttribute('href'))).toEqual(['/expenses']);
     expect(elements.at(-1)?.getAttribute('aria-current')).toBe('page');
     expect(elements.at(-1)?.querySelector('a')).toBeNull();
   });

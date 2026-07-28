@@ -4,7 +4,7 @@
 .detail-grid dd { margin: .2rem 0 0; font-weight: 600; overflow-wrap: anywhere; }
 .detail-summary { background: linear-gradient(135deg, var(--surface), var(--primary-selected-bg)); }
 .category-badge { color: var(--text-primary); background: var(--surface-soft); border: 1px solid var(--border-color); }
-.detail-tabs { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .2rem; border-bottom: 1px solid var(--border-color); }
+.detail-tabs { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .2rem; }
 .detail-tab { flex: 0 0 auto; padding: .75rem .9rem; color: var(--text-secondary); background: transparent; border: 0; border-bottom: 2px solid transparent; }
 .detail-tab.active { color: var(--primary-selected-color); background: var(--primary-selected-bg); border-bottom-color: var(--primary); }
 .detail-tab .badge { color: inherit; background: rgb(var(--primary-rgb) / 12%); }

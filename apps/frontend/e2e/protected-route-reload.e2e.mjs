@@ -112,20 +112,14 @@ try {
       return { label: section.textContent.trim(), items };
     });
     const breadcrumbItems = Array.from(document.querySelectorAll('app-breadcrumb .breadcrumb-item')).map((item) => item.textContent.trim());
-    const breadcrumbLink = document.querySelector('app-breadcrumb a')?.getAttribute('href') || '';
-    return { sections, breadcrumbItems, breadcrumbLink };
+    return { sections, breadcrumbItems };
   })()`);
   const managementSection = navigationHierarchy.sections.find((section) => section.label === 'Gestione');
   const personalSection = navigationHierarchy.sections.find((section) => section.label === 'Area personale');
   assert(JSON.stringify(managementSection?.items) === JSON.stringify(['Spese', 'Spese ricorrenti', 'Promemoria', 'Categorie', 'Etichette']), `Sezione Gestione inattesa: ${JSON.stringify(managementSection)}`);
   assert(navigationHierarchy.sections.at(-1)?.label === 'Area personale', 'Area personale non Ã¨ l ultima sezione della sidebar');
   assert(JSON.stringify(personalSection?.items) === JSON.stringify(['Notifiche', 'Impostazioni']), `Sezione Area personale inattesa: ${JSON.stringify(personalSection)}`);
-  assert(JSON.stringify(navigationHierarchy.breadcrumbItems) === JSON.stringify(['Gestione', 'Categorie']), `Breadcrumb Categorie inatteso: ${navigationHierarchy.breadcrumbItems.join(' > ')}`);
-  assert(navigationHierarchy.breadcrumbLink === '/expenses', `Link Gestione inatteso: ${navigationHierarchy.breadcrumbLink}`);
-  await socket.evaluate(`document.querySelector('app-breadcrumb a').click()`);
-  await waitFor(socket, "location.pathname === '/expenses' && Boolean(document.querySelector('app-expenses-page'))", 'link breadcrumb Gestione');
-  await socket.command('Page.navigate', { url: `${frontendUrl}/settings/categories` });
-  await waitFor(socket, "location.pathname === '/settings/categories' && Boolean(document.querySelector('app-categories'))", 'ritorno categorie');
+  assert(JSON.stringify(navigationHierarchy.breadcrumbItems) === JSON.stringify(['Categorie']), `Breadcrumb Categorie inatteso: ${navigationHierarchy.breadcrumbItems.join(' > ')}`);
 
   const visualTokens = await socket.evaluate(`(() => {
     const root = document.documentElement;
@@ -277,6 +271,27 @@ try {
   assert(expensesRefinement.searchInCard, 'Ricerca Spese fuori dalla card');
   assert(expensesRefinement.fullMonthInTable, 'Le date della tabella Spese non mostrano il mese completo');
   assert(expensesRefinement.recurringIndicatorsAreBadges === 0, 'Indicatore Spesa ricorrente ancora in formato badge');
+  await socket.evaluate(`document.querySelector('app-expense-table tbody .expense-row')?.click()`);
+  await waitFor(socket, "Boolean(document.querySelector('app-expense-detail')) && location.pathname.startsWith('/expenses/') && location.pathname.split('/').length === 3", 'nuovo dettaglio spesa');
+  const expenseDetailLayout = await socket.evaluate(`({
+    breadcrumbItems: Array.from(document.querySelectorAll('app-expense-detail app-breadcrumb .breadcrumb-item')).map(item => item.textContent.trim()),
+    summary: Boolean(document.querySelector('app-expense-detail .detail-summary')),
+    summaryDate: Boolean(document.querySelector('app-expense-detail .detail-summary__date')),
+    summaryTitle: Boolean(document.querySelector('app-expense-detail .detail-summary__title')),
+    summaryAmount: Boolean(document.querySelector('app-expense-detail .detail-summary__amount strong')),
+    summaryCategory: Boolean(document.querySelector('app-expense-detail .detail-summary app-category-badge')),
+    summaryStatus: Boolean(document.querySelector('app-expense-detail .detail-summary app-expense-status-badge')),
+    actionsTopRight: Boolean(document.querySelector('app-expense-detail app-page-header .detail-actions')),
+    tabs: document.querySelectorAll('app-expense-detail [role=tab]').length,
+    activePanel: Boolean(document.querySelector('app-expense-detail [role=tabpanel]')),
+    tabsBorder: getComputedStyle(document.querySelector('app-expense-detail .detail-tabs')).borderBottomWidth
+  })`);
+  assert(JSON.stringify(expenseDetailLayout.breadcrumbItems) === JSON.stringify(['Spese', 'Dettaglio']), `Breadcrumb Dettaglio spesa inatteso: ${expenseDetailLayout.breadcrumbItems.join(' > ')}`);
+  assert(expenseDetailLayout.summary && expenseDetailLayout.summaryDate && expenseDetailLayout.summaryTitle && expenseDetailLayout.summaryAmount && expenseDetailLayout.summaryCategory && expenseDetailLayout.summaryStatus, 'Riepilogo compatto Dettaglio spesa incompleto');
+  assert(expenseDetailLayout.actionsTopRight && expenseDetailLayout.tabs === 2 && expenseDetailLayout.activePanel, 'Azioni o navigazione a tab Dettaglio spesa mancanti');
+  assert(expenseDetailLayout.tabsBorder === '0px', `Bordo sotto le tab Dettaglio spesa presente: ${expenseDetailLayout.tabsBorder}`);
+  await socket.command('Page.navigate', { url: `${frontendUrl}/expenses` });
+  await waitFor(socket, "location.pathname === '/expenses' && Boolean(document.querySelector('#expense-search')) && Boolean(document.querySelector('app-expense-table'))", 'ritorno lista spese');
   await socket.evaluate(`if (!document.querySelector('#expense-filter-category')) document.querySelector('app-expense-filters .filters__toggle')?.click()`);
   await waitFor(socket, "Boolean(document.querySelector('#expense-filter-category'))", 'filtri spese aperti');
   await socket.evaluate(`document.querySelector('#expense-filter-category')?.closest('.ng-select-container')?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))`);
@@ -328,6 +343,8 @@ try {
 
   await socket.command('Page.navigate', { url: `${frontendUrl}${detailPath}` });
   await waitFor(socket, "Boolean(document.querySelector('app-recurrence-detail')) && document.querySelectorAll('[role=tab]').length === 3", 'dettaglio ricorrenza con tab');
+  const recurrenceTabsBorder = await socket.evaluate(`getComputedStyle(document.querySelector('app-recurrence-detail .detail-tabs')).borderBottomWidth`);
+  assert(recurrenceTabsBorder === '0px', `Bordo sotto le tab Ricorrenza presente: ${recurrenceTabsBorder}`);
   await socket.evaluate(`document.querySelector('#recurrence-tab-occurrences').click()`);
   await waitFor(socket, "Boolean(document.querySelector('#recurrence-panel-occurrences'))", 'tab occorrenze ricorrenza');
 
@@ -353,7 +370,7 @@ try {
     categoryBadges: document.querySelectorAll('app-reminders-page table app-category-badge').length
   })`);
   assert(remindersRefinement.eyebrow === 'Gestione', `Sovratitolo Promemoria inatteso: ${remindersRefinement.eyebrow}`);
-  assert(JSON.stringify(remindersRefinement.breadcrumbItems) === JSON.stringify(['Gestione', 'Promemoria']), `Breadcrumb Promemoria inatteso: ${remindersRefinement.breadcrumbItems.join(' > ')}`);
+  assert(JSON.stringify(remindersRefinement.breadcrumbItems) === JSON.stringify(['Promemoria']), `Breadcrumb Promemoria inatteso: ${remindersRefinement.breadcrumbItems.join(' > ')}`);
   assert(JSON.stringify(remindersRefinement.activeSidebar) === JSON.stringify(['Promemoria']), `Voce Promemoria non univocamente attiva: ${remindersRefinement.activeSidebar.join(', ')}`);
   assert(remindersRefinement.queryStatus === 'UPCOMING' && remindersRefinement.queryPageSize === '5', 'Query Promemoria non persistita');
   assert(remindersRefinement.filters && remindersRefinement.nestedFilterCards === 0, 'Filtri Promemoria incompleti o con card annidate');
@@ -371,21 +388,17 @@ try {
     eyebrow: document.querySelector('app-notifications-page app-page-header p')?.textContent.trim() || '',
     counterIcons: document.querySelectorAll('app-notifications-page app-counter-card .counter-card__icon').length,
     themedReadAll: Boolean(Array.from(document.querySelectorAll('app-notifications-page button')).find(item => item.textContent.includes('Segna tutte come lette'))?.classList.contains('btn-primary')),
-    breadcrumbItems: Array.from(document.querySelectorAll('app-breadcrumb .breadcrumb-item')).map(item => item.textContent.trim()),
-    personalHref: document.querySelector('app-breadcrumb a')?.getAttribute('href') || ''
+    breadcrumbItems: Array.from(document.querySelectorAll('app-breadcrumb .breadcrumb-item')).map(item => item.textContent.trim())
   })`);
   assert(notificationRefinement.eyebrow === 'Area personale', `Sovratitolo Notifiche inatteso: ${notificationRefinement.eyebrow}`);
   assert(notificationRefinement.counterIcons === 2, 'Icone counter card Notifiche mancanti');
   assert(notificationRefinement.themedReadAll, 'Pulsante Segna tutte come lette non tematizzato');
-  assert(JSON.stringify(notificationRefinement.breadcrumbItems) === JSON.stringify(['Area personale', 'Notifiche']), `Breadcrumb Notifiche inatteso: ${notificationRefinement.breadcrumbItems.join(' > ')}`);
-  assert(notificationRefinement.personalHref === '/notifications', `Link Area personale inatteso: ${notificationRefinement.personalHref}`);
+  assert(JSON.stringify(notificationRefinement.breadcrumbItems) === JSON.stringify(['Notifiche']), `Breadcrumb Notifiche inatteso: ${notificationRefinement.breadcrumbItems.join(' > ')}`);
   await socket.command('Page.navigate', { url: `${frontendUrl}/settings/account` });
   await waitFor(socket, "location.pathname === '/settings/account' && Boolean(document.querySelector('app-settings-page'))", 'impostazioni area personale');
   const settingsBreadcrumb = await socket.evaluate(`({ eyebrow: document.querySelector('app-settings-page .eyebrow')?.textContent.trim() || '', items: Array.from(document.querySelectorAll('app-breadcrumb .breadcrumb-item')).map(item => item.textContent.trim()), href: document.querySelector('app-breadcrumb a')?.getAttribute('href') || '' })`);
   assert(settingsBreadcrumb.eyebrow === 'Area personale', `Sovratitolo Impostazioni inatteso: ${settingsBreadcrumb.eyebrow}`);
-  assert(JSON.stringify(settingsBreadcrumb.items) === JSON.stringify(['Area personale', 'Impostazioni']), `Breadcrumb Impostazioni inatteso: ${settingsBreadcrumb.items.join(' > ')}`);
-  await socket.evaluate(`document.querySelector('app-breadcrumb a').click()`);
-  await waitFor(socket, "location.pathname === '/notifications' && Boolean(document.querySelector('app-notifications-page'))", 'link breadcrumb Area personale');
+  assert(JSON.stringify(settingsBreadcrumb.items) === JSON.stringify(['Impostazioni']), `Breadcrumb Impostazioni inatteso: ${settingsBreadcrumb.items.join(' > ')}`);
 
   await socket.evaluate(`fetch(${JSON.stringify(`${apiUrl}/auth/logout`)}, {
     method: 'POST', credentials: 'include'

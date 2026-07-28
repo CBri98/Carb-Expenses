@@ -776,28 +776,52 @@ html[data-theme='dark'] .form-control::placeholder { color: #858b9d; }
 }
 
 * {
-  scrollbar-color: color-mix(in srgb, var(--text-secondary) 58%, transparent) transparent;
-  scrollbar-width: auto;
+  scrollbar-color: color-mix(in srgb, var(--primary) 68%, var(--text-secondary)) color-mix(in srgb, var(--surface-soft) 82%, transparent);
+  scrollbar-width: thin;
 }
 
 *::-webkit-scrollbar {
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 0.7rem;
+  height: 0.7rem;
 }
 
 *::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
-  background-color: color-mix(in srgb, var(--text-secondary) 50%, transparent);
-  background-clip: padding-box;
-  border: 0.2rem solid transparent;
+  background: color-mix(in srgb, var(--surface-soft) 82%, transparent);
   border-radius: 999px;
 }
 
+*::-webkit-scrollbar-thumb {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  background-color: color-mix(in srgb, var(--primary) 68%, var(--text-secondary));
+  background-clip: padding-box;
+  border: 0.16rem solid transparent;
+  border-radius: 999px;
+  transition: background-color var(--motion-fast, 160ms) ease;
+}
+
 *::-webkit-scrollbar-thumb:hover {
-  background-color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  background-color: var(--primary-strong);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.sidebar {
+  scrollbar-color: rgb(255 255 255 / 42%) transparent;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: rgb(255 255 255 / 34%);
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(255 255 255 / 58%);
 }
 
 @media (prefers-reduced-motion: reduce) {
