@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -27,6 +27,7 @@ import { UpcomingExpensesComponent } from './upcoming-expenses.component';
 export class DashboardComponent {
   private readonly dashboard = inject(DashboardService);
   private readonly expenses = inject(ExpenseService);
+  private observedExpenseVersion = this.expenses.changeVersion();
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -138,13 +139,16 @@ export class DashboardComponent {
       .subscribe();
 
     effect(() => {
-      if (this.expenses.changeVersion() > 0) this.refresh.next();
+      const version = this.expenses.changeVersion();
+      if (version <= this.observedExpenseVersion) return;
+      this.observedExpenseVersion = version;
+      untracked(() => this.refresh.next());
     });
     effect(() => {
       const preferred = this.settings.experience().dashboardTrendMonths;
       if (this.settings.loaded() && !this.trendMonthsManual && preferred !== this.trendMonths()) {
         this.trendMonths.set(preferred);
-        this.refresh.next();
+        untracked(() => this.refresh.next());
       }
     });
   }

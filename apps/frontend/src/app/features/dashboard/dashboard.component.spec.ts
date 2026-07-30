@@ -82,4 +82,36 @@ describe('DashboardComponent', () => {
     fixture.componentInstance.showAllCategories();
     expect(fixture.componentInstance.categoryLabels()).toEqual(['Casa', 'Auto']);
   });
+
+  it('esegue un solo caricamento per ogni nuova mutazione delle spese', async () => {
+    const load = vi.fn(() => of(data));
+    const changeVersion = signal(4);
+    await TestBed.configureTestingModule({
+      imports: [DashboardComponent],
+      providers: [
+        provideRouter([]),
+        { provide: DashboardService, useValue: { load } },
+        { provide: ExpenseService, useValue: { changeVersion: changeVersion.asReadonly(), duplicate: vi.fn(), setStatus: vi.fn() } },
+        { provide: ActivatedRoute, useValue: { queryParamMap: of(convertToParamMap({ month: '7', year: '2026' })) } },
+      ],
+    })
+      .overrideComponent(DashboardChartComponent, { set: { template: '' } })
+      .compileComponents();
+
+    const fixture = TestBed.createComponent(DashboardComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(load).toHaveBeenCalledTimes(1);
+
+    changeVersion.set(5);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(load).toHaveBeenCalledTimes(2);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(load).toHaveBeenCalledTimes(2);
+  });
 });
