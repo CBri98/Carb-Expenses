@@ -615,14 +615,12 @@ export class RecurrencesService {
       }
     }
     if (dto.reminderTemplates !== undefined || dto.expenseTime !== undefined) {
-      await transaction.expenseReminder.updateMany({
+      await transaction.expenseReminder.deleteMany({
         where: {
           expenseId: { in: expenseIds },
           type: { not: ReminderType.CUSTOM },
           processedAt: null,
-          isActive: true,
         },
-        data: { isActive: false, cancelledAt: now },
       });
       for (const expense of expenses) {
         const time =

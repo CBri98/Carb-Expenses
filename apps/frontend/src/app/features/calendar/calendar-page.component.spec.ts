@@ -66,6 +66,12 @@ describe('CalendarExpenseEventComponent', () => {
     expect(element.textContent).toContain('Pianificata');
     expect(element.textContent).toContain('Scaduta');
     expect(element.querySelector('.calendar-event')?.getAttribute('draggable')).toBe('true');
+    expect(element.textContent).not.toContain('Tutto il giorno');
+
+    fixture.componentRef.setInput('event', { ...planned, expenseTime: '09:30' });
+    fixture.detectChanges();
+    expect(element.querySelector('.calendar-event__time')?.textContent).toContain('09:30');
+
 
     fixture.componentRef.setInput('event', { ...planned, status: 'COMPLETED', isOverdue: false });
     fixture.detectChanges();

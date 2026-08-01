@@ -3,7 +3,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
-import { NgSelectComponent } from '@ng-select/ng-select';
+import {
+  NgLabelTemplateDirective,
+  NgOptionTemplateDirective,
+  NgSelectComponent,
+} from '@ng-select/ng-select';
 import { debounceTime, distinctUntilChanged, finalize, forkJoin, map, Subject } from 'rxjs';
 
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -44,6 +48,8 @@ import { RecurrenceActionsMenuComponent } from './recurrence-actions-menu.compon
     RouterLink,
     AppBreadcrumbComponent,
     NgSelectComponent,
+    NgOptionTemplateDirective,
+    NgLabelTemplateDirective,
     PageHeaderComponent,
     CounterCardComponent,
     EmptyStateComponent,

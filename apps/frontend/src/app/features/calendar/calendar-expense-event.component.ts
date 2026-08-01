@@ -28,10 +28,12 @@ import { RecurrenceExpenseIndicatorComponent } from '../recurrences/recurrence-d
         [attr.aria-label]="'Apri ' + event().title + ', ' + (event().amount | euroAmount)"
         (click)="opened.emit()"
       >
-        <span class="calendar-event__time">
-          <i class="bi" [class.bi-clock]="event().expenseTime" [class.bi-calendar-event]="!event().expenseTime" aria-hidden="true"></i>
-          {{ event().expenseTime || 'Tutto il giorno' }}
-        </span>
+        @if (event().expenseTime) {
+          <span class="calendar-event__time">
+            <i class="bi bi-clock" aria-hidden="true"></i>
+            {{ event().expenseTime }}
+          </span>
+        }
         <strong class="calendar-event__title">{{ event().title }}</strong>
         <span class="calendar-event__amount">{{ event().amount | euroAmount }}</span>
         <span class="calendar-event__category">

@@ -138,6 +138,28 @@ describe('RecurrencesService', () => {
     });
   });
 
+  it('rimuove i promemoria non processati dalle future spese quando si svuotano i template', async () => {
+    prisma.recurrenceRule.findFirst.mockResolvedValue(recurrenceRule({ generatedCount: 2 }));
+    prisma.expense.findMany.mockResolvedValue([{
+      id: 'expense-future',
+      expenseDate: new Date('2026-08-01T00:00:00.000Z'),
+      expenseTime: null,
+    }]);
+
+    await service.update('user-1', ruleId, {
+      reminderTemplates: [],
+      updateScope: RecurrenceUpdateScope.RULE_AND_FUTURE_PLANNED_EXPENSES,
+    }, now);
+
+    expect(prisma.expenseReminder.deleteMany).toHaveBeenCalledWith({
+      where: {
+        expenseId: { in: ['expense-future'] },
+        type: { not: ReminderType.CUSTOM },
+        processedAt: null,
+      },
+    });
+  });
+
   it('mantiene description sincronizzata al nome nella regola e nelle future pianificate', async () => {
     prisma.recurrenceRule.findFirst.mockResolvedValue(recurrenceRule({ generatedCount: 2 }));
     prisma.expense.findMany.mockResolvedValue([{ id: 'expense-future', expenseDate: new Date('2026-08-01T00:00:00.000Z'), expenseTime: null }]);
@@ -312,7 +334,7 @@ function prismaMock() {
       createMany: vi.fn(),
     },
     expenseReminder: {
-      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }), deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
       upsert: vi.fn(),
     },
     $transaction: vi.fn(),

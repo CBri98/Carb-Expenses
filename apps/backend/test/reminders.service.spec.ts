@@ -145,11 +145,13 @@ describe('RemindersService', () => {
       .rejects.toThrow('data prevista è già trascorsa');
   });
 
-  it('impedisce l’eliminazione dello storico notificato e dei promemoria ricorrenti', async () => {
+  it('conserva lo storico notificato ma elimina un promemoria ricorrente non processato', async () => {
     prisma.expenseReminder.findFirst.mockResolvedValue(reminder({ notifications: [{}] }));
     await expect(service.remove('user-1', reminderId)).rejects.toThrow('notifica');
+
     prisma.expenseReminder.findFirst.mockResolvedValue(reminder({ source: ReminderSource.RECURRENCE }));
-    await expect(service.remove('user-1', reminderId)).rejects.toThrow('ricorrenza');
+    await expect(service.remove('user-1', reminderId)).resolves.toEqual({ deleted: true });
+    expect(prisma.expenseReminder.delete).toHaveBeenCalledWith({ where: { id: reminderId } });
   });
 
   it('restituisce un risultato parziale nelle operazioni massive', async () => {

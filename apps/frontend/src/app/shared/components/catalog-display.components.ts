@@ -107,14 +107,14 @@ export class LoadingSkeletonComponent {}
     </div>
   </div></article>`,
   styles: [`
-    .counter-card { border: 0; box-shadow: var(--shadow-sm); }
+    .counter-card { border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); }
     .counter-card .card-body, .counter-card__content { min-width: 0; }
     .counter-card__content span, .counter-card__content strong { overflow-wrap: anywhere; }
     .counter-card__hint, .counter-card__filtered { display:block; color:var(--text-secondary); font-size:.72rem; line-height:1.3; }
     .counter-card__filtered { margin-top:.2rem; color:var(--primary-strong); }
     .counter-card__filtered strong { color:inherit; font-weight:800; }
-    .counter-card--interactive { cursor: pointer; transition: transform var(--motion-fast, 160ms) ease, box-shadow var(--motion-fast, 160ms) ease; }
-    .counter-card--interactive:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .counter-card--interactive { cursor: pointer; transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease; }
+    .counter-card--interactive:hover { border-color: var(--primary); box-shadow: var(--shadow-md); transform: translateY(-2px); }
     .counter-card--interactive:focus-visible { outline: var(--focus-ring, 3px solid rgb(var(--primary-rgb) / 35%)); outline-offset: 2px; }
     .counter-card__icon { display: grid; width: 2.5rem; height: 2.5rem; flex: 0 0 auto; color: var(--primary); background: var(--primary-soft); border-radius: .7rem; place-items: center; }
   `],

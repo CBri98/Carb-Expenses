@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { ExpenseStatus, Prisma, ReminderSource } from '@prisma/client';
+import { ExpenseStatus, Prisma } from '@prisma/client';
 
 import type { ApiPayload } from '../common/interceptors/api-response.interceptor';
 import { parseExpenseDate } from '../expenses/expense.utils';
@@ -299,9 +299,6 @@ export class RemindersService {
     }
     if (reminder.notifications.length > 0) {
       throw new ConflictException('Il promemoria ha generato una notifica: annullalo invece di eliminarlo');
-    }
-    if (reminder.source === ReminderSource.RECURRENCE) {
-      throw new ConflictException('Il promemoria è gestito da una ricorrenza: annullalo invece di eliminarlo');
     }
   }
 

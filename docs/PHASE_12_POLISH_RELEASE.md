@@ -47,10 +47,10 @@ Non limitarsi a produrre documentazione o suggerimenti.
 Prima di modificare il codice:
 
 1. leggere integralmente `AGENTS.md`;
-2. leggere integralmente `docs/PHASE_10_POLISH_RELEASE.md`;
+2. leggere integralmente `docs/PHASE_12_POLISH_RELEASE.md`;
 3. analizzare lo stato reale del repository;
 4. eseguire `git status` e `git diff`;
-5. leggere i documenti delle Fasi 1–9;
+5. leggere i documenti delle Fasi 1–11;
 6. verificare quali funzionalità sono realmente presenti;
 7. non considerare completata una fase soltanto perché esiste il relativo documento;
 8. eseguire una prima baseline di:

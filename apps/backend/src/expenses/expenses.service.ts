@@ -257,12 +257,9 @@ export class ExpensesService {
         where: { id },
         data: { deletedAt: new Date() },
       });
-      await this.reminders?.handleExpenseMutation(
-        transaction,
-        id,
-        ExpenseStatus.CANCELLED,
-        false,
-      );
+      await transaction.expenseReminder.deleteMany({
+        where: { expenseId: id },
+      });
     });
     return { deleted: true };
   }

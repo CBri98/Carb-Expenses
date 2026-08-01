@@ -38,7 +38,7 @@ export function allowedActions(
     canEdit: unprocessed && validExpense,
     canCancel: unprocessed && reminder.isActive,
     canReactivate: unprocessed && validExpense && !reminder.isActive && reminder.scheduledAt > now,
-    canDelete: unprocessed && reminder.notifications.length === 0 && reminder.source !== 'RECURRENCE',
+    canDelete: unprocessed && reminder.notifications.length === 0,
   };
 }
 

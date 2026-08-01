@@ -334,6 +334,36 @@ html[data-density='compact'] .table > :is(thead, tbody) > tr > :is(th, td) {
   --bs-btn-hover-border-color: #b9bfce;
 }
 
+.btn-outline-success {
+  --bs-btn-bg: var(--surface);
+  --bs-btn-color: var(--bs-success);
+  --bs-btn-border-color: color-mix(in srgb, var(--bs-success) 55%, var(--border-color));
+  --bs-btn-hover-color: var(--bs-success);
+  --bs-btn-hover-bg: var(--success-soft);
+  --bs-btn-hover-border-color: var(--bs-success);
+}
+
+.btn-outline-warning {
+  --bs-btn-bg: var(--surface);
+  --bs-btn-color: var(--bs-warning);
+  --bs-btn-border-color: color-mix(in srgb, var(--bs-warning) 50%, var(--border-color));
+  --bs-btn-hover-color: var(--bs-warning);
+  --bs-btn-hover-bg: var(--warning-soft);
+  --bs-btn-hover-border-color: var(--bs-warning);
+}
+
+.btn-outline-danger {
+  --bs-btn-bg: var(--surface);
+  --bs-btn-color: var(--bs-danger);
+  --bs-btn-border-color: color-mix(in srgb, var(--bs-danger) 48%, var(--border-color));
+  --bs-btn-hover-color: var(--bs-danger);
+  --bs-btn-hover-bg: var(--danger-soft);
+  --bs-btn-hover-border-color: var(--bs-danger);
+  --bs-btn-active-color: var(--bs-danger);
+  --bs-btn-active-bg: var(--danger-soft);
+  --bs-btn-active-border-color: var(--bs-danger);
+}
+
 .btn-danger {
   --bs-btn-bg: #aa565f;
   --bs-btn-border-color: #aa565f;
@@ -756,6 +786,48 @@ html[data-theme='dark'] .form-control::placeholder { color: #858b9d; }
   font-size: 1.05rem;
 }
 
+.entity-select.ng-select > .ng-select-container {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border-strong));
+  background: linear-gradient(135deg, var(--form-surface), color-mix(in srgb, var(--primary-soft) 32%, var(--form-surface)));
+}
+
+.entity-select.ng-select > .ng-select-container:hover {
+  border-color: var(--primary);
+  background: var(--surface);
+}
+
+.entity-select-option {
+  display: inline-flex;
+  width: 100%;
+  min-width: 0;
+  gap: .55rem;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entity-select-option > .bi {
+  display: inline-grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 1.75rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-color);
+  border-radius: .5rem;
+  place-items: center;
+}
+
+.entity-select--plain-icons .entity-select-option > .bi {
+  display: inline-block;
+  width: 1.05rem;
+  height: auto;
+  flex: 0 0 1.05rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  text-align: center;
+}
 .auth-form h2 {
   color: var(--text-primary);
   font-weight: 750;

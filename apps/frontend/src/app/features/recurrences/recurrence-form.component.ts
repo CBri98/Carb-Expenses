@@ -7,7 +7,11 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
-import { NgSelectComponent } from '@ng-select/ng-select';
+import {
+  NgLabelTemplateDirective,
+  NgOptionTemplateDirective,
+  NgSelectComponent,
+} from '@ng-select/ng-select';
 import {
   catchError,
   debounceTime,
@@ -45,7 +49,13 @@ import { MultiselectValueComponent } from '../../shared/components/multiselect-v
 @Component({
   selector: 'app-recurrence-form',
   standalone: true,
-  imports: [ReactiveFormsModule, NgSelectComponent, MultiselectValueComponent],
+  imports: [
+    ReactiveFormsModule,
+    NgSelectComponent,
+    NgOptionTemplateDirective,
+    NgLabelTemplateDirective,
+    MultiselectValueComponent,
+  ],
   templateUrl: './recurrence-form.component.html',
   styleUrl: './recurrence-form.component.scss',
 })

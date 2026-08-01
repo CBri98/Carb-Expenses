@@ -8,6 +8,12 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import {
+  NgLabelTemplateDirective,
+  NgOptionTemplateDirective,
+  NgSelectComponent,
+} from '@ng-select/ng-select';
 
 import {
   ICON_CATALOG,
@@ -19,6 +25,12 @@ import {
 @Component({
   selector: 'app-icon-picker',
   standalone: true,
+  imports: [
+    FormsModule,
+    NgSelectComponent,
+    NgOptionTemplateDirective,
+    NgLabelTemplateDirective,
+  ],
   template: `
     <div class="icon-picker">
       <div class="row g-2">
@@ -33,17 +45,24 @@ import {
             (input)="onSearch($event)"
           />
         </div>
-        <div class="col-12 col-sm-auto">
+        <div class="col-12 col-sm-auto icon-picker__group">
           <label class="form-label" [for]="inputId() + '-group'">Gruppo</label>
-          <select
-            class="form-select form-select-sm"
-            [id]="inputId() + '-group'"
-            [value]="group()"
-            (change)="onGroup($event)"
+          <ng-select
+            class="entity-select icon-group-select"
+            [labelForId]="inputId() + '-group'"
+            [items]="groupOptions()"
+            bindLabel="label"
+            bindValue="value"
+            [clearable]="false"
+            [searchable]="false"
+            [ngModel]="group()"
+            [ngModelOptions]="{ standalone: true }"
+            ariaLabel="Filtra le icone per gruppo"
+            (ngModelChange)="group.set($event)"
           >
-            <option value="">Tutti</option>
-            @for (item of groups(); track item) { <option [value]="item">{{ item }}</option> }
-          </select>
+            <ng-template ng-option-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+            <ng-template ng-label-tmp let-item="item"><span class="select-option"><i class="bi" [class]="item.icon" aria-hidden="true"></i>{{ item.label }}</span></ng-template>
+          </ng-select>
         </div>
       </div>
       @if (currentHidden(); as hidden) {
@@ -85,6 +104,7 @@ import {
     </div>
   `,
   styles: [`
+    .icon-picker__group { min-width: 13rem; }
     .icon-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(2.65rem, 1fr));
@@ -130,6 +150,10 @@ export class IconPickerComponent {
   readonly groups = computed(() =>
     ICON_GROUPS.filter((group) => this.catalog().some((item) => item.group === group)),
   );
+  readonly groupOptions = computed(() => [
+    { value: '', label: 'Tutti', icon: 'bi-grid' },
+    ...this.groups().map((group) => ({ value: group, label: group, icon: 'bi-folder' })),
+  ]);
   readonly currentHidden = computed<IconCatalogItem | null>(() => {
     const current = this.value();
     if (!current || this.availableIcons().includes(current) || !/^bi-[a-z0-9-]+$/.test(current)) {
@@ -152,10 +176,6 @@ export class IconPickerComponent {
 
   onSearch(event: Event): void {
     this.query.set((event.target as HTMLInputElement).value);
-  }
-
-  onGroup(event: Event): void {
-    this.group.set((event.target as HTMLSelectElement).value);
   }
 
   toggle(icon: string): void {

@@ -9,10 +9,10 @@
 
   @if (globalSummary(); as data) {
     <div class="row g-3 mb-3">
-      <div class="col-6 col-xl-3"><app-counter-card label="Attive" [value]="data.activeCount" valueHint="Totale globale" [filteredValue]="summaryFiltered() ? filteredSummary()?.activeCount ?? null : null" icon="bi-play-circle" [interactive]="true" (activated)="filterFromSummary('ACTIVE')" /></div>
-      <div class="col-6 col-xl-3"><app-counter-card label="In pausa" [value]="data.pausedCount" valueHint="Totale globale" [filteredValue]="summaryFiltered() ? filteredSummary()?.pausedCount ?? null : null" icon="bi-pause-circle" [interactive]="true" (activated)="filterFromSummary('PAUSED')" /></div>
-      <div class="col-6 col-xl-3"><app-counter-card label="Occorrenze entro 30 giorni" [value]="data.upcomingOccurrences" valueHint="Totale globale" [filteredValue]="summaryFiltered() ? filteredSummary()?.upcomingOccurrences ?? null : null" icon="bi-calendar2-week" [interactive]="true" (activated)="openUpcomingExpenses()" /></div>
-      <div class="col-6 col-xl-3"><app-counter-card label="Totale pianificato" [value]="data.upcomingTotal | euroAmount" valueHint="Totale globale" [filteredValue]="summaryFiltered() && filteredSummary() ? (filteredSummary()!.upcomingTotal | euroAmount) : null" icon="bi-cash-stack" [interactive]="true" (activated)="openUpcomingExpenses()" /></div>
+      <div class="col-6 col-xl-3"><app-counter-card label="Attive" [value]="data.activeCount" [filteredValue]="summaryFiltered() ? filteredSummary()?.activeCount ?? null : null" icon="bi-play-circle" [interactive]="true" (activated)="filterFromSummary('ACTIVE')" /></div>
+      <div class="col-6 col-xl-3"><app-counter-card label="In pausa" [value]="data.pausedCount" [filteredValue]="summaryFiltered() ? filteredSummary()?.pausedCount ?? null : null" icon="bi-pause-circle" [interactive]="true" (activated)="filterFromSummary('PAUSED')" /></div>
+      <div class="col-6 col-xl-3"><app-counter-card label="Occorrenze entro 30 giorni" [value]="data.upcomingOccurrences" [filteredValue]="summaryFiltered() ? filteredSummary()?.upcomingOccurrences ?? null : null" icon="bi-calendar2-week" [interactive]="true" (activated)="openUpcomingExpenses()" /></div>
+      <div class="col-6 col-xl-3"><app-counter-card label="Totale pianificato" [value]="data.upcomingTotal | euroAmount" [filteredValue]="summaryFiltered() && filteredSummary() ? (filteredSummary()!.upcomingTotal | euroAmount) : null" icon="bi-cash-stack" [interactive]="true" (activated)="openUpcomingExpenses()" /></div>
     </div>
   }
 
@@ -97,8 +97,8 @@
           </div>
         </article>
       }</div>
+      <app-pagination [meta]="meta()" (pageChange)="goToPage($event)" />
     </div>
-    <app-pagination [meta]="meta()" (pageChange)="goToPage($event)" />
   }
 </div>
 

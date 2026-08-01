@@ -583,7 +583,6 @@ async function seedDemoRecurrences(userId: string): Promise<void> {
     const categoryId = categoryByName.get(definition.category);
     if (!categoryId) throw new Error(`Categoria ricorrenza demo non trovata: ${definition.category}`);
     const ruleId = `70000000-0000-4000-8000-${definition.suffix.padStart(12, '0')}`;
-    const expenseId = `80000000-0000-4000-8000-${definition.suffix.padStart(12, '0')}`;
     const startDate = new Date(`${definition.startDate}T00:00:00.000Z`);
     const schedule = {
       frequency: definition.frequency,
@@ -664,10 +663,14 @@ async function seedDemoRecurrences(userId: string): Promise<void> {
         })),
       });
     }
-    await prisma.expense.upsert({
-      where: { id: expenseId },
+    const expense = await prisma.expense.upsert({
+      where: {
+        recurrenceRuleId_occurrenceDate: {
+          recurrenceRuleId: ruleId,
+          occurrenceDate: startDate,
+        },
+      },
       create: {
-        id: expenseId,
         userId,
         categoryId,
         description: definition.description,
@@ -696,6 +699,7 @@ async function seedDemoRecurrences(userId: string): Promise<void> {
           create: labelIds.map((labelId) => ({ labelId })),
         },
       },
+      select: { id: true },
     });
     for (const type of definition.reminders) {
       const deadline = localDateTimeToUtc(definition.startDate, '09:00', timezone);
@@ -703,14 +707,14 @@ async function seedDemoRecurrences(userId: string): Promise<void> {
       await prisma.expenseReminder.upsert({
         where: {
           expenseId_type_scheduledAt: {
-            expenseId,
+            expenseId: expense.id,
             type,
             scheduledAt,
           },
         },
         create: {
           userId,
-          expenseId,
+          expenseId: expense.id,
           type,
           source: ReminderSource.RECURRENCE,
           offsetMinutes: REMINDER_OFFSET_MINUTES[type],

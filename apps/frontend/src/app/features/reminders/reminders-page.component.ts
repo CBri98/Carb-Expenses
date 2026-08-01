@@ -2,7 +2,11 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule, FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
-import { NgSelectComponent } from '@ng-select/ng-select';
+import {
+  NgLabelTemplateDirective,
+  NgOptionTemplateDirective,
+  NgSelectComponent,
+} from '@ng-select/ng-select';
 import { debounceTime, distinctUntilChanged, finalize, forkJoin, map, type Observable, Subject } from 'rxjs';
 
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -61,6 +65,8 @@ type ReminderAction = 'cancel' | 'reactivate' | 'delete';
     ReactiveFormsModule,
     RouterLink,
     NgSelectComponent,
+    NgOptionTemplateDirective,
+    NgLabelTemplateDirective,
     AppBreadcrumbComponent,
     PageHeaderComponent,
     CategoryBadgeComponent,

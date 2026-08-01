@@ -170,7 +170,7 @@
                 @if (item.expense.merchant) { <small class="reminder-expense-meta"><i class="bi bi-shop me-1" aria-hidden="true"></i>{{ item.expense.merchant }}</small> }
                 @if (item.expense.recurrence; as recurrence) { <a class="reminder-recurrence-link" [routerLink]="['/recurrences', recurrence.id]"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ recurrence.name }}</a> }
               </td>
-              <td class="reminder-cell reminder-cell--category"><strong class="reminder-amount">{{ item.expense.amount | euroAmount }}</strong><app-category-badge [name]="item.expense.category.name" [icon]="item.expense.category.icon" [color]="item.expense.category.color" /></td>
+              <td class="reminder-cell reminder-cell--category"><div class="reminder-cell-stack"><strong class="reminder-amount">{{ item.expense.amount | euroAmount }}</strong><app-category-badge [name]="item.expense.category.name" [icon]="item.expense.category.icon" [color]="item.expense.category.color" /></div></td>
               <td class="reminder-cell"><div class="reminder-badge-stack"><app-reminder-type-badge [type]="item.type" /><app-reminder-source [source]="item.source" /></div></td>
               <td class="reminder-cell"><div class="reminder-badge-stack"><app-reminder-status-badge [status]="item.status" /><app-expense-status-badge [status]="item.expense.status" />@if (item.notification) { <a class="reminder-notification-link" routerLink="/notifications" [queryParams]="{ expenseId: item.expense.id }"><i class="bi bi-bell me-1" aria-hidden="true"></i>Notifica generata</a> }</div></td>
               <td class="reminder-cell reminder-cell--actions text-end"><div class="reminder-actions">
@@ -204,8 +204,8 @@
           </div>
         </article>
       }</div>
+      <app-pagination [meta]="meta()" (pageChange)="goToPage($event)" />
     </div>
-    <app-pagination [meta]="meta()" (pageChange)="goToPage($event)" />
   }
 </div>
 

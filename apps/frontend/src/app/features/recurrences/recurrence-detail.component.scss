@@ -5,7 +5,9 @@
 .detail-summary { background: linear-gradient(135deg, var(--surface), var(--primary-selected-bg)); }
 .category-badge { color: var(--text-primary); background: var(--surface-soft); border: 1px solid var(--border-color); }
 .detail-tabs { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .2rem; }
-.detail-tab { flex: 0 0 auto; padding: .75rem .9rem; color: var(--text-secondary); background: transparent; border: 0; border-bottom: 2px solid transparent; }
+.detail-tab { flex: 0 0 auto; padding: .75rem .9rem; color: var(--text-secondary); background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: .65rem .65rem 0 0; transition: color var(--motion-fast), background-color var(--motion-fast), border-color var(--motion-fast); }
+.detail-tab:hover:not(.active) { color: var(--primary-strong); background: var(--primary-soft); border-bottom-color: var(--primary-border); }
+.detail-tab:focus-visible { outline: 3px solid var(--primary-focus-ring); outline-offset: 2px; }
 .detail-tab.active { color: var(--primary-selected-color); background: var(--primary-selected-bg); border-bottom-color: var(--primary); }
 .detail-tab .badge { color: inherit; background: rgb(var(--primary-rgb) / 12%); }
 .notes-text { white-space: pre-wrap; overflow-wrap: anywhere; }

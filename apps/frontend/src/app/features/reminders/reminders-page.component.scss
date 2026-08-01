@@ -36,6 +36,17 @@
   width: 14%;
 }
 
+.selection-column .form-check-input,
+.reminder-cell--selection .form-check-input {
+  display: block;
+  float: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0 auto;
+  cursor: pointer;
+  border-color: var(--border-strong);
+}
+
 .reminders-table__status {
   width: 16%;
 }
@@ -200,7 +211,7 @@
   white-space: nowrap;
 }
 
-.reminder-cell--category,
+.reminder-cell-stack,
 .reminder-badge-stack {
   display: flex;
   flex-direction: column;

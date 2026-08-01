@@ -228,6 +228,9 @@ describe('ExpensesService', () => {
     expect(prisma.expense.update).toHaveBeenLastCalledWith({
       where: { id: expense().id }, data: { deletedAt: expect.any(Date) },
     });
+    expect(prisma.expenseReminder.deleteMany).toHaveBeenCalledWith({
+      where: { expenseId: expense().id },
+    });
   });
 
   it('duplica usando una nuova data e un nuovo ID generato dal database', async () => {
@@ -262,6 +265,7 @@ function prismaMock() {
       create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn(), update: vi.fn(),
     },
     category: { findFirst: vi.fn() },
+    expenseReminder: { deleteMany: vi.fn() },
     label: { findMany: vi.fn() },
     $transaction: vi.fn(),
   };
